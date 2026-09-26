@@ -503,7 +503,7 @@ function targetOf(c) {
   const [dx, dy] = DIRV[c.dir];
   const fx = c.x + dx * 12, fy = c.y - 3 + dy * 12;
   if (!S.edit) {
-    const pool = c.area === "town" ? S.walkers : c.area === "shop" ? S.customers.filter((k) => k.state !== "out") : [];
+    const pool = c.area === "town" ? S.walkers.filter((w) => !w.hidden).concat(S.customers.filter((k) => k.area === "town")) : c.area === "shop" ? S.customers.filter((k) => k.area === "shop" && k.goal !== "out") : [];
     for (const w of pool) {
       if (Math.hypot(w.x - fx, w.y - 3 - fy) < 12) return { type: "npc", walker: w };
     }
@@ -927,7 +927,13 @@ function orderById(id) {
 function doAction(i) {
   if (S.phase !== "play" || S.paused) return;
   const c = S.chars[i];
-  if (c.modal) return;
+  if (c.modal) {
+    if (c.modal.type === "talk") {
+      closeModal(i);
+      sfx("close");
+    }
+    return;
+  }
   const now = performance.now();
   if (now - (c.lastAct || 0) < 300) return;
   c.lastAct = now;
@@ -1260,11 +1266,10 @@ function browsePoint() {
   return [9 * TILE, 8 * TILE];
 }
 function newCust(kind, extra) {
-  if (S.chars.some((c) => c.area === "shop")) sfx("bell");
-  return { kind, x: DOOR_IN[0], y: DOOR_IN[1], state: "move", walk: 0, pal: newPal(), dir: "up", name: pick(NAMES), path: [], ...extra };
+  return { kind, area: "shop", x: DOOR_IN[0], y: DOOR_IN[1], state: "move", walk: 0, pal: newPal(), dir: "up", name: pick(NAMES), path: [], ...extra };
 }
 function freeCounterSlot() {
-  const used = S.customers.filter((c) => c.goal === "counter" && c.state !== "gone").map((c) => c.slot);
+  const used = S.customers.filter((c) => c.slot != null && c.state !== "gone" && c.goal !== "out" && c.goal !== "gone").map((c) => c.slot);
   const n = S.st.counter.w;
   for (let k = 0; k < n; k++) if (!used.includes(k)) return k;
   return n - 1;
@@ -1273,6 +1278,20 @@ function goCounter(k) {
   k.goal = "counter";
   k.slot = freeCounterSlot();
   routeTo(k, ...counterSlot(k.slot));
+}
+const LANE_YS = [9.5 * TILE, 10.3 * TILE, 11 * TILE];
+function viaTown(k) {
+  k.inPath = k.path;
+  k.inGoal = k.goal;
+  k.area = "town";
+  const left = Math.random() < 0.5;
+  k.ly = pick(LANE_YS);
+  k.x = left ? 1.6 * TILE : 56.4 * TILE;
+  k.y = k.ly;
+  k.path = [[7 * TILE, k.ly], [7 * TILE, 5.9 * TILE]];
+  k.goal = "enter";
+  k.state = "move";
+  return k;
 }
 function spawnOrderCustomer(o) {
   const k = newCust("order", { orderId: o.id, name: o.name });
@@ -1287,24 +1306,24 @@ function spawnOrderCustomer(o) {
     const p = counterSlot(k.slot);
     k.path.push([p[0], AISLE], p);
   }
-  S.customers.push(k);
+  S.customers.push(viaTown(k));
 }
 function spawnWalkin() {
   const k = newCust("walkin", { plan: [] });
   const n = 1 + Math.floor(Math.random() * 3);
   for (let j = 0; j < n; j++) k.plan.push("look");
   k.plan.push("display");
-  S.customers.push(k);
   nextGoal(k);
+  S.customers.push(viaTown(k));
 }
 function spawnReserve() {
-  const k = newCust("reserve", { leaveAt: S.t + 70 });
-  S.customers.push(k);
+  const k = newCust("reserve", { leaveAt: S.t + 90 });
   k.path = [[DOOR_IN[0], AISLE]];
   k.slot = freeCounterSlot();
   k.goal = "counter";
   const p = counterSlot(k.slot);
   k.path.push([p[0], AISLE], p);
+  S.customers.push(viaTown(k));
 }
 function nextGoal(k) {
   const g = k.plan && k.plan.shift();
@@ -1383,7 +1402,28 @@ function stepToward(k, dt, spd) {
   return !k.path.length;
 }
 function arrive(k) {
+  if (k.goal === "enter") {
+    k.area = "shop";
+    k.x = DOOR_IN[0];
+    k.y = DOOR_IN[1];
+    k.path = k.inPath;
+    k.goal = k.inGoal;
+    k.state = "move";
+    if (S.chars.some((c) => c.area === "shop")) sfx("bell");
+    return;
+  }
   if (k.goal === "out") {
+    k.area = "town";
+    k.slot = null;
+    k.x = 7 * TILE;
+    k.y = 6.3 * TILE;
+    const ly = k.ly || pick(LANE_YS);
+    k.path = [[7 * TILE, ly], [Math.random() < 0.5 ? 1.4 * TILE : 56.6 * TILE, ly]];
+    k.goal = "gone";
+    k.state = "move";
+    return;
+  }
+  if (k.goal === "gone") {
     k.state = "gone";
     return;
   }
@@ -1420,12 +1460,12 @@ function arrive(k) {
 function updateCustomers(dt) {
   const dMin = dt / REAL_PER_MIN;
   S.orders.forEach((o) => {
-    if (!o.arrived && S.t >= o.time && (o.status === "pending" || o.status === "crafted")) {
+    if (!o.arrived && S.t >= o.time - 12 && (o.status === "pending" || o.status === "crafted")) {
       o.arrived = true;
       spawnOrderCustomer(o);
     }
   });
-  const inShop = S.customers.filter((k) => k.kind !== "order").length;
+  const inShop = S.customers.filter((k) => k.kind !== "order" && k.goal !== "gone").length;
   if (S.t >= S.nextWalkin) {
     S.nextWalkin = S.t + rnd(20, 40);
     if (S.t < 560 && inShop < 4) spawnWalkin();
@@ -1461,7 +1501,10 @@ function updateCustomers(dt) {
         k.path = [[k.x, AISLE], [p[0], AISLE], p];
         k.state = "move";
       }
-      if (k.kind === "reserve" && S.t > k.leaveAt) leave(k);
+      if (k.kind === "reserve" && S.t > k.leaveAt) {
+        k.slot = null;
+        leave(k);
+      }
     }
   });
   S.customers = S.customers.filter((k) => k.state !== "gone");
@@ -1475,46 +1518,83 @@ function updateWalkers(dt) {
     }
   });
   S.walkers.forEach((w) => {
-    if (w.offer && S.t > w.offer.until && !w.talking) w.offer = null;
-    const lead = w.follow;
-    if (w.talking || lead && lead.talking) {
-      w.walk = 0;
-      if (w.dog) w.dog.walk = 0;
+    const px = w.x, py = w.y, dpx = w.dog ? w.dog.x : 0, dpy = w.dog ? w.dog.y : 0;
+    walkerStep(w, dt);
+    w.mv = Math.hypot(w.x - px, w.y - py) > 0.02;
+    if (w.dog) w.dog.mv = Math.hypot(w.dog.x - dpx, w.dog.y - dpy) > 0.02;
+  });
+}
+const ERRAND_DOORS = [20 * TILE, 43 * TILE];
+function walkerStep(w, dt) {
+  if (w.offer && S.t > w.offer.until && !w.talking) w.offer = null;
+  const lead = w.follow;
+  if (w.talking || lead && lead.talking) return;
+  if (w.zone === "lane" && !lead) {
+    if (w.hidden > 0) {
+      w.hidden -= dt;
+      if (w.hidden <= 0) {
+        w.hidden = 0;
+        w.x = w.ex;
+        w.y = 6.3 * TILE;
+        w.errand = "back";
+        w.path = [[w.ex, w.ly]];
+        w.dir = "down";
+      }
       return;
     }
-    if (lead) {
-      const tx = lead.x + (lead.dir === "left" ? 12 : -12) * (lead.zone === "lane" ? 1 : 0.8), ty = lead.y + 2;
-      w.path = [[tx, ty]];
-      const d = Math.hypot(tx - w.x, ty - w.y);
-      if (d > 1.5) stepToward(w, dt, Math.min(40, d * 3));
-      else {
-        w.walk = 0;
-        w.dir = lead.dir;
+    if (w.errand === "go") {
+      if (stepToward(w, dt, 21)) {
+        w.hidden = rnd(12, 30);
+        w.errand = null;
       }
-    } else if (w.zone === "lane") {
-      w.path = [[w.tx, w.y]];
-      if (stepToward(w, dt, w.kind === "kid" ? 26 : 21)) w.tx = w.tx > 28 * TILE ? 2 * TILE : 55 * TILE;
+      return;
+    }
+    if (w.errand === "back") {
+      if (stepToward(w, dt, 21)) w.errand = null;
+      return;
+    }
+    if (Math.random() < dt * 0.04) {
+      const ahead = ERRAND_DOORS.filter((x) => w.tx > w.x ? x > w.x + 8 && x < w.x + 60 : x < w.x - 8 && x > w.x - 60);
+      if (ahead.length) {
+        w.ex = ahead[0];
+        w.ly = w.y;
+        w.errand = "go";
+        w.path = [[w.ex, w.y], [w.ex, 5.9 * TILE]];
+        return;
+      }
+    }
+  }
+  if (lead) {
+    const tx = lead.x + (lead.dir === "left" ? 12 : -12) * (lead.zone === "lane" ? 1 : 0.8), ty = lead.y + 2;
+    w.path = [[tx, ty]];
+    const d = Math.hypot(tx - w.x, ty - w.y);
+    if (d > 1.5) stepToward(w, dt, Math.min(40, d * 3));
+    else {
+      w.walk = 0;
+      w.dir = lead.dir;
+    }
+  } else if (w.zone === "lane") {
+    w.path = [[w.tx, w.y]];
+    if (stepToward(w, dt, w.kind === "kid" ? 26 : 21)) w.tx = w.tx > 28 * TILE ? 2 * TILE : 55 * TILE;
+  } else {
+    if (w.wait > 0) {
+      w.wait -= dt;
+      w.walk = 0;
     } else {
-      if (w.wait > 0) {
-        w.wait -= dt;
-        w.walk = 0;
-      } else {
-        w.path = [[w.tx, w.ty]];
-        if (stepToward(w, dt, w.kind === "kid" ? 24 : w.kind === "elder" ? 11 : 16)) {
-          w.wait = rnd(1.5, 4);
-          [w.tx, w.ty] = park(w.zone);
-        }
+      w.path = [[w.tx, w.ty]];
+      if (stepToward(w, dt, w.kind === "kid" ? 24 : w.kind === "elder" ? 11 : 16)) {
+        w.wait = rnd(1.5, 4);
+        [w.tx, w.ty] = park(w.zone);
       }
     }
-    if (w.dog) {
-      const d = w.dog, [ox, oy] = DIRV[w.dir] || [0, 1];
-      const tx = w.x - ox * 10 + 6, ty = w.y - oy * 6 + 3;
-      const dd = Math.hypot(tx - d.x, ty - d.y);
-      d.path = [[tx, ty]];
-      if (dd > 1.5) stepToward(d, dt, Math.min(45, dd * 4));
-      else d.walk = Math.max(0, d.walk - dt);
-    }
-  });
+  }
+  if (w.dog) {
+    const d = w.dog, [ox, oy] = DIRV[w.dir] || [0, 1];
+    const tx = w.x - ox * 10 + 6, ty = w.y - oy * 6 + 3;
+    const dd = Math.hypot(tx - d.x, ty - d.y);
+    d.path = [[tx, ty]];
+    if (dd > 1.5) stepToward(d, dt, Math.min(45, dd * 4));
+  }
 }
 const TALK = {
   adult: ["\uC624\uB298 \uB0A0\uC528 \uC815\uB9D0 \uC88B\uC8E0? \uC0B0\uCC45\uD558\uAE30 \uB531\uC774\uC5D0\uC694.", "\uAF43\uC2DC\uC7A5\uC740 \uC815\uC624\uC5D0 \uBB38\uC744 \uB2EB\uC73C\uB2C8\uAE4C \uC624\uC804\uC5D0 \uC11C\uB450\uB974\uC138\uC694.", "\uC800\uB141\uC5D0 \uAC00\uB85C\uB4F1\uC774 \uCF1C\uC9C0\uBA74 \uC774 \uAE38\uC774 \uCC38 \uC608\uBED0\uC694.", "\uC694\uC998 \uB450 \uBD84 \uAC00\uAC8C \uC55E\uC744 \uC9C0\uB098\uAC00\uBA74 \uAF43\uD5A5\uAE30\uAC00 \uB098\uC694.", "\uB2E4\uB9AC \uC704\uC5D0\uC11C \uBCF4\uB294 \uAC15\uC774 \uC81C\uC77C \uC88B\uC544\uC694."],
@@ -1793,17 +1873,14 @@ function refreshControls() {
   updateControlVisibility();
 }
 function updateControlVisibility() {
-  var _a;
   const root = $("#controls");
   const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
   root.style.display = S.phase === "play" && touch && !padsList().length ? "block" : "none";
+  const bz = (m) => !!m && m.type !== "talk";
   if (S.mode === "solo") {
-    const busy = !!((_a = S.chars[S.active]) == null ? void 0 : _a.modal);
+    const busy = bz(S.chars[S.active] && S.chars[S.active].modal);
     root.querySelectorAll(".joyzone,.act,.swap").forEach((el2) => el2.classList.toggle("hide", busy));
-  } else root.querySelectorAll("[data-slot]").forEach((el2) => {
-    var _a2;
-    return el2.classList.toggle("hide", !!((_a2 = S.chars[+el2.dataset.slot]) == null ? void 0 : _a2.modal));
-  });
+  } else root.querySelectorAll("[data-slot]").forEach((el2) => el2.classList.toggle("hide", bz(S.chars[+el2.dataset.slot] && S.chars[+el2.dataset.slot].modal)));
 }
 function updateActionButtons() {
   document.querySelectorAll(".act").forEach((b) => {
@@ -3300,6 +3377,11 @@ function navMove(ctx2, dir) {
   }
 }
 function navPress(ctx2) {
+  if (ctx2.key.startsWith("m") && S.chars[ctx2.i].modal && S.chars[ctx2.i].modal.type === "talk") {
+    closeModal(ctx2.i);
+    sfx("close");
+    return;
+  }
   const b = curFocus(ctx2);
   if (!b) {
     navMove(ctx2, "down");
@@ -3871,12 +3953,12 @@ function apronV(g, p, st, hw, t, back, side) {
   g.fillRect(-5 + st + t * 3, -51, 10 - t * 2, 6);
 }
 function slimHead(g, hx, t, col, sh) {
-  const w = 21, chinX = hx + t * 7;
+  const w = 21 * (1 - 0.14 * t), chinX = hx + t * 6;
   g.beginPath();
   g.moveTo(hx - w + t * 2, -100);
   g.bezierCurveTo(hx - w, -127, hx + w, -127, hx + w, -100);
-  g.bezierCurveTo(hx + w, -90, chinX + 8, -79, chinX, -76);
-  g.bezierCurveTo(chinX - 8, -79, hx - w + t * 3, -90, hx - w + t * 2, -100);
+  g.bezierCurveTo(hx + w + 1, -87, chinX + 11, -77.5, chinX, -75.5);
+  g.bezierCurveTo(chinX - 11, -77.5, hx - w + t * 2, -87, hx - w + t * 2, -100);
   g.fillStyle = col;
   g.fill();
   if (t > 0) {
@@ -3938,10 +4020,10 @@ function faceV(g, p, glasses, fx, t) {
   const ey = -94, f = p.style === "f", ex = p.expr || "smile";
   const eL = -9 + fx + t * 7, eR = 9 + fx + t * 2, sq = 1 - 0.42 * t;
   if (p.blush !== false) {
-    const bx = p.face === "slim" ? 11 : 14;
-    g.globalAlpha = 0.5;
-    if (t < 0.5) el(g, -bx + fx + t * 9, -84, 4.5 * sq, 2.8, CO.blush);
-    el(g, bx + fx - t * 3, -84, 4.5, 2.8, CO.blush);
+    const bx = p.face === "slim" ? 11.5 : 14;
+    g.globalAlpha = 0.36;
+    if (t < 0.5) el(g, -bx + fx + t * 9, -85, 3.2 * sq, 1.9, CO.blush);
+    el(g, bx + fx - t * 3, -85, 3.2, 1.9, CO.blush);
     g.globalAlpha = 1;
   }
   [[eL, sq], [eR, 1]].forEach(([x, s]) => {
@@ -3973,11 +4055,13 @@ function faceV(g, p, glasses, fx, t) {
     }
   });
   if (t > 0) {
-    g.strokeStyle = mix(p.skinSh || "#D3A284", "#000", 0.08);
-    g.lineWidth = 1.3;
+    g.strokeStyle = p.skinSh || "#D3A284";
+    g.globalAlpha = 0.55;
+    g.lineWidth = 1;
     g.beginPath();
-    g.arc(fx + t * 11, -89, 2, -Math.PI * 0.4, Math.PI * 0.5);
+    g.arc(fx + t * 11, -89, 1.6, -Math.PI * 0.3, Math.PI * 0.4);
     g.stroke();
+    g.globalAlpha = 1;
   }
   if (glasses || p.acc === "glasses") {
     const gold = glasses === "gold";
@@ -4032,11 +4116,25 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
   const t = kk / 4;
   const side = aq === 4, back = aq > 4, flip = q < 0;
   const sw = moving ? Math.sin(phase) : 0, bob = moving ? Math.abs(Math.cos(phase)) * 3.6 : Math.sin(performance.now() / 600 + x % 7) * 1.1, hs = moving ? Math.sin(phase + 1) * 2.4 : 0, wk = work ? Math.sin(performance.now() / 90) * 0.18 : 0;
-  const arm = (sx, rot, col, len) => {
+  const limb = (sx, sy, ua, fa, fs, col, sleeve, hand) => {
     g.save();
-    g.translate(sx, -68);
-    g.rotate(rot);
-    rr(g, -5, -2, 10, len || 30, 5, col);
+    g.translate(sx, sy);
+    g.scale(1, fs);
+    g.rotate(ua);
+    rr(g, -4.6, -1, 9.2, 17.5, 4.6, col);
+    g.translate(0, 15.5);
+    g.rotate(fa);
+    rr(g, -4.1, -1.5, 8.2, 15, 4.1, col);
+    el(g, 0, 15, hand * 0.95, hand * 1.1, col);
+    el(g, hand * 0.55, 13.5, hand * 0.35, hand * 0.5, mix(col, "#000", 0.06));
+    g.restore();
+    g.save();
+    g.translate(sx, sy);
+    g.scale(1, fs);
+    g.rotate(ua);
+    rr(g, -6.3, -4.5, 12.6, 13, 6, sleeve);
+    g.fillStyle = "rgba(0,0,0,.06)";
+    g.fillRect(-6.3, 6.5, 12.6, 2);
     g.restore();
   };
   const f = p.style === "f", H = p.hair, HL = p.hairHi, teeL = mix(p.tee, "#FFFFFF", 0.2), dark = mix(p.pants, "#000000", 0.18), style = hairStyleOf(p);
@@ -4071,7 +4169,10 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
     rr(g, -6 - a, -40, 13, 36, 5, p.pants);
     el(g, 4 - a, -4, 11, 5, p.shoe);
     g.translate(0, -bob);
-    arm(0, -sw * 0.6, p.skinSh);
+    {
+      const s2 = -sw;
+      limb(-1, -71, work ? -0.7 : -s2 * 0.55, work ? -0.85 : -(0.12 + 0.3 * Math.max(0, s2)), 1, p.skinSh, mix(p.tee, "#000", 0.1), 4.6);
+    }
     if (p.pack) rr(g, -26, -74, 12, 30, 5, "#E3A04A");
     poly(g, [-16, -76, 14, -76, 16, -36, -18, -36], p.tee);
     g.fillStyle = p.teeSh;
@@ -4079,15 +4180,14 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
     apronV(g, p, 0, 0, 0, false, true);
     if (slim) rr(g, -4, -90, 9, 18, 3, p.skinSh);
     else rr(g, -5, -84, 10, 10, 3, p.skinSh);
-    arm(0, work ? -0.9 + wk : sw * 0.6, p.skin);
-    rr(g, -8, -77, 15, 14, 6, p.tee);
+    limb(0, -71, work ? -0.75 + wk : -sw * 0.55, work ? -0.85 : -(0.12 + 0.3 * Math.max(0, sw)), 1, p.skin, p.tee, 4.8);
     headT(2);
     if (slim) {
       el(g, 1, -101, 20, 21, p.skin);
       g.beginPath();
       g.moveTo(-14, -94);
-      g.quadraticCurveTo(-4, -79, 15, -77);
-      g.quadraticCurveTo(22, -78, 22, -84);
+      g.quadraticCurveTo(-2, -76, 14, -76.5);
+      g.quadraticCurveTo(23, -77, 23, -85);
       g.quadraticCurveTo(24, -92, 21, -100);
       g.lineTo(0, -106);
       g.closePath();
@@ -4149,14 +4249,9 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
       g.arc(14, -94.4, 4, Math.PI * 1.2, Math.PI * 1.9);
       g.stroke();
     } else ln(g, 11, -102, 17, -102.6, CO.brow, 1.8);
-    g.strokeStyle = mix(p.skinSh || "#D3A284", "#000", 0.08);
-    g.lineWidth = 1.3;
-    g.beginPath();
-    g.arc(25, -90, 2, -Math.PI * 0.4, Math.PI * 0.5);
-    g.stroke();
     if (p.blush !== false) {
-      g.globalAlpha = 0.5;
-      el(g, 13, -85, 4, 2.5, CO.blush);
+      g.globalAlpha = 0.38;
+      el(g, 12, -85, 3, 1.8, CO.blush);
       g.globalAlpha = 1;
     }
     g.strokeStyle = f ? "#D9788A" : CO.mouth;
@@ -4220,14 +4315,24 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
       el(g, rX + t * 3, -4 - lB, 11, 5.5, p.shoe, t * 0.5);
     }
     g.translate(0, -bob);
-    const hw = 21 * (1 - 0.34 * t), aL = -28 * (1 - 0.4 * t) + st, aR = 28 * (1 - 0.12 * t) + st;
+    const hw = 21 * (1 - 0.34 * t);
     const farBehind = t >= 0.5;
-    if (farBehind) arm(aL, work ? -0.6 + wk : sw * 0.5, p.skinSh, 27);
+    const armFB = (sd, s, col, sleeve) => {
+      const sx = sd < 0 ? -hw + 0.5 + st + t * 7 : hw - 0.5 + st;
+      if (work) {
+        limb(sx, -71, sd < 0 ? 0.1 : -0.1 - t * 0.4, sd < 0 ? -1.25 - wk : 1.25 + wk, 0.85, col, sleeve, 5);
+        return;
+      }
+      const fwd = Math.max(0, s), bk = Math.max(0, -s);
+      const fs = 1 - 0.22 * fwd - 0.08 * bk, hand = 5 + 1.1 * fwd * (back ? -0.5 : 1);
+      let ua = (sd < 0 ? 0.08 : -0.08) - s * 0.42 * t, fa = (sd < 0 ? -1 : 1) * (0.1 + 0.28 * fwd) - (t > 0 ? 0.2 * fwd * t : 0);
+      limb(sx, -71 + fwd * 1.5, ua, fa, fs, col, sleeve, hand);
+    };
+    const sL = -sw, sR = sw;
+    if (farBehind) armFB(-1, sL, p.skinSh, mix(p.tee, "#000", 0.1));
     if (back && p.pack) {
     }
     poly(g, [-hw + st, -76, hw + st, -76, hw + 2 + st, -36, -hw - 2 + st, -36], p.tee);
-    if (!farBehind) poly(g, [-hw + st, -76, -hw - 13 + st + t * 6, -66, -hw - 9 + st + t * 6, -56, -hw + 1 + st, -60], p.tee);
-    poly(g, [hw + st, -76, hw + 13 + st, -66, hw + 9 + st, -56, hw - 1 + st, -60], p.tee);
     g.fillStyle = p.teeSh;
     g.fillRect(-hw - 2 + st, -42, 2 * hw + 4, 6);
     if (!back) {
@@ -4239,8 +4344,8 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
       g.fillRect(back ? hw - 6 + st : -hw + st, -76, 6, 40);
     }
     apronV(g, p, st, hw, t, back, false);
-    if (!farBehind) arm(aL, work ? -0.6 + wk : sw * 0.5, p.skin);
-    arm(aR, work ? 0.6 - wk : -sw * 0.5, p.skin);
+    if (!farBehind) armFB(-1, sL, back ? p.skinSh : p.skin, p.tee);
+    armFB(1, sR, back ? p.skinSh : p.skin, p.tee);
     if (slim) rr(g, -4.5 + st, -90, 9, 18, 3, p.skinSh);
     else rr(g, -5 + st, -84, 10, 10, 3, p.skinSh);
     headT(hx);
@@ -4318,13 +4423,13 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
         el(g, f ? 22 : 25, -96, 4.5, 6, p.skinSh);
       }
       if (slim) slimHead(g, hx, t, p.skin, p.skinSh);
-      else el(g, hx, -98, (f ? 22 : 25) * (1 - 0.06 * t), f ? 25 : 23, p.skin);
+      else el(g, hx, -98, (f ? 22 : 25) * (1 - 0.14 * t), f ? 25 : 23, p.skin);
       if (t > 0) {
         g.fillStyle = "rgba(0,0,0,.05)";
         el(g, hx - 14, -96, 8, 16, "rgba(0,0,0,.04)");
       }
       hairFrontV(g, p, H, HL, hx, t);
-      faceV(g, p, gl, hx + t * 10, t);
+      faceV(g, p, gl, hx + t * 7, t);
       pinV(g, p, hx, t, false);
       hatV(g, p, hx, t, false);
     }
@@ -4333,7 +4438,7 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
   g.restore();
 }
 function drawDog(g, d) {
-  const dir = d.dir, flip = dir === "left" || dir === "ul" || dir === "dl", sw = d.walk ? Math.sin(d.walk * 1.4) : 0, c = d.col, dk = mix(c, "#3B2F3F", 0.3);
+  const dir = d.dir, flip = dir === "left" || dir === "ul" || dir === "dl", sw = d.mv ? Math.sin(d.walk * 1.4) : 0, c = d.col, dk = mix(c, "#3B2F3F", 0.3);
   g.save();
   g.translate(d.x, d.y);
   if (flip) g.scale(-1, 1);
@@ -6027,12 +6132,16 @@ function drawWorldV(g, area) {
       }
     } });
   });
-  if (area === "shop") S.customers.forEach((k) => ents.push({ y: k.y, draw: () => {
-    drawChar(g, k.x, k.y, k.pal, k.dir, k.walk, k.state === "move" && !k.talking, false);
-    if (k.bouquet) drawItemV(g, k.bouquet, k.x, k.y - 11);
-  } }));
+  S.customers.forEach((k) => {
+    if ((k.area || "shop") !== area) return;
+    ents.push({ y: k.y, draw: () => {
+      drawChar(g, k.x, k.y, k.pal, k.dir, k.walk, k.state === "move" && !k.talking, false);
+      if (k.bouquet) drawItemV(g, k.bouquet, k.x, k.y - 11);
+    } });
+  });
   if (area === "town") S.walkers.forEach((w) => {
-    ents.push({ y: w.y, draw: () => drawChar(g, w.x, w.y, w.pal, w.dir, w.walk, w.walk > 0 && !w.talking && !(w.wait > 0), false) });
+    if (w.hidden) return;
+    ents.push({ y: w.y, draw: () => drawChar(g, w.x, w.y, w.pal, w.dir, w.walk, !!w.mv, false) });
     if (w.dog) {
       const d = w.dog;
       ents.push({ y: d.y, draw: () => {
@@ -6206,12 +6315,12 @@ function overlays(v) {
   }
   if (v.area === "shop") {
     S.customers.forEach((k) => {
-      if (k.kind !== "reserve" || k.state !== "wait" || k.talking) return;
+      if (k.area !== "shop" || k.kind !== "reserve" || k.state !== "wait" || k.talking) return;
       const [x, y] = S2(k.x, k.y - 32);
       pillText("\uC608\uC57D\uD558\uACE0 \uC2F6\uC5B4\uC694", x, y, "#FBDDE4", "#4A3F5C", 10);
     });
     S.customers.forEach((k) => {
-      if (k.say && k.state === "move") {
+      if (k.area === "shop" && k.say && k.state === "move") {
         const [x, y] = S2(k.x, k.y - 32);
         pillText(k.say, x, y, "rgba(255,253,249,.9)", "#7A6E86", 9);
       }
