@@ -174,6 +174,30 @@ h1{font-size:34px;font-weight:normal;margin:0 0 4px;letter-spacing:-.5px}
 .meter b{display:block;height:100%;background:#E0708C}
 @supports not (aspect-ratio:1/1){.cell{height:56px}.preview{height:200px}}
 .oldflex .row>*,.oldflex .opts>*,.oldflex .mh>*{margin-right:6px;margin-bottom:6px}
+#tip{position:fixed;z-index:60;pointer-events:none;background:#4A3F5C;color:#fff;font-size:14px;padding:6px 10px;border-radius:10px;opacity:0;transition:opacity .12s;max-width:280px;left:-999px;top:-999px}
+#tip.on{opacity:1}
+.cell.wilted svg{filter:grayscale(.6) sepia(.4)}
+.chip{display:inline-flex!important;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px!important;min-width:78px;vertical-align:top}
+.chip .ct{font-size:13px;display:flex;align-items:center;gap:3px}
+.chip .fr{display:flex;align-items:center;gap:4px;font-size:15px;line-height:1}
+.chip .fr b{font-weight:normal}
+.chip .fm{width:22px;height:22px}
+.chip.urgent{border-color:#E0708C!important;background:#FFF0F3!important}
+.chip .tbar{display:block;width:100%;height:5px;border-radius:3px;background:#F3D3DA;margin-top:3px;overflow:hidden}
+.chip .tbar i{display:block;height:100%;background:#E0708C}
+.fq .fm{width:20px;height:20px}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.shopgrid.img{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.scard{border:1.5px solid var(--line);border-radius:14px;padding:8px;background:#FFFDF9;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font:inherit;color:inherit}
+.scard.own{opacity:.75}
+.sart{width:72px;height:72px}
+.sart svg{width:100%;height:100%}
+.sname{font-size:14px}
+.sdesc{font-size:12px;color:#8A7F96;line-height:1.35}
+.sbad{font-size:12px;color:#7FA86A}
+.stylepick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+.stylepick .scard{cursor:pointer}
+.stylepick .sart{width:120px;height:120px}
 </style>
 </head>
 <body>
@@ -197,6 +221,7 @@ h1{font-size:34px;font-weight:normal;margin:0 0 4px;letter-spacing:-.5px}
 <div id="toasts"></div>
 <div id="orderPop" role="dialog" aria-label="예약 정보"></div>
 <div id="tut" class="hide"></div>
+<div id="tip" role="status"></div>
 <div id="screen"></div>
 <div id="rotate">휴대폰을 가로로 돌려 주세요<br><small>가로 화면에서 플레이할 수 있어요</small></div>
 
@@ -205,23 +230,26 @@ const TILE = 16, VW = 288, VH = 176;
 const DAY_LEN = 600, REAL_PER_MIN = 1.5, MARKET_CLOSE = 180, CLOSE_OK = 540;
 const HYDRATE_MIN = 30, DRY_MIN = 60, WILT = 15, REST_MIN = 5, BOOST_MIN = 60;
 const SAVE_KEY = "ourflowershop_save_v1";
-const AREAS = { shop: { h: 11 }, market: { w: 18, h: 11 }, supply: { w: 14, h: 10 }, town: { w: 58, h: 24 } };
+const AREAS = { shop: { h: 11 }, market: { w: 22, h: 11 }, supply: { w: 14, h: 10 }, town: { w: 58, h: 34 } };
 function shopLevel() {
   return S.up.exp3 ? 3 : S.up.exp2 ? 2 : S.up.exp1 ? 1 : 0;
 }
 Object.defineProperty(AREAS.shop, "w", { get: () => 18 + 4 * shopLevel() });
-const GROW = { tulip: 3, freesia: 3, gyp: 2 };
-const SEED_PRICE = { tulip: 4e3, freesia: 3500, gyp: 2500 };
+const GROW = { tulip: 3, freesia: 3, gyp: 2, rose: 4, hydrangea: 4 };
+const SEED_PRICE = { tulip: 4e3, freesia: 3500, gyp: 2500, rose: 6e3, hydrangea: 5e3 };
 const RIVER = [28, 30];
 function bridgeRow(ty) {
-  return ty >= 6 && ty <= 12 || ty >= 17 && ty <= 18;
+  return ty >= 6 && ty <= 12 || ty >= 17 && ty <= 18 || ty >= 24 && ty <= 25;
 }
 const FL = {
   tulip: { name: "\uD2A4\uB9BD", decay: 5, price: 9e3, dot: "#EE8FA7" },
   freesia: { name: "\uD504\uB9AC\uC9C0\uC544", decay: 4, price: 7500, dot: "#F5CF4E" },
-  gyp: { name: "\uC548\uAC1C\uAF43", decay: 3, price: 5e3, dot: "#FFFFFF" }
+  gyp: { name: "\uC548\uAC1C\uAF43", decay: 3, price: 5e3, dot: "#FFFFFF" },
+  rose: { name: "\uC7A5\uBBF8", decay: 3.5, price: 15e3, dot: "#D9435E" },
+  hydrangea: { name: "\uC218\uAD6D", decay: 6, price: 12e3, dot: "#9DB8E8" }
 };
-const TYPES = ["tulip", "freesia", "gyp"];
+const TYPES = ["tulip", "freesia", "gyp", "rose", "hydrangea"];
+const LEAVES = { tulip: 3, freesia: 2, gyp: 4, rose: 3, hydrangea: 2 };
 const PAPERS = {
   pink: { name: "\uBD84\uD64D", c: "#F4B6C4", d: "#E08FA4", l: "#FBDDE4" },
   yellow: { name: "\uB178\uB791", c: "#F6DC86", d: "#E2BD55", l: "#FBEFC3" },
@@ -241,6 +269,10 @@ const RIBBONS = {
   green: { name: "\uCD08\uB85D", c: "#7FB070", d: "#5C8C50", extra: true }
 };
 const TEMPLATES = [
+  { title: "\uC7A5\uBBF8 \uACE0\uBC31", text: "\uC624\uB298 \uACE0\uBC31\uD558\uB824\uACE0\uC694. \uC0C8\uBE68\uAC04 \uC7A5\uBBF8\uB85C \uBD80\uD0C1\uB4DC\uB824\uC694.", req: { rose: 7, gyp: 3 }, paper: "cream", price: 62e3 },
+  { title: "\uC218\uAD6D \uD55C \uC544\uB984", text: "\uC5EC\uB984 \uB290\uB08C \uB098\uB294 \uC218\uAD6D \uAF43\uB2E4\uBC1C\uC774\uC694. \uC2DC\uC6D0\uD558\uAC8C\uC694!", req: { hydrangea: 2, gyp: 3 }, paper: "sky", price: 44e3 },
+  { title: "\uACB0\uD63C\uAE30\uB150\uC77C", text: "\uBD80\uBAA8\uB2D8 \uACB0\uD63C\uAE30\uB150\uC77C\uC774\uC5D0\uC694. \uC7A5\uBBF8\uB791 \uD504\uB9AC\uC9C0\uC544\uB85C \uC6B0\uC544\uD558\uAC8C\uC694.", req: { rose: 5, freesia: 3 }, paper: "lilac", price: 6e4 },
+  { title: "\uC9D1\uB4E4\uC774 \uC218\uAD6D", text: "\uC0C8 \uC9D1\uC5D0 \uC5B4\uC6B8\uB9AC\uB294 \uC218\uAD6D\uC774\uB791 \uD2A4\uB9BD\uC774\uC694.", req: { hydrangea: 2, tulip: 3 }, paper: "mint", price: 48e3 },
   { title: "\uAE30\uB150\uC77C \uAF43\uB2E4\uBC1C", text: "\uC0AC\uADC4 \uC9C0 100\uC77C\uC774\uC5D0\uC694. \uC0AC\uB791\uC2A4\uB7EC\uC6B4 \uBD84\uD64D\uBE5B\uC73C\uB85C \uBD80\uD0C1\uD574\uC694.", req: { tulip: 5, gyp: 3 }, paper: "pink", price: 38e3 },
   { title: "\uC878\uC5C5 \uCD95\uD558 \uAF43\uB2E4\uBC1C", text: "\uB3D9\uC0DD \uC878\uC5C5\uC2DD\uC774\uC5D0\uC694. \uBC1D\uACE0 \uD658\uD558\uAC8C \uD574 \uC8FC\uC138\uC694!", req: { freesia: 5, tulip: 2, gyp: 2 }, paper: "yellow", price: 42e3 },
   { title: "\uBCD1\uBB38\uC548 \uAF43\uB2E4\uBC1C", text: "\uCE5C\uAD6C \uBCD1\uBB38\uC548 \uAC00\uC694. \uC740\uC740\uD558\uACE0 \uCC28\uBD84\uD558\uAC8C\uC694.", req: { freesia: 3, gyp: 4 }, paper: "cream", price: 3e4 },
@@ -250,7 +282,8 @@ const TEMPLATES = [
   { title: "\uC9D1\uB4E4\uC774 \uC120\uBB3C", text: "\uB178\uB797\uACE0 \uD48D\uC131\uD558\uAC8C \uBD80\uD0C1\uB4DC\uB824\uC694.", req: { freesia: 6, gyp: 4 }, paper: "yellow", price: 41e3 },
   { title: "\uAC10\uC0AC \uC778\uC0AC", text: "\uC120\uC0DD\uB2D8\uAED8 \uB4DC\uB824\uC694. \uB2E8\uC815\uD558\uACE0 \uC608\uC058\uAC8C\uC694.", req: { tulip: 3, freesia: 2, gyp: 3 }, paper: "lilac", price: 37e3 }
 ];
-const SHOP_CATS = [["equip", "\uC124\uBE44"], ["tool", "\uB3C4\uAD6C"], ["wrap", "\uD3EC\uC7A5\uC7AC"], ["deco", "\uAFB8\uBBF8\uAE30"], ["style", "\uC637\xB7\uCE58\uC7A5"], ["expand", "\uAC00\uAC8C \uD655\uC7A5"]];
+const STYLE_IDS = { natural: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", vintage: "\uC720\uB7FD \uBE48\uD2F0\uC9C0", minimal: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8" };
+const SHOP_CATS = [["equip", "\uC124\uBE44"], ["tool", "\uB3C4\uAD6C"], ["wrap", "\uD3EC\uC7A5\uC7AC"], ["deco", "\uAFB8\uBBF8\uAE30"], ["interior", "\uC778\uD14C\uB9AC\uC5B4"], ["style", "\uC637\xB7\uCE58\uC7A5"], ["expand", "\uAC00\uAC8C \uD655\uC7A5"]];
 const STYLE = {
   glasses: { label: "\uC548\uACBD", opts: [["horn", "\uAC80\uC740 \uBFD4\uD14C \uC548\uACBD", 15e3], ["gold", "\uB3D9\uADF8\uB780 \uAE08\uD14C \uC548\uACBD", 18e3]] },
   hat: { label: "\uBAA8\uC790", opts: [["beret", "\uBCA0\uB808\uBAA8", 12e3], ["sunhat", "\uBC00\uC9DA\uBAA8\uC790", 15e3], ["beanie", "\uB2C8\uD2B8 \uBE44\uB2C8", 1e4], ["cap", "\uC57C\uAD6C \uBAA8\uC790", 1e4]] },
@@ -269,11 +302,21 @@ const SHOP_ITEMS = [
   { id: "scissors", cat: "tool", name: "\uC88B\uC740 \uAC00\uC704", desc: "\uC0AC\uC120 \uC790\uB974\uAE30 \uC131\uACF5 \uAD6C\uAC04\uC774 \uB113\uC5B4\uC838\uC694.", price: 4e4 },
   { id: "papers2", cat: "wrap", name: "\uC0C8 \uD3EC\uC7A5\uC9C0 \uC138\uD2B8", desc: "\uBBFC\uD2B8, \uCF54\uB784, \uD06C\uB77C\uD504\uD2B8 \uD3EC\uC7A5\uC9C0\uAC00 \uC0DD\uACA8\uC694.", price: 25e3 },
   { id: "ribbons2", cat: "wrap", name: "\uC0C8 \uB9AC\uBCF8 \uC138\uD2B8", desc: "\uB77C\uBCA4\uB354, \uCD08\uB85D \uB9AC\uBCF8\uC774 \uC0DD\uACA8\uC694.", price: 15e3 },
-  { id: "rug", cat: "deco", name: "\uAF43\uBB34\uB2AC \uB7EC\uADF8", desc: "\uB9E4\uC7A5 \uBC14\uB2E5\uC5D0 \uD3EC\uADFC\uD55C \uAF43\uBB34\uB2AC \uB7EC\uADF8\uB97C \uAE54\uC544\uC694.", price: 2e4 },
+  { id: "d_jute", cat: "deco", name: "\uC8FC\uD2B8 \uB7EC\uADF8", desc: "", price: 28e3, repeat: true, floor: { t: "rug_jute", w: 4, h: 2, flat: true, walk: true } },
+  { id: "d_pendant", cat: "deco", name: "\uD39C\uB358\uD2B8 \uC870\uBA85", desc: "", price: 35e3 },
+  { id: "d_curtain", cat: "deco", name: "\uB9B0\uB128 \uCEE4\uD2BC", desc: "", price: 22e3 },
+  { id: "d_wreath", cat: "deco", name: "\uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC \uB9AC\uC2A4", desc: "", price: 18e3 },
+  { id: "d_wallshelf", cat: "deco", name: "\uBCBD \uC120\uBC18\uACFC \uC624\uBE0C\uC81C", desc: "", price: 2e4 },
+  { id: "d_mirror", cat: "deco", name: "\uC544\uCE58 \uAC70\uC6B8", desc: "", price: 26e3, repeat: true, floor: { t: "mirror", w: 1, h: 1 } },
+  { id: "d_ladder", cat: "deco", name: "\uC6D0\uBAA9 \uC0AC\uB2E4\uB9AC \uC120\uBC18", desc: "", price: 32e3, repeat: true, floor: { t: "ladder", w: 1, h: 1 } },
+  { id: "d_monstera", cat: "deco", name: "\uBAAC\uC2A4\uD14C\uB77C \uD654\uBD84", desc: "", price: 24e3, repeat: true, floor: { t: "monstera", w: 1, h: 1 } },
+  { id: "d_olive", cat: "deco", name: "\uC62C\uB9AC\uBE0C \uB098\uBB34", desc: "", price: 3e4, repeat: true, floor: { t: "olive", w: 1, h: 1 } },
+  { id: "d_terrarium", cat: "deco", name: "\uC720\uB9AC \uC628\uC2E4 \uC7A5\uC2DD\uC7A5", desc: "", price: 65e3, repeat: true, floor: { t: "terrarium", w: 2, h: 1 } },
   { id: "hanging", cat: "deco", name: "\uD589\uC789 \uD654\uBD84", desc: "\uCC9C\uC7A5\uC5D0 \uCD08\uB85D \uD654\uBD84\uC744 \uB354 \uB9E4\uB2EC\uC544\uC694.", price: 18e3 },
   { id: "lights", cat: "deco", name: "\uC804\uAD6C \uC870\uBA85", desc: "\uAC00\uAC8C\uC5D0 \uC804\uAD6C \uC904\uC744 \uB2EC\uC544\uC694. \uC800\uB141\uC774\uBA74 \uBC18\uC9DD\uC5EC\uC694.", price: 22e3 },
   { id: "sign", cat: "deco", name: "\uC0C8 \uAC04\uD310 \uB2EC\uAE30", desc: "\uC6B0\uB9AC \uAF43\uC9D1 \uAC04\uD310\uC744 \uAF43\uC73C\uB85C \uAFB8\uBBF8\uACE0 \uC774\uB984\uC744 \uC0C8\uB85C \uC815\uD574\uC694. \uC5B8\uC81C\uB4E0 \uB2E4\uC2DC \uC0B4 \uC218 \uC788\uC5B4\uC694.", price: 3e4, repeat: true },
   ...Object.entries(STYLE).flatMap(([k, v]) => v.opts.map(([val, name, price]) => ({ id: "st_" + k + "_" + val, cat: "style", name, desc: "\uAC00\uAC8C \uC637\uC7A5\uC5D0\uC11C \uAC08\uC544\uC785\uC744 \uC218 \uC788\uC5B4\uC694. \uB458 \uB2E4 \uC785\uC744 \uC218 \uC788\uC5B4\uC694.", price, style: [k, val] }))),
+  ...Object.keys(STYLE_IDS).map((k) => ({ id: "style_" + k, cat: "interior", name: STYLE_IDS[k], desc: "", price: 3e5, styleSet: k, repeat: true })),
   { id: "exp1", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 1\uB2E8\uACC4", desc: "\uAC00\uAC8C \uC624\uB978\uCABD \uBCBD\uC744 \uD130\uC11C \uBC14\uB2E5\uC774 \uB113\uC5B4\uC838\uC694. \uB113\uC5B4\uC9C4 \uACF3\uC5D0 \uAC00\uAD6C\uB97C \uC62E\uACA8 \uB193\uC744 \uC218 \uC788\uC5B4\uC694.", price: 5e5 },
   { id: "exp2", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 2\uB2E8\uACC4", desc: "\uAC00\uAC8C\uAC00 \uD55C \uBC88 \uB354 \uB113\uC5B4\uC838\uC694.", price: 12e5, need: "exp1" },
   { id: "exp3", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 3\uB2E8\uACC4", desc: "\uAC00\uAC8C\uAC00 \uAC00\uC7A5 \uB113\uC5B4\uC838\uC694.", price: 25e5, need: "exp2" }
@@ -381,25 +424,55 @@ const STATION_DEFS = [
   ["phone", "phone", "shop", 13, 5, 1, 1],
   ["pickup", "pickup", "shop", 14, 5, 2, 1, "pickup"],
   ["display", "display", "shop", 1, 7, 3, 1],
-  ["st_tulip", "stall", "market", 3, 2, 3, 1],
-  ["st_freesia", "stall", "market", 8, 2, 3, 1],
-  ["st_gyp", "stall", "market", 13, 2, 3, 1],
-  ["seedstall", "seedstall", "market", 12, 8, 3, 1],
+  ["st_tulip", "stall", "market", 2, 2, 3, 1],
+  ["st_freesia", "stall", "market", 6, 2, 3, 1],
+  ["st_gyp", "stall", "market", 10, 2, 3, 1],
+  ["st_rose", "stall", "market", 14, 2, 3, 1],
+  ["st_hydrangea", "stall", "market", 18, 2, 3, 1],
+  ["seedstall", "seedstall", "market", 15, 8, 3, 1],
   ["keeper", "keeper", "supply", 5, 3, 4, 1],
   ["bench1", "bench", "town", 16, 15, 2, 1],
   ["bench2", "bench", "town", 20, 19, 2, 1],
   ["bench3", "bench", "town", 35, 16, 2, 1],
+  ["bench4", "bench", "town", 24, 24, 2, 1],
+  ["bench5", "bench", "town", 50, 24, 2, 1],
+  ["bench6", "bench", "town", 40, 29, 2, 1],
   ...[41, 44, 47, 50].flatMap((x, a) => [15, 17, 19].map((y, b) => ["plot" + a + b, "plot", "town", x, y, 2, 1])),
   ...[43, 46, 49].flatMap((x, a) => [16, 18].map((y, b) => ["spr" + a + b, "sprspot", "town", x, y, 1, 1]))
 ];
 const DECOR_BASE = {
   shop: [{ t: "table", x: 11, y: 8, w: 1, h: 1 }, { t: "waitbench", x: 14, y: 8, w: 2, h: 1 }, { t: "bigplant", x: 1, y: 9, w: 1, h: 1 }, { t: "bigplant", x: 16, y: 9, w: 1, h: 1 }, { t: "easel", x: 6, y: 9, w: 1, h: 1 }],
-  market: [{ t: "crate", x: 2, y: 7, w: 1, h: 1 }, { t: "crate", x: 15, y: 7, w: 1, h: 1 }, { t: "planterTree", x: 1, y: 9, w: 1, h: 1 }, { t: "planterTree", x: 16, y: 9, w: 1, h: 1 }, { t: "bucketRow", x: 2, y: 5, w: 3, h: 1 }, { t: "bucketRow", x: 13, y: 5, w: 3, h: 1 }, { t: "boxes", x: 4, y: 8, w: 2, h: 1 }],
+  market: [{ t: "crate", x: 2, y: 7, w: 1, h: 1 }, { t: "crate", x: 19, y: 7, w: 1, h: 1 }, { t: "planterTree", x: 1, y: 9, w: 1, h: 1 }, { t: "planterTree", x: 20, y: 9, w: 1, h: 1 }, { t: "bucketRow", x: 2, y: 5, w: 3, h: 1 }, { t: "bucketRow", x: 17, y: 5, w: 3, h: 1 }, { t: "boxes", x: 4, y: 8, w: 2, h: 1 }],
   supply: [{ t: "tallshelf", x: 1, y: 2, w: 3, h: 1 }, { t: "tallshelf", x: 10, y: 2, w: 3, h: 1 }, { t: "tooltable", x: 1, y: 6, w: 2, h: 1 }, { t: "pottable", x: 11, y: 6, w: 2, h: 1 }, { t: "bigplant", x: 12, y: 8, w: 1, h: 1 }, { t: "fridgeDemo", x: 4, y: 2, w: 1, h: 1 }, { t: "seedRack", x: 1, y: 4, w: 1, h: 1 }, { t: "canRack", x: 12, y: 4, w: 1, h: 1 }],
   town: [
     { t: "pond", x: 4, y: 15, w: 5, h: 4, flat: true },
-    ...[[2, 13], [11, 14], [24, 13], [3, 21], [13, 21], [25, 20], [10, 22], [37, 19], [37, 22], [56, 15], [56, 20], [32, 21]].map(([x, y]) => ({ t: "tree", x, y, w: 1, h: 1 })),
-    ...[[5, 12], [15, 12], [25, 12], [33, 12], [46, 12], [55, 12]].map(([x, y]) => ({ t: "lamp", x, y, w: 1, h: 1 })),
+    ...[
+      [2, 13, "cherry"],
+      [11, 14, "maple"],
+      [24, 13, "cherry"],
+      [3, 21, "pine"],
+      [13, 21, "birch"],
+      [25, 20, "ginkgo"],
+      [10, 22, "bush"],
+      [37, 19, "maple"],
+      [37, 22, "pine"],
+      [56, 15, "ginkgo"],
+      [56, 20, "birch"],
+      [32, 21, "cherry"],
+      [1, 17, "pine"],
+      [20, 13, "bush"],
+      [26, 16, "bush"],
+      [18, 22, "birch"],
+      [1, 25, "pine"],
+      [17, 25, "birch"],
+      [17, 29, "maple"],
+      [1, 31, "cherry"],
+      [18, 32, "pine"],
+      [55, 23, "cherry"],
+      [35, 23, "bush"],
+      [46, 23, "bush"]
+    ].map(([x, y, v]) => ({ t: "tree", v, x, y, w: 1, h: 1 })),
+    ...[[5, 12], [15, 12], [25, 12], [33, 12], [46, 12], [55, 12], [22, 24], [32, 24], [44, 24], [54, 24]].map(([x, y]) => ({ t: "lamp", x, y, w: 1, h: 1 })),
     { t: "clocktower", x: 33, y: 13, w: 2, h: 2 },
     { t: "fenceH", x: 39, y: 13, w: 6, h: 1 },
     { t: "fenceH", x: 47, y: 13, w: 8, h: 1 },
@@ -410,7 +483,11 @@ const DECOR_BASE = {
     { t: "mailbox", x: 9, y: 6, w: 1, h: 1 },
     { t: "planterBox", x: 13, y: 6, w: 2, h: 1 },
     { t: "planterBox", x: 32, y: 6, w: 2, h: 1 },
-    { t: "hoursSign", x: 40, y: 6, w: 1, h: 1 }
+    { t: "hoursSign", x: 40, y: 6, w: 1, h: 1 },
+    { t: "school", x: 3, y: 24, w: 12, h: 4 },
+    { t: "swing", x: 4, y: 30, w: 3, h: 1 },
+    { t: "slide", x: 12, y: 30, w: 2, h: 1 },
+    { t: "sandbox", x: 8, y: 31, w: 3, h: 1, flat: true, walk: true }
   ]
 };
 const DECOR = { get shop() {
@@ -473,7 +550,8 @@ function solid(area, px, py) {
   if (area === "town") {
     if (ty < 6 && !doorGap(area, tx, ty)) return true;
     if (ty >= A.h - 1) return true;
-    if (tx >= RIVER[0] && tx <= RIVER[1] && !bridgeRow(ty)) return true;
+    if (tx >= RIVER[0] && tx <= RIVER[1] && !bridgeRow(ty) && ty < 27) return true;
+    if (ty >= 27 && tx >= 20 && !(tx >= 40 && tx <= 42 && ty <= 30)) return true;
   } else {
     if (ty < 2) return true;
     if (ty >= A.h - 1 && !doorGap(area, tx, ty)) return true;
@@ -484,7 +562,7 @@ function solid(area, px, py) {
     if (px >= s.x * TILE && px < (s.x + s.w) * TILE && py >= s.y * TILE && py < (s.y + s.h) * TILE) return true;
   }
   for (const d of DECOR[area]) {
-    if (d.carried) continue;
+    if (d.carried || d.walk) continue;
     if (px >= d.x * TILE && px < (d.x + d.w) * TILE && py >= d.y * TILE && py < (d.y + d.h) * TILE) return true;
   }
   return false;
@@ -596,6 +674,7 @@ function newPal(kind) {
 }
 const DOG_NAMES = ["\uBB49\uCE58", "\uCD08\uCF54", "\uBCF4\uB9AC", "\uCF69\uC774", "\uB450\uBD80", "\uB9DD\uACE0", "\uAE4C\uBBF8", "\uC124\uAE30"];
 function park(zone) {
+  if (zone === "lake") return Math.random() < 0.25 ? [rnd(40.3, 42.7) * TILE, rnd(26.5, 30.6) * TILE] : [rnd(18.5, 56) * TILE, rnd(24.3, 25.8) * TILE];
   return zone === "park" ? [rnd(10.5, 26) * TILE, rnd(13.8, 22.5) * TILE] : [rnd(35.5, 37.8) * TILE, rnd(17.8, 22.5) * TILE];
 }
 function mkWalker(kind, zone, extra) {
@@ -606,7 +685,21 @@ function mkWalker(kind, zone, extra) {
   return w;
 }
 function makeWalkers() {
-  const W = [mkWalker("adult", "park"), mkWalker("dog", "park"), mkWalker("kid", "park"), mkWalker("elder", "park"), mkWalker("student", "lane"), mkWalker("adult", "lane"), mkWalker("dog", "right"), mkWalker("kid", "right")];
+  const W = [
+    mkWalker("adult", "park"),
+    mkWalker("dog", "park"),
+    mkWalker("kid", "park", { school: true }),
+    mkWalker("elder", "park"),
+    mkWalker("student", "lane"),
+    mkWalker("adult", "lane"),
+    mkWalker("dog", "right"),
+    mkWalker("kid", "right", { school: true }),
+    mkWalker("kid", "park", { school: true }),
+    mkWalker("adult", "lake", { eve: true }),
+    mkWalker("elder", "lake", { eve: true }),
+    mkWalker("dog", "lake", { eve: true }),
+    mkWalker("student", "lake", { eve: true })
+  ];
   const lead = mkWalker("couple", "park");
   const mate = mkWalker("couple", "park", { follow: lead, name: pick(NAMES) });
   mate.x = lead.x + 12;
@@ -638,10 +731,16 @@ function newGame(mode) {
   S.tutPending = null;
   S.tutDone = 0;
   makeStations();
-  S.orders = [genOrder(TEMPLATES[0], 120, 1), genOrder(TEMPLATES[1], 270, 1), genOrder(TEMPLATES[2], 420, 1)];
+  const base = TEMPLATES.filter((t) => !t.req.rose && !t.req.hydrangea);
+  S.orders = [genOrder(base[0], 195, 1), genOrder(base[1], 300, 1), genOrder(base[2], 420, 1)];
+  S.style = null;
   startDaySetup();
 }
+function bump() {
+  S.rev = (S.rev || 0) + 1;
+}
 function startDaySetup() {
+  S.urgentAt = S.day >= 2 ? [rnd(60, 240)].concat(Math.random() < 0.5 ? [rnd(280, 420)] : []) : [];
   S.t = 0;
   S.customers = [];
   S.paused = false;
@@ -679,13 +778,18 @@ function saveGame(mid) {
     S.stList.forEach((s) => {
       if (s.on) spr[s.id] = 1;
     });
-    const data = { v: SAVE_VER, mid: mid || null, spr, closet: S.closet, outfit: S.outfit, day: S.day, money: S.money, nextId: S.nextId, up: S.up, bags: S.bags, bench: S.bench, works: S.works, slots, pos, plots, decor: S.decor, orders: S.orders, shopName: S.shopName };
+    const data = { v: SAVE_VER, style: S.style, mid: mid || null, spr, closet: S.closet, outfit: S.outfit, day: S.day, money: S.money, nextId: S.nextId, up: S.up, bags: S.bags, bench: S.bench, works: S.works, slots, pos, plots, decor: S.decor, orders: S.orders, shopName: S.shopName };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch (e) {
   }
 }
-const SAVE_VER = 4;
-const MIGRATE = {};
+const SAVE_VER = 5;
+const MIGRATE = { 4: (d) => {
+  d.v = 5;
+  d.style = d.style || null;
+  if (d.up) delete d.up.rug;
+  return d;
+} };
 function migrateSave(d) {
   if (!d || typeof d.v !== "number" || d.v < 4) return null;
   while (d.v < SAVE_VER) {
@@ -711,7 +815,7 @@ function continueGame(mode) {
   S.mode = mode;
   S.active = 0;
   S.speed = 1;
-  Object.assign(S, { closet: d.closet || {}, outfit: d.outfit || [{}, {}], day: d.day, money: d.money, nextId: d.nextId, up: d.up || {}, bags: d.bags, bench: d.bench, works: d.works, orders: d.orders, tomorrow: [], shopName: d.shopName || "\uC6B0\uB9AC \uB458\uC758 \uAF43\uC9D1", decor: d.decor || DECOR_BASE.shop.map((x) => ({ ...x })) });
+  Object.assign(S, { style: d.style || null, closet: d.closet || {}, outfit: d.outfit || [{}, {}], day: d.day, money: d.money, nextId: d.nextId, up: d.up || {}, bags: d.bags, bench: d.bench, works: d.works, orders: d.orders, tomorrow: [], shopName: d.shopName || "\uC6B0\uB9AC \uB458\uC758 \uAF43\uC9D1", decor: d.decor || DECOR_BASE.shop.map((x) => ({ ...x })) });
   makeStations();
   Object.entries(d.slots || {}).forEach(([id, v]) => {
     const s = S.st[id];
@@ -898,7 +1002,7 @@ function spotOK(f, x, y) {
   if (x < 1 || x + f.w > W - 1 || y < 2 || y + f.h > 10) return false;
   if (x < 10 && x + f.w > 8 && y + f.h > 9) return false;
   for (const o of movables()) {
-    if (o === f) continue;
+    if (o === f || f.walk || o.walk) continue;
     if (x < o.x + o.w && x + f.w > o.x && y < o.y + o.h && y + f.h > o.y) return false;
   }
   for (const c of S.chars) {
@@ -907,6 +1011,15 @@ function spotOK(f, x, y) {
     if (tx > x - 0.3 && tx < x + f.w + 0.3 && ty > y && ty < y + f.h + 0.2) return false;
   }
   return true;
+}
+function findSpot(f) {
+  const W = AREAS.shop.w;
+  for (const y of [7, 6, 8, 3, 9]) {
+    for (let x = 2; x + f.w < W - 1; x++) {
+      if (spotOK(f, x, y)) return [x, y];
+    }
+  }
+  return null;
 }
 function toggleEdit() {
   if (S.phase !== "play") return;
@@ -1159,6 +1272,7 @@ function sprCover(sp) {
 }
 function sprinkle(sp) {
   if (S.phase === "play") sfx("water");
+  bump();
   let n = 0;
   sprCover(sp).forEach((p) => {
     if (p.plot && !plotReady(p.plot)) {
@@ -1183,7 +1297,7 @@ function waterAll(c) {
 }
 function trimModal(c, k) {
   const t = c.bag[k].t;
-  return { type: "trim", step: "leaf", slot: k, leaves: t === "tulip" ? 3 : t === "freesia" ? 2 : 4, removed: [], angle: 10, adir: 1 };
+  return { type: "trim", step: "leaf", slot: k, leaves: LEAVES[t] || 3, removed: [], angle: 10, adir: 1 };
 }
 function wrapModal(c, k) {
   const b = c.bag[k], o = orderById(b.orderId);
@@ -1222,7 +1336,8 @@ function evaluate(b, o) {
 }
 function settleOrder(cu, o, b, how) {
   const ev = evaluate(b, o);
-  const late = Math.max(0, S.t - o.time), disc = Math.min(0.5, 0.1 * Math.floor(late / 30));
+  const late = Math.max(0, S.t - o.time), disc = o.urgent ? 0 : Math.min(0.5, 0.1 * Math.floor(late / 30));
+  bump();
   const tip = b.card ? Math.round(o.price * 0.05) : 0;
   const price = Math.round((o.price * ev.q * (1 - disc) + tip) / 100) * 100;
   S.money += price;
@@ -1308,6 +1423,21 @@ function spawnOrderCustomer(o) {
   }
   S.customers.push(viaTown(k));
 }
+function spawnUrgent() {
+  const o = genOrder(pick(TEMPLATES), Math.round(S.t), S.day);
+  o.urgent = true;
+  o.price *= 2;
+  o.deadline = S.t + 130;
+  o.arrived = true;
+  o.text = "\uAE09\uD574\uC694! " + o.text;
+  S.orders.push(o);
+  S.orders.sort((a, b) => a.time - b.time);
+  spawnOrderCustomer(o);
+  sfx("ring");
+  toastAll("\uAE09\uD55C \uAF43\uB2E4\uBC1C \uC190\uB2D8\uC774 \uAC00\uAC8C\uB85C \uC624\uACE0 \uC788\uC5B4\uC694! \uB450 \uBC30 \uAC00\uACA9\uC774\uC5D0\uC694");
+  hudKey = "";
+  bump();
+}
 function spawnWalkin() {
   const k = newCust("walkin", { plan: [] });
   const n = 1 + Math.floor(Math.random() * 3);
@@ -1377,6 +1507,7 @@ function sellFromDisplay(k) {
   S.money += price;
   S.stats.display += price;
   sfx("coin");
+  bump();
   toastAll(`\uC9C4\uC5F4\uB300\uC5D0\uC11C ${label}\uC774(\uAC00) \uD314\uB838\uC5B4\uC694 +${won(price)}`);
 }
 function reserveOffer(k) {
@@ -1476,6 +1607,26 @@ function updateCustomers(dt) {
       if (S.t < 480) spawnReserve();
     }
   });
+  (S.urgentAt || []).forEach((t, n) => {
+    if (t !== null && S.t >= t) {
+      S.urgentAt[n] = null;
+      spawnUrgent();
+    }
+  });
+  S.orders.forEach((o) => {
+    if (o.urgent && (o.status === "pending" || o.status === "crafted") && S.t > o.deadline) {
+      o.status = "cancelled";
+      S.stats.cancel.push(o);
+      const k = S.customers.find((c) => c.orderId === o.id);
+      if (k) {
+        k.slot = null;
+        if (k.area === "shop") leave(k);
+        else k.state = "gone";
+      }
+      toastAll(`${o.name}\uB2D8\uC774 \uAE30\uB2E4\uB9AC\uB2E4 \uB3CC\uC544\uAC14\uC5B4\uC694`);
+      hudKey = "";
+    }
+  });
   S.customers.forEach((k) => {
     if (k.talking) {
       k.walk = 0;
@@ -1526,6 +1677,60 @@ function updateWalkers(dt) {
 }
 const ERRAND_DOORS = [20 * TILE, 43 * TILE];
 function walkerStep(w, dt) {
+  if (w.eve) {
+    if (S.t < 430) {
+      w.hidden = 1;
+      return;
+    }
+    if (!w.eveOn) {
+      w.eveOn = true;
+      w.hidden = 0;
+      [w.x, w.y] = park("lake");
+      w.tx = w.x;
+      w.ty = w.y;
+      if (w.dog) {
+        w.dog.x = w.x - 8;
+        w.dog.y = w.y;
+      }
+    }
+  }
+  if (w.school) {
+    const gx = 8.5 * TILE, gy = 28.6 * TILE;
+    if (S.t < 330) {
+      if (w.atSchool) {
+        w.hidden = 1;
+        return;
+      }
+      if (!w.goSchool) {
+        w.goSchool = true;
+        w.path = [[w.x, 23.5 * TILE], [2.3 * TILE, 23.5 * TILE], [2.3 * TILE, gy], [gx, gy]];
+      }
+      if (stepToward(w, dt, 26)) {
+        w.atSchool = true;
+        w.hidden = 1;
+      }
+      return;
+    }
+    if (w.atSchool) {
+      w.atSchool = false;
+      w.hidden = 0;
+      w.goSchool = false;
+      w.x = gx;
+      w.y = gy;
+      w.path = [[2.3 * TILE, gy], [2.3 * TILE, 23.5 * TILE], [12 * TILE, 23.5 * TILE]];
+      w.leaving = true;
+    }
+    if (w.leaving) {
+      if (stepToward(w, dt, 26)) {
+        w.leaving = false;
+        w.zone = "park";
+        w.tx = w.x;
+        w.ty = w.y;
+        w.wait = 0;
+      }
+      return;
+    }
+  }
   if (w.offer && S.t > w.offer.until && !w.talking) w.offer = null;
   const lead = w.follow;
   if (w.talking || lead && lead.talking) return;
@@ -1597,8 +1802,9 @@ function walkerStep(w, dt) {
   }
 }
 const TALK = {
+  lake: ["\uB178\uC744 \uBCF4\uB7EC \uB098\uC654\uC5B4\uC694.", "\uAC15\uAC00 \uC0B0\uCC45\uB85C\uAC00 \uC81C\uC77C \uC88B\uC544\uC694."],
   adult: ["\uC624\uB298 \uB0A0\uC528 \uC815\uB9D0 \uC88B\uC8E0? \uC0B0\uCC45\uD558\uAE30 \uB531\uC774\uC5D0\uC694.", "\uAF43\uC2DC\uC7A5\uC740 \uC815\uC624\uC5D0 \uBB38\uC744 \uB2EB\uC73C\uB2C8\uAE4C \uC624\uC804\uC5D0 \uC11C\uB450\uB974\uC138\uC694.", "\uC800\uB141\uC5D0 \uAC00\uB85C\uB4F1\uC774 \uCF1C\uC9C0\uBA74 \uC774 \uAE38\uC774 \uCC38 \uC608\uBED0\uC694.", "\uC694\uC998 \uB450 \uBD84 \uAC00\uAC8C \uC55E\uC744 \uC9C0\uB098\uAC00\uBA74 \uAF43\uD5A5\uAE30\uAC00 \uB098\uC694.", "\uB2E4\uB9AC \uC704\uC5D0\uC11C \uBCF4\uB294 \uAC15\uC774 \uC81C\uC77C \uC88B\uC544\uC694."],
-  kid: ["\uC5C4\uB9C8 \uC0DD\uC2E0\uC778\uB370 \uAF43 \uD55C \uC1A1\uC774 \uC0AC\uB3C4 \uB3FC\uC694?", "\uAC15\uC5D0\uC11C \uC624\uB9AC \uBD24\uC5B4\uC694! \uAF65\uAF65!", "\uD2A4\uB9BD\uC740 \uBB34\uC2A8 \uC0C9\uC774 \uC81C\uC77C \uC608\uBED0\uC694?", "\uC2DC\uACC4\uD0D1 \uC885\uC774 \uC6B8\uB9AC\uBA74 \uC9D1\uC5D0 \uAC00\uC57C \uD574\uC694.", "\uC548\uACBD \uC4F4 \uB204\uB098 \uBA4B\uC788\uC5B4\uC694!"],
+  kid: ["\uC5C4\uB9C8 \uC0DD\uC2E0\uC778\uB370 \uAF43 \uD55C \uC1A1\uC774 \uC0AC\uB3C4 \uB3FC\uC694?", "\uAC15\uC5D0\uC11C \uC624\uB9AC \uBD24\uC5B4\uC694! \uAF65\uAF65!", "\uD2A4\uB9BD\uC740 \uBB34\uC2A8 \uC0C9\uC774 \uC81C\uC77C \uC608\uBED0\uC694?", "\uC2DC\uACC4\uD0D1 \uC885\uC774 \uC6B8\uB9AC\uBA74 \uC9D1\uC5D0 \uAC00\uC57C \uD574\uC694.", "\uC624\uB298 \uD559\uAD50\uC5D0\uC11C \uAF43 \uADF8\uB9BC \uADF8\uB838\uC5B4\uC694!", "\uC6B4\uB3D9\uC7A5 \uADF8\uB124 \uD0C0\uB7EC \uAC08 \uAC70\uC608\uC694!"],
   elder: ["\uC80A\uC744 \uB54C \uC6B0\uB9AC \uD560\uBA48\uD55C\uD14C \uC548\uAC1C\uAF43\uC744 \uC790\uC8FC \uC92C\uC9C0.", "\uD143\uBC2D\uC740 \uBB3C\uC744 \uC918\uC57C \uC465\uC465 \uC790\uB780\uB2E4\uC624. \uC548 \uC8FC\uBA74 \uB290\uB9BF\uB290\uB9BF\uD558\uC9C0.", "\uC2DC\uACC4\uD0D1 \uC885\uC18C\uB9AC \uB4E3\uACE0 \uB098\uC654\uB2E4\uC624.", "\uAF43\uC740 \uC0AC\uC120\uC73C\uB85C \uC798\uB77C\uC57C \uBB3C\uC744 \uC798 \uBA39\uB294\uB2E4\uB124."],
   student: ["\uC2DC\uD5D8 \uB05D\uB098\uBA74 \uCE5C\uAD6C\uB4E4\uC774\uB791 \uAF43 \uC0AC\uB7EC \uAC08\uAC8C\uC694.", "\uACF5\uBD80\uD558\uB2E4 \uBA38\uB9AC \uC2DD\uD788\uB7EC \uB098\uC654\uC5B4\uC694.", "\uB3D9\uC544\uB9AC \uBC1C\uD45C \uB0A0 \uAF43\uB2E4\uBC1C\uC774 \uD544\uC694\uD560 \uAC83 \uAC19\uC544\uC694."],
   couple: ["\uC800\uD76C \uC624\uB298 \uACB0\uD63C 3\uC8FC\uB144\uC774\uC5D0\uC694!", "\uB458\uC774 \uAC19\uC774 \uAC00\uAC8C \uD558\uC2DC\uB294 \uAC70\uC8E0? \uBD80\uB7EC\uC6CC\uC694.", "\uC8FC\uB9D0\uB9C8\uB2E4 \uC774 \uACF5\uC6D0\uC744 \uAC19\uC774 \uAC78\uC5B4\uC694."],
@@ -1607,6 +1813,15 @@ const TALK = {
 };
 function talkLine(w) {
   const tb = S.t < 180 ? "\uC88B\uC740 \uC544\uCE68\uC774\uC5D0\uC694! " : S.t > 480 ? "\uBC8C\uC368 \uD574\uAC00 \uC9C0\uB124\uC694. " : "";
+  const o0 = S.outfit[0] || {}, o1 = S.outfit[1] || {}, extra = [];
+  if (o1.glasses) extra.push("\uC548\uACBD \uC4F4 \uC5B8\uB2C8 \uC815\uB9D0 \uBA4B\uC788\uC5B4\uC694!");
+  if (o0.hat) extra.push("\uBAA8\uC790 \uC4F4 \uC624\uBE60, \uC798 \uC5B4\uC6B8\uB824\uC694!");
+  if (o1.pin) extra.push("\uBA38\uB9AC\uD540 \uC608\uC058\uB124\uC694. \uC5B4\uB514\uC11C \uC0C0\uC5B4\uC694?");
+  if (o0.apron || o1.apron) extra.push("\uC55E\uCE58\uB9C8 \uC785\uC73C\uB2C8\uAE4C \uC9C4\uC9DC \uAF43\uC9D1 \uC0AC\uC7A5\uB2D8 \uAC19\uC544\uC694.");
+  if (S.t > 450) extra.push("\uD638\uC218 \uCABD \uC804\uB9DD \uB370\uD06C\uC5D0\uC11C \uBCF4\uB294 \uB178\uC744\uC774 \uC815\uB9D0 \uC608\uBED0\uC694.", "\uD574 \uC9C8 \uB158 \uAC15\uAC00\uB97C \uAC77\uB294 \uAC8C \uC81C \uB099\uC774\uC5D0\uC694.");
+  if (w.zone === "lake") extra.push("\uBB3C\uACB0 \uC704\uB85C \uB178\uC744\uC774 \uBC88\uC9C0\uB294 \uAC70 \uBCF4\uC5EC\uC694?", "\uC800\uB141 \uBC14\uB78C\uC774 \uC120\uC120\uD574\uC11C \uC88B\uB124\uC694.");
+  if (w.kind === "kid" && S.t > 330) extra.push("\uBC29\uAE08 \uD559\uAD50 \uB05D\uB0AC\uC5B4\uC694! \uC774\uC81C \uB180 \uAC70\uC608\uC694.");
+  if (extra.length && Math.random() < 0.45 && w.kind !== "order") return tb + pick(extra);
   if (w.kind === "order") {
     const o = orderById(w.orderId);
     return o ? `${o.title} \uCC3E\uC73C\uB7EC \uC654\uC5B4\uC694. \uB450\uADFC\uB450\uADFC\uD574\uC694!` : "\uC548\uB155\uD558\uC138\uC694!";
@@ -1641,6 +1856,7 @@ function update(dtReal) {
     if (it && !it.dried) {
       it.dryT = (it.dryT || 0) + dMin;
       if (it.dryT >= DRY_MIN) {
+        bump();
         it.dried = true;
         it.trim = true;
         it.stems.forEach((s) => {
@@ -1980,6 +2196,7 @@ function bouquetSVG(stems, o = {}) {
     const dir = hx >= bx ? 1 : -1;
     if (s.t === "gyp") gypS += gypSVG(hx, hy, w, rr2);
     else if (s.t === "tulip") heads += tulipSVG(hx, hy + w * 6, 17, (hx - bx) * 0.35 + dir * w * 38, w);
+    else if (s.t === "rose" || s.t === "hydrangea") heads += fHeadSVG(s.t, hx, hy + w * 6, s.t === "rose" ? 19 : 27, w, false);
     else heads += freesiaSVG(hx, hy, (hx >= bx ? -0.35 : -2.8) + (rr2() - 0.5) * 0.6, w);
   });
   function tulipSVG(x, y, s, rot, w) {
@@ -2042,7 +2259,7 @@ function bouquetSVG(stems, o = {}) {
   return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="\uAF43\uB2E4\uBC1C \uADF8\uB9BC"><defs>${defs.join("")}</defs>${back}${stemS}${leaves}${gypS}${heads}${front}${extra}</svg>`;
 }
 function trimSVG(t, m) {
-  const col = t === "tulip" ? "#EE8FA7" : t === "freesia" ? "#F5CF4E" : "#FFFFFF";
+  const col = t === "tulip" ? "#EE8FA7" : t === "freesia" ? "#F5CF4E" : t === "rose" ? "#D9435E" : t === "hydrangea" ? "#9DB8E8" : "#FFFFFF";
   const leaves = [];
   for (let k = 0; k < m.leaves; k++) {
     if (m.removed.includes(k)) continue;
@@ -2116,6 +2333,7 @@ function closeModal(i) {
   const el2 = modalEl(i);
   el2.className = "modal";
   el2.innerHTML = "";
+  hideTip();
   updateControlVisibility();
 }
 function head(i, title, closeLabel) {
@@ -2145,34 +2363,51 @@ function offerHTML(f) {
   return `<p class="req">\u201C${esc(t.text)}\u201D<br>${esc(t.title)} \xB7 ${won(t.price)}</p>${reqCheck({ req: t.req }, [])}
     <div class="row">${f.today ? `<button class="btn primary" data-a="accept" data-v="today">\uC624\uB298 ${clock(f.today)}\uC5D0 \uBC1B\uAE30</button>` : ""}<button class="btn ${f.today ? "soft" : "primary"}" data-a="accept" data-v="tmr">\uB0B4\uC77C ${clock(f.time)}\uC5D0 \uBC1B\uAE30</button><button class="btn" data-a="decline">\uC815\uC911\uD788 \uAC70\uC808</button></div>`;
 }
-function flowerMini(t) {
-  if (t === "tulip") return '<svg viewBox="0 0 20 20" class="fm"><path d="M10 18V10" stroke="#6E9A5A" stroke-width="2"/><path d="M4 9C3 4 6 2 7.5 3L10 6 12.5 3C14 2 17 4 16 9 15 13 5 13 4 9Z" fill="#EE8FA7"/><path d="M7 10C7 6 9 4 10.5 5 12 7 12 10 11 12 9 12.5 7.5 12 7 10Z" fill="#F9C9D5"/></svg>';
-  if (t === "freesia") return '<svg viewBox="0 0 20 20" class="fm"><path d="M4 16Q12 16 16 5" stroke="#8DBB6A" stroke-width="1.6" fill="none"/>' + [0, 1, 2, 3, 4, 5].map((k) => `<ellipse cx="8" cy="7.5" rx="2" ry="3" fill="${k % 2 ? "#F5CF4E" : "#FFF0A8"}" transform="rotate(${k * 60} 8 10.5)"/>`).join("") + '<circle cx="8" cy="10.5" r="1.6" fill="#E0A93A"/><ellipse cx="15.5" cy="5" rx="1.3" ry="2.2" fill="#C9D98A"/></svg>';
-  return '<svg viewBox="0 0 20 20" class="fm">' + [[10, 9, 3], [5, 8, 2.4], [15, 8, 2.4], [7, 4, 2.2], [13, 4, 2.2], [10, 14, 2], [4, 13, 1.8], [16, 13, 1.8]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#FFFFFF" stroke="#D8D2C8" stroke-width=".6"/>`).join("") + "</svg>";
-}
-function reqChips(req) {
-  return Object.keys(req).map((t) => `<span class="fq">${flowerMini(t)}${req[t]}</span>`).join("");
-}
 function seedSVG(t) {
   return `<svg viewBox="0 0 40 40"><path d="M11 22h18l-2.5 14h-13z" fill="#6B5A52"/><rect x="10" y="20" width="20" height="4" rx="1.5" fill="#857268"/><path d="M20 21V12" stroke="#6E9A5A" stroke-width="2"/><ellipse cx="15.5" cy="13" rx="5" ry="2.4" fill="#8DBB6A" transform="rotate(-25 15.5 13)"/><ellipse cx="24.5" cy="11" rx="5" ry="2.4" fill="#A6CF8C" transform="rotate(25 24.5 11)"/><circle cx="20" cy="8.5" r="2.6" fill="${FL[t].dot === "#FFFFFF" ? "#F1EEE8" : FL[t].dot}"/></svg>`;
 }
 const ICON_CACHE = /* @__PURE__ */ new Map();
 function itemIcon(it) {
   if (it.kind === "seed") return seedSVG(it.t);
-  const key = it.kind + "|" + (it.t || "") + "|" + it.stems.map((s) => s.t[0] + Math.round(s.f / 10)).join("") + "|" + (it.wrapped ? it.paper + it.ribbon : "") + (it.trim ? "t" : "");
+  if (it.kind === "sprinkler") return sprSVG();
+  const f = avg(it.stems.map((s) => s.f)), wet = avg(it.stems.map((s) => s.hyd || 0)) >= 0.99;
+  const key = it.kind + "|" + (it.t || "") + "|" + (it.kind === "bouquet" ? it.stems.map((s) => s.t[0] + Math.round(s.f / 10)).join("") : it.stems.length + "/" + Math.round(f / 10)) + "|" + (it.wrapped ? it.paper + it.ribbon : "") + (it.trim ? "t" : "") + (wet ? "w" : "");
   if (ICON_CACHE.has(key)) return ICON_CACHE.get(key);
-  const svg = it.kind === "bouquet" ? it.wrapped ? bouquetSVG(it.stems, { paper: it.paper, ribbon: it.ribbon, wrapped: true }) : bouquetSVG(it.stems, { tied: true }) : bouquetSVG(it.stems.slice(0, 6), { tied: !it.trim });
+  const svg = it.kind === "bouquet" ? it.wrapped ? bouquetSVG(it.stems, { paper: it.paper, ribbon: it.ribbon, wrapped: true }) : bouquetSVG(it.stems, { tied: true }) : bunchSVG(it);
   if (ICON_CACHE.size > 300) ICON_CACHE.clear();
   ICON_CACHE.set(key, svg);
   return svg;
 }
+function freshWord2(f) {
+  return f >= 85 ? "\uC544\uC8FC \uC2F1\uC2F1\uD574\uC694" : f >= 60 ? "\uC2F1\uC2F1\uD574\uC694" : f >= 35 ? "\uC870\uAE08 \uC2DC\uB4E4\uC5C8\uC5B4\uC694" : f >= WILT ? "\uB9CE\uC774 \uC2DC\uB4E4\uC5C8\uC5B4\uC694" : "\uC2DC\uB4E4\uC5B4 \uBC84\uB838\uC5B4\uC694";
+}
+function itemLabel(it) {
+  if (!it) return "\uBE48 \uCE78";
+  if (it.kind === "seed") return `${FL[it.t].name} \uBAA8\uC885 ${it.n}\uAC1C`;
+  if (it.kind === "sprinkler") return `\uC2A4\uD504\uB9C1\uD074\uB7EC ${it.n}\uAC1C`;
+  const f = avg(it.stems.map((s) => s.f)), fw = it.dried ? "" : " \xB7 " + freshWord2(f);
+  if (it.kind === "bouquet") {
+    if (wiltedB(it)) return "\uC2DC\uB4E0 \uAF43\uB2E4\uBC1C \xB7 \uD734\uC9C0\uD1B5\uC5D0 \uBC84\uB824 \uC8FC\uC138\uC694";
+    const o = orderById(it.orderId);
+    return `${o ? o.name + "\uB2D8 " + o.title : "\uC790\uC720 \uAF43\uB2E4\uBC1C"}${it.wrapped ? "" : " (\uD3EC\uC7A5 \uC804)"}${fw}${!it.orderId && it.wrapped ? " \xB7 \uC57D " + won(freePrice(it)) : ""}`;
+  }
+  const wet = !it.dried && avg(it.stems.map((s) => s.hyd || 0)) >= 0.99;
+  return `${wet ? "\uBB3C\uC744 \uBA38\uAE08\uC740 " : ""}${it.dried ? "\uB4DC\uB77C\uC774 " : it.trim ? "\uC190\uC9C8\uB41C " : ""}${FL[it.t].name} ${it.stems.length}\uC1A1\uC774${fw}`;
+}
 function cellHTML(it, act, k, o = {}) {
-  if (!it) return `<button class="cell empty" data-a="${act}" data-v="${k}" aria-label="\uBE48 \uCE78"></button>`;
-  if (it.kind === "seed") return `<button class="cell${o.sel ? " sel" : ""}${o.dim ? " dim" : ""}" data-a="${act}" data-v="${k}" aria-label="${esc(itemName(it))}">${itemIcon(it)}<span class="cnt">${it.n}</span><span class="tag">\uBAA8\uC885</span></button>`;
-  const f = avg(it.stems.map((s) => s.f));
-  const tag = it.kind === "bouquet" ? wiltedB(it) ? "\uC2DC\uB4E6" : it.wrapped ? "\uD3EC\uC7A5" : "\uBB36\uC74C" : it.dried ? "\uB4DC\uB77C\uC774" : it.trim ? "\uC190\uC9C8" : "";
+  if (!it) return `<button class="cell empty" data-a="${act}" data-v="${k}" data-tip="\uBE48 \uCE78" aria-label="\uBE48 \uCE78"></button>`;
+  const lab = esc(itemLabel(it));
+  if (it.kind === "seed" || it.kind === "sprinkler") return `<button class="cell${o.sel ? " sel" : ""}${o.dim ? " dim" : ""}" data-a="${act}" data-v="${k}" data-tip="${lab}" aria-label="${lab}">${itemIcon(it)}<span class="cnt">${it.n}</span></button>`;
   const price = o.price && it.kind === "bouquet" && !it.orderId && !wiltedB(it) ? `<span class="ptag">${Math.round(freePrice(it) / 1e3)}\uCC9C\uC6D0</span>` : "";
-  return `<button class="cell${it.dried ? " dried" : ""}${o.sel ? " sel" : ""}${o.dim ? " dim" : ""}" data-a="${act}" data-v="${k}" aria-label="${esc(itemName(it))}">${itemIcon(it)}${it.kind === "bunch" ? `<span class="cnt">${it.stems.length}</span>` : ""}${it.dried ? "" : `<i class="dot" style="background:${freshColor(f)}"></i>`}${tag ? `<span class="tag">${tag}</span>` : ""}${o.prog != null ? `<span class="bar"><b style="width:${Math.round(o.prog * 100)}%"></b></span>` : ""}${price}</button>`;
+  return `<button class="cell${it.dried ? " dried" : ""}${o.sel ? " sel" : ""}${o.dim ? " dim" : ""}${it.kind === "bouquet" && wiltedB(it) ? " wilted" : ""}" data-a="${act}" data-v="${k}" data-tip="${lab}" aria-label="${lab}">${itemIcon(it)}${it.kind === "bunch" ? `<span class="cnt">${it.stems.length}</span>` : ""}${o.prog != null ? `<span class="bar"><b style="width:${Math.round(o.prog * 100)}%"></b></span>` : ""}${price}</button>`;
+}
+function returnStem(i, s) {
+  const b = S.bags[i].find((x) => x && x.kind === "bunch" && x.t === s.t && x.trim && !x.dried && x.stems.length < 10);
+  if (b) {
+    b.stems.push(s);
+    return;
+  }
+  if (!bagAdd(i, { kind: "bunch", t: s.t, stems: [s], trim: true })) S.bench.push(s);
 }
 function findGift(i, cu) {
   const pools = [S.st.counter.slots, S.bags[i]];
@@ -2205,13 +2440,14 @@ function bagGrid(i, act, dimFn, selK) {
 }
 const BOX = { counter: ["\uCE74\uC6B4\uD130", "\uAF43\uB2E4\uBC1C\uC744 \uBCF4\uAD00\uD574\uC694."], storage: ["\uAF43 \uB0C9\uC7A5\uACE0", "\uC0AC \uC628 \uAF43\uC744 \uBCF4\uAD00\uD574\uC694. \uCE78\uC744 \uB204\uB974\uBA74 \uAC00\uBC29\uC73C\uB85C, \uAC00\uBC29 \uCE78\uC744 \uB204\uB974\uBA74 \uB0C9\uC7A5\uACE0\uB85C \uC62E\uACA8\uC694."], shelf: ["\uC120\uBC18", "\uBB34\uC5C7\uC774\uB4E0 \uC7A0\uAE50 \uC62C\uB824\uB458 \uC218 \uC788\uC5B4\uC694."], bucket: ["\uBB3C\uC62C\uB9BC \uD1B5", "\uB2E4\uB4EC\uC740 \uAF43\uC744 \uAF42\uC544 \uB450\uBA74 \uBB3C\uC744 \uBA38\uAE08\uACE0 \uC624\uB798\uAC00\uC694."], dryer: ["\uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC \uAC74\uC870\uB300", "\uD55C \uC2DC\uAC04 \uAC78\uC5B4\uB450\uBA74 \uC2DC\uB4E4\uC9C0 \uC54A\uB294 \uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC\uAC00 \uB3FC\uC694."], pickup: ["\uC790\uB3D9 \uD53D\uC5C5\uB300", "\uD3EC\uC7A5\uD55C \uAF43\uB2E4\uBC1C\uC744 \uC62C\uB824\uB450\uBA74 \uC190\uB2D8\uC774 \uC54C\uC544\uC11C \uCC3E\uC544\uAC00\uC694."], display: ["\uC9C4\uC5F4\uB300", "\uC9C4\uC5F4\uD55C \uAF43\uC740 \uC9C0\uB098\uAC00\uB358 \uC190\uB2D8\uC774 \uC0AC \uAC00\uC694."] };
 function boxProg(st, it) {
-  if (st.type === "bucket") return avg(it.stems.map((s) => s.hyd));
   if (st.type === "dryer") return it.dried ? 1 : clamp((it.dryT || 0) / DRY_MIN, 0, 1);
   return null;
 }
 function renderModal(i) {
   const c = S.chars[i], m = c.modal, el2 = modalEl(i);
   if (!m) return;
+  m._rev = S.rev;
+  hideTip();
   let h = "";
   if (m.type === "box") {
     const st = S.st[m.st];
@@ -2226,10 +2462,10 @@ function renderModal(i) {
       <div class="stat"><span>\uD569\uACC4</span><span>${won(tot)}</span></div><div class="stat"><span>\uB0A8\uB294 \uB3C8</span><span>${won(S.money - tot)}</span></div>
       <div class="row"><button class="btn primary" data-a="buy" ${S.money < tot || free < m.qty ? "disabled" : ""}>${free < m.qty ? "\uAC00\uBC29 \uCE78\uC774 \uBAA8\uC790\uB77C\uC694" : m.qty + "\uB2E8 \uC0AC\uAE30"}</button></div></div></div>`;
   } else if (m.type === "supply") {
-    const cat = m.cat || "equip";
-    h = head(i, "\uC6A9\uD488\uC0C1\uC810") + `<p class="req">\uAC00\uC9C4 \uB3C8 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k, n]) => `<button class="btn small ${k === cat ? "soft" : ""}" data-a="cat" data-v="${k}">${n}</button>`).join("")}</div><div class="list">` + SHOP_ITEMS.filter((it) => it.cat === cat).map((it) => {
-      const have = (!!S.up[it.id] || !!S.closet[it.id]) && !it.repeat, lock = it.need && !S.up[it.need];
-      return `<div class="li"><span class="grow">${it.name}<br><small>${it.desc}${lock ? " (\uC55E \uB2E8\uACC4\uB97C \uBA3C\uC800 \uC0AC\uC57C \uD574\uC694)" : ""}</small></span>${have ? "<span>\uBCF4\uC720 \uC911</span>" : `<button class="btn small ${lock ? "" : "soft"}" data-a="shopbuy" data-v="${it.id}" ${lock || S.money < it.price ? "disabled" : ""}>${won(it.price)}</button>`}</div>`;
+    const cat = m.cat || "equip", imgOnly = ["style", "deco", "interior"].includes(cat);
+    h = head(i, "\uC6A9\uD488\uC0C1\uC810") + `<p class="req">\uAC00\uC9C4 \uB3C8 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k, n]) => `<button class="btn small ${k === cat ? "soft" : ""}" data-a="cat" data-v="${k}">${n}</button>`).join("")}</div><div class="shopgrid${imgOnly ? " img" : ""}">` + SHOP_ITEMS.filter((it) => it.cat === cat).map((it) => {
+      const cur = it.styleSet && S.style === it.styleSet, have = cur || (!!S.up[it.id] || !!S.closet[it.id]) && !it.repeat, lock = it.need && !S.up[it.need];
+      return `<div class="scard${have ? " own" : ""}"><div class="sart">${itemArt(it)}</div>${imgOnly ? "" : `<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock ? " (\uC55E \uB2E8\uACC4\uB97C \uBA3C\uC800 \uC0AC\uC57C \uD574\uC694)" : ""}</div>`}${have ? `<span class="sbad">${cur ? "\uC0AC\uC6A9 \uC911" : "\uBCF4\uC720"}</span>` : `<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} \xB7 ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock || S.money < it.price ? "disabled" : ""}>${won(it.price)}</button>`}</div>`;
     }).join("") + "</div>";
   } else if (m.type === "seedbuy") {
     const t = m.flower, p = SEED_PRICE[t], tot = p * m.qty, has = c.bag.some((it) => it && it.kind === "seed" && it.t === t) || bagFree(i) > 0;
@@ -2264,7 +2500,7 @@ function renderModal(i) {
       const t = c.bag[m.slot].t, name = FL[t].name;
       if (m.step === "leaf") {
         const label = t === "gyp" ? "\uACC1\uAC00\uC9C0 \uC815\uB9AC" : "\uC544\uB7AB\uC78E \uB5BC\uAE30";
-        h = head(i, `${name} \uB2E4\uB4EC\uAE30`) + `<div class="stage"><p class="req" style="margin:0">${label}: \uBB3C\uC5D0 \uC7A0\uAE38 ${t === "gyp" ? "\uACC1\uAC00\uC9C0\uB97C" : "\uC78E\uC744"} \uB20C\uB7EC\uC11C \uB5BC\uC5B4 \uC8FC\uC138\uC694 (${m.removed.length}/${m.leaves})</p>${trimSVG(t, m)}</div>`;
+        h = head(i, `${name} \uB2E4\uB4EC\uAE30`) + `<div class="stage"><p class="req" style="margin:0">${label}: \uBB3C\uC5D0 \uC7A0\uAE38 ${t === "gyp" ? "\uACC1\uAC00\uC9C0\uB97C" : "\uC78E\uC744"} \uB5BC\uC5B4 \uC8FC\uC138\uC694</p>${trimSVG(t, m)}<div class="row" style="justify-content:center"><button class="btn primary" data-a="leafnext">\uC78E \uB5BC\uAE30 (${m.removed.length}/${m.leaves})</button></div></div>`;
       } else h = head(i, `${name} \uB2E4\uB4EC\uAE30`) + `<p class="req" style="margin:0 0 6px">\uC0AC\uC120 \uC790\uB974\uAE30: \uC120\uC774 \uCD08\uB85D \uAD6C\uAC04\uC5D0 \uC62C \uB54C \uADF8\uB9BC\uC774\uB098 \uBC84\uD2BC\uC744 \uB204\uB974\uC138\uC694</p><div class="cutwrap"><div class="cutsvg" data-a="cut">${cutSVG(m)}</div><button class="btn primary cutbtn" data-a="cut">\uC790\uB974\uAE30</button></div>`;
     }
   } else if (m.type === "craft") {
@@ -2272,21 +2508,14 @@ function renderModal(i) {
     const taken = Object.entries(S.works).filter(([k]) => k !== m.st).map(([, w]) => w.orderId);
     const pend = S.orders.filter((o2) => o2.status === "pending" && !taken.includes(o2.id));
     const o = orderById(W.orderId);
-    const bench = TYPES.map((t) => {
-      const u = S.bench.filter((s) => s.t === t && s.f >= WILT);
-      return { t, n: u.length, f: avg(u.map((s) => s.f)) };
-    });
-    const wilted = S.bench.filter((s) => s.f < WILT).length;
     h = head(i, "\uAF43\uB2E4\uBC1C \uB9CC\uB4E4\uAE30", "\uC791\uC5C5\uB300\uC5D0 \uB450\uACE0 \uB2EB\uAE30") + two(
       i,
-      bagGrid(i, "cin", (it) => !(it.kind === "bunch" && it.trim && !it.dried || it.kind === "bouquet" && !it.wrapped)) + `<p class="note" style="text-align:left">\uB2E4\uB4EC\uC740 \uAF43 \uBB36\uC74C\uC744 \uB204\uB974\uBA74 \uC791\uC5C5\uB300\uC5D0 \uC62C\uB77C\uAC00\uC694.</p>`,
+      bagGrid(i, "cin", (it) => !(it.kind === "bunch" && it.trim && !it.dried || it.kind === "bouquet" && !it.wrapped)) + `<p class="note" style="text-align:left">\uC190\uC9C8\uB41C \uAF43\uC744 \uB204\uB97C \uB54C\uB9C8\uB2E4 \uD55C \uC1A1\uC774\uC529 \uAF43\uB2E4\uBC1C\uC5D0 \uB4E4\uC5B4\uAC00\uC694.</p>`,
       `<div class="row"><button class="btn small ${!W.orderId ? "soft" : ""}" data-a="order" data-v="0">\uC790\uC720 \uAF43\uB2E4\uBC1C</button>${pend.map((p) => `<button class="btn small ${p.id === W.orderId ? "soft" : ""}" data-a="order" data-v="${p.id}">${clock(p.time)} ${reqChips(p.req)}</button>`).join("")}</div>
       <div class="mg"><div class="preview">${bouquetSVG(W.stems, { tied: false })}</div><div>
       ${o ? `<p class="req">${esc(o.name)}\uB2D8: \u201C${esc(o.text)}\u201D<br>\uD3EC\uC7A5 \uD76C\uB9DD: ${PAPERS[o.paper].name}</p>${reqCheck(o, W.stems)}` : `<p class="req">\uB9C8\uC74C\uB300\uB85C \uB9CC\uB4E4\uC5B4 \uC9C4\uC5F4\uB300\uC5D0 \uC62C\uB824\uB450\uBA74 \uC190\uB2D8\uC774 \uC0AC \uAC00\uC694.${W.stems.length ? ` \uC9C0\uAE08 \uD3EC\uC7A5\uD558\uBA74 \uC57D ${won(freePrice({ kind: "bouquet", stems: W.stems, wrapped: true }))}` : ""}</p>`}
-      <div class="lbl">\uC791\uC5C5\uB300 \uC704\uC758 \uAF43 (\uB20C\uB7EC\uC11C \uD55C \uC1A1\uC774\uC529 \uB354\uD558\uAE30)</div>
-      <div class="row">${bench.map((b) => `<button class="btn soft" data-a="add" data-v="${b.t}" ${b.n ? "" : "disabled"}><i class="fresh" style="background:${b.n ? freshColor(b.f) : "#ddd"}"></i>${FL[b.t].name} ${b.n}</button>`).join("")}</div>
       <div class="row"><button class="btn" data-a="undo" ${W.stems.length ? "" : "disabled"}>\uD55C \uC1A1\uC774 \uBE7C\uAE30</button><button class="btn" data-a="clear" ${W.stems.length ? "" : "disabled"}>\uBAA8\uB450 \uBE7C\uAE30</button><button class="btn primary" data-a="tie" ${W.stems.length ? "" : "disabled"}>\uB048\uC73C\uB85C \uBB36\uAE30</button></div>
-      <div class="row">${S.bench.length ? `<button class="btn small" data-a="benchback">\uC791\uC5C5\uB300 \uAF43 \uAC00\uBC29\uC5D0 \uB2F4\uAE30</button>` : ""}${wilted ? `<button class="btn small" data-a="dropwilted">\uC2DC\uB4E0 \uAF43 ${wilted}\uC1A1\uC774 \uBC84\uB9AC\uAE30</button>` : ""}</div></div></div>`
+      <div class="row">${S.bench.length ? `<button class="btn small" data-a="benchback">\uC791\uC5C5\uB300\uC5D0 \uB0A8\uC740 \uAF43 ${S.bench.length}\uC1A1\uC774 \uAC00\uBC29\uC5D0 \uB2F4\uAE30</button>` : ""}</div></div></div>`
     );
   } else if (m.type === "wrap") {
     if (m.step === "pick") {
@@ -2335,8 +2564,8 @@ function renderModal(i) {
     h = head(i, inShop ? "\uD604\uC7A5 \uC608\uC57D" : "\uC0B0\uCC45\uD558\uB358 \uC190\uB2D8", "\uC778\uC0AC\uD558\uACE0 \uD5E4\uC5B4\uC9C0\uAE30") + `<p class="big">${esc(m.walker.offer.name)}\uB2D8: ${inShop ? "\uAF43\uB2E4\uBC1C \uC608\uC57D\uD558\uACE0 \uC2F6\uC5B4\uC694!" : "\uB9C8\uCE68 \uAF43\uC9D1 \uAC00\uB824\uB358 \uCC38\uC774\uC5C8\uC5B4\uC694!"}</p>` + offerHTML(m.walker.offer);
   } else if (m.type === "board") {
     const st = { pending: "\uC900\uBE44 \uC804", crafted: "\uBB36\uC74C", delivered: "\uC804\uB2EC \uC644\uB8CC", cancelled: "\uCDE8\uC18C" };
-    h = head(i, "\uC608\uC57D \uBCF4\uB4DC") + `<div class="lbl">\uC624\uB298</div><div class="list">${S.orders.map((o) => `<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} \xB7 ${esc(o.name)}<br><small>${Object.keys(o.req).map((t) => FL[t].name + " " + o.req[t]).join(", ")} \xB7 ${PAPERS[o.paper].name} \uD3EC\uC7A5</small></span><span>${st[o.status]}</span></div>`).join("")}</div>
-      <div class="lbl">\uB0B4\uC77C</div>${S.tomorrow.length ? `<div class="list">${S.tomorrow.map((o) => `<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} \xB7 ${esc(o.name)}</span></div>`).join("")}</div>` : '<p class="note">\uC544\uC9C1 \uB0B4\uC77C \uC608\uC57D\uC774 \uC5C6\uC5B4\uC694. \uC804\uD654\uB97C \uBC1B\uAC70\uB098 \uACF5\uC6D0\uC5D0\uC11C \uC190\uB2D8\uC744 \uB9CC\uB098 \uBCF4\uC138\uC694.</p>'}`;
+    h = head(i, "\uC608\uC57D \uBCF4\uB4DC") + `<div class="lbl">\uC624\uB298</div><div class="list">${S.orders.map((o) => `<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} \xB7 ${esc(o.name)}${o.urgent ? ' <b style="color:#C65C79;font-weight:normal">\uAE09\uD574\uC694</b>' : ""}<br>${reqChips(o.req)} <small>\xB7 ${PAPERS[o.paper].name} \uD3EC\uC7A5</small></span><span>${st[o.status]}</span></div>`).join("")}</div>
+      <div class="lbl">\uB0B4\uC77C</div>${S.tomorrow.length ? `<div class="list">${S.tomorrow.map((o) => `<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} \xB7 ${esc(o.name)}<br>${reqChips(o.req)}</span></div>`).join("")}</div>` : '<p class="note">\uC544\uC9C1 \uB0B4\uC77C \uC608\uC57D\uC774 \uC5C6\uC5B4\uC694. \uC804\uD654\uB97C \uBC1B\uAC70\uB098 \uACF5\uC6D0\uC5D0\uC11C \uC190\uB2D8\uC744 \uB9CC\uB098 \uBCF4\uC138\uC694.</p>'}`;
   }
   const sy = (el2.querySelector(".invR") || {}).scrollTop || 0, sl = (el2.querySelector(".invL") || {}).scrollTop || 0, sm = (el2.querySelector(".mbody") || {}).scrollTop || 0;
   el2.innerHTML = wrapBody(h);
@@ -2492,6 +2721,29 @@ function onModalClick(i, e) {
     S.money -= it.price;
     S.stats.invest += it.price;
     sfx("buy");
+    if (it.styleSet) {
+      S.style = it.styleSet;
+      BG_CACHE = {};
+      toast(i, `\uAC00\uAC8C\uB97C ${it.name} \uC2A4\uD0C0\uC77C\uB85C \uBC14\uAFE8\uC5B4\uC694`);
+      renderModal(i);
+      return;
+    }
+    if (it.floor) {
+      const f = { ...it.floor };
+      const sp = findSpot(f);
+      if (!sp) {
+        S.money += it.price;
+        S.stats.invest -= it.price;
+        toast(i, "\uAC00\uAC8C\uC5D0 \uB193\uC744 \uC790\uB9AC\uAC00 \uC5C6\uC5B4\uC694");
+        return;
+      }
+      f.x = sp[0];
+      f.y = sp[1];
+      S.decor.push(f);
+      toast(i, `${it.name}\uC744(\uB97C) \uAC00\uAC8C\uC5D0 \uB193\uC558\uC5B4\uC694. \uAC00\uAD6C \uBC30\uCE58\uB85C \uC62E\uAE38 \uC218 \uC788\uC5B4\uC694`);
+      renderModal(i);
+      return;
+    }
     if (it.style) {
       S.closet[it.id] = true;
       toast(i, `${it.name}\uC744(\uB97C) \uC0C0\uC5B4\uC694. \uAC00\uAC8C \uC637\uC7A5\uC5D0\uC11C \uC785\uC744 \uC218 \uC788\uC5B4\uC694`);
@@ -2529,6 +2781,15 @@ function onModalClick(i, e) {
       }
       c.modal = trimModal(c, +v);
       modalEl(i).dataset.t = 0;
+      renderModal(i);
+    }
+    if (a === "leafnext") {
+      const k = [...Array(m.leaves).keys()].find((q) => !m.removed.includes(q));
+      if (k != null) {
+        m.removed.push(k);
+        sfx("snip");
+      }
+      if (m.removed.length >= m.leaves) m.step = "cut";
       renderModal(i);
     }
     if (a === "leaf") {
@@ -2570,11 +2831,11 @@ function onModalClick(i, e) {
     }
     if (a === "undo") {
       const s = W.stems.pop();
-      if (s) S.bench.push(s);
+      if (s) returnStem(i, s);
       renderModal(i);
     }
     if (a === "clear") {
-      S.bench.push(...W.stems);
+      W.stems.forEach((s) => returnStem(i, s));
       W.stems = [];
       renderModal(i);
     }
@@ -2600,8 +2861,11 @@ function onModalClick(i, e) {
       const it = bag[+v];
       if (!it) return;
       if (it.kind === "bunch" && it.trim && !it.dried) {
-        S.bench.push(...it.stems);
-        bag[+v] = null;
+        const s = it.stems.reduce((a2, b) => b.f > a2.f ? b : a2);
+        it.stems.splice(it.stems.indexOf(s), 1);
+        W.stems.push(s);
+        if (!it.stems.length) bag[+v] = null;
+        sfx("tap");
         renderModal(i);
         return;
       }
@@ -2753,7 +3017,10 @@ function onModalClick(i, e) {
     }
   }
 }
-[0, 1].forEach((i) => modalEl(i).addEventListener("click", (e) => onModalClick(i, e)));
+[0, 1].forEach((i) => modalEl(i).addEventListener("click", (e) => {
+  onModalClick(i, e);
+  bump();
+}));
 function dragScroll(el2) {
   let pid = null, sy = 0, st = 0, moved = false, box = null;
   el2.addEventListener("pointerdown", (e) => {
@@ -2791,11 +3058,16 @@ function dragScroll(el2) {
 [0, 1].forEach((i) => dragScroll(modalEl(i)));
 let boxTick = 0;
 function refreshLiveModals(dt) {
+  S.chars.forEach((c, i) => {
+    const m = c.modal;
+    if (!m) return;
+    if ((["box", "counter", "craft", "trash", "plant"].includes(m.type) || m.step === "pick") && m._rev !== S.rev) renderModal(i);
+  });
   boxTick += dt;
-  if (boxTick < 1) return;
+  if (boxTick < 2) return;
   boxTick = 0;
   S.chars.forEach((c, i) => {
-    if (c.modal && c.modal.type === "box" && ["bucket", "dryer"].includes(S.st[c.modal.st].type)) renderModal(i);
+    if (c.modal && c.modal.type === "box" && S.st[c.modal.st].type === "dryer") renderModal(i);
   });
 }
 function showScreen(html) {
@@ -2812,18 +3084,18 @@ function showTitle() {
   updateControlVisibility();
   $("#orderPop").className = "";
   const demo = [...Array(5)].map(() => ({ ...stem("tulip", 0), f: 95 })).concat([...Array(3)].map(() => ({ ...stem("freesia", 0), f: 95 })), [...Array(4)].map(() => ({ ...stem("gyp", 0), f: 95 })));
-  const sv = loadSave();
+  const sv2 = loadSave();
   showScreen(`<div class="sheet"><div class="title-wrap"><div class="title-art">${bouquetSVG(demo, { paper: "pink", ribbon: "white", wrapped: true })}</div><div>
     <h1>\uC6B0\uB9AC \uB458\uC758 \uAF43\uC9D1</h1><p class="sub">\uC544\uCE68\uC5D4 \uB9C8\uC744 \uAF43\uC2DC\uC7A5\uC5D0\uC11C \uAF43\uC744 \uC0AC \uC624\uACE0, \uB0AE\uC5D0\uB294 \uC608\uC57D \uAF43\uB2E4\uBC1C\uC744 \uB9CC\uB4E4\uC5B4\uC694.<br>\uBC88 \uB3C8\uC73C\uB85C \uC6A9\uD488\uC0C1\uC810\uC5D0\uC11C \uAC00\uAC8C\uB97C \uAFB8\uBBF8\uACE0 \uD0A4\uC6CC \uBD10\uC694.</p>
-    ${sv ? `<div class="opts"><button class="btn primary" id="goCS">\uD63C\uC790 \uC774\uC5B4\uD558\uAE30 \xB7 ${sv.day}\uC77C\uCC28${sv.mid ? " " + clock(sv.mid.t) : ""}</button><button class="btn primary" id="goCD">\uB458\uC774 \uC774\uC5B4\uD558\uAE30</button></div>` : ""}
-    <div class="opts"><button class="btn ${sv ? "" : "primary"}" id="goSolo">${sv ? "\uC0C8\uB85C \uC2DC\uC791 (\uD63C\uC790)" : "\uD63C\uC790 \uD14C\uC2A4\uD2B8\uD558\uAE30"}</button><button class="btn" id="goDuo">${sv ? "\uC0C8\uB85C \uC2DC\uC791 (\uB458\uC774)" : "\uB458\uC774 \uD558\uAE30"}</button><button class="btn soft" id="goSet">\uC124\uC815</button></div>
+    ${sv2 ? `<div class="opts"><button class="btn primary" id="goCS">\uD63C\uC790 \uC774\uC5B4\uD558\uAE30 \xB7 ${sv2.day}\uC77C\uCC28${sv2.mid ? " " + clock(sv2.mid.t) : ""}</button><button class="btn primary" id="goCD">\uB458\uC774 \uC774\uC5B4\uD558\uAE30</button></div>` : ""}
+    <div class="opts"><button class="btn ${sv2 ? "" : "primary"}" id="goSolo">${sv2 ? "\uC0C8\uB85C \uC2DC\uC791 (\uD63C\uC790)" : "\uD63C\uC790 \uD14C\uC2A4\uD2B8\uD558\uAE30"}</button><button class="btn" id="goDuo">${sv2 ? "\uC0C8\uB85C \uC2DC\uC791 (\uB458\uC774)" : "\uB458\uC774 \uD558\uAE30"}</button><button class="btn soft" id="goSet">\uC124\uC815</button></div>
     <p class="hint">\uD63C\uC790 \uD14C\uC2A4\uD2B8: \uC67C\uCABD \uC2A4\uD2F1\uC73C\uB85C \uC774\uB3D9, \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD589\uB3D9, \uC704\uC758 \uBC84\uD2BC\uC73C\uB85C SM\uACFC SK\uB97C \uBC88\uAC08\uC544 \uC870\uC791\uD574\uC694.<br>\uB458\uC774 \uD558\uAE30: \uD734\uB300\uD3F0 \uC67C\uCABD\uC740 SM, \uC624\uB978\uCABD\uC740 SK\uAC00 \uC870\uC791\uD574\uC694.<br>\uD558\uB8E8\uAC00 \uB05D\uB0A0 \uB54C\uB9C8\uB2E4 \uC790\uB3D9\uC73C\uB85C \uC800\uC7A5\uB3FC\uC694.</p></div></div></div>`);
   const confirmNew = (mode) => {
-    if (sv && !confirm("\uC800\uC7A5\uB41C \uAC8C\uC784\uC744 \uC9C0\uC6B0\uACE0 \uC0C8\uB85C \uC2DC\uC791\uD560\uAE4C\uC694?")) return;
+    if (sv2 && !confirm("\uC800\uC7A5\uB41C \uAC8C\uC784\uC744 \uC9C0\uC6B0\uACE0 \uC0C8\uB85C \uC2DC\uC791\uD560\uAE4C\uC694?")) return;
     askTutorial(mode);
   };
   $("#goSet").onclick = () => showSettings("title");
-  if (sv) {
+  if (sv2) {
     $("#goCS").onclick = () => continueGame("solo");
     $("#goCD").onclick = () => continueGame("duo");
   }
@@ -2845,7 +3117,23 @@ function stockLine() {
   const w = fresh.filter((s) => s.f < WILT).length;
   return `<br>\uB0A8\uC740 \uAF43: ${fresh.length}\uC1A1\uC774${w ? ` (\uC2DC\uB4E0 \uAF43 ${w}\uC1A1\uC774)` : ""}${dried ? `, \uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC ${dried}\uC1A1\uC774` : ""}`;
 }
+function showStylePick(next) {
+  S.phase = "intro";
+  $("#hud").style.display = "none";
+  updateControlVisibility();
+  showScreen(`<div class="sheet" style="width:min(720px,96vw)"><h1 style="font-size:24px">\uAC00\uAC8C \uC778\uD14C\uB9AC\uC5B4 \uACE0\uB974\uAE30</h1><p class="sub">\uBB38\uC744 \uC5F4\uAE30 \uC804\uC5D0 \uC6B0\uB9AC \uAC00\uAC8C\uC758 \uBD84\uC704\uAE30\uB97C \uACE8\uB77C\uC694. \uB098\uC911\uC5D0 \uC6A9\uD488\uC0C1\uC810\uC5D0\uC11C \uB3C8\uC744 \uB0B4\uACE0 \uBC14\uAFC0 \uC218 \uC788\uC5B4\uC694.</p>
+    <div class="stylepick">${Object.keys(STYLE_IDS).map((k) => `<button class="scard pickst" data-st="${k}" aria-label="${STYLE_IDS[k]}"><div class="sart">${itemArt({ styleSet: k })}</div><div class="sname">${STYLE_IDS[k]}</div></button>`).join("")}</div></div>`);
+  $("#screen").querySelectorAll("[data-st]").forEach((b) => b.onclick = () => {
+    S.style = b.dataset.st;
+    BG_CACHE = {};
+    next();
+  });
+}
 function showIntro() {
+  if (!S.style) {
+    showStylePick(showIntro);
+    return;
+  }
   S.phase = "intro";
   $("#hud").style.display = "none";
   updateControlVisibility();
@@ -3027,13 +3315,17 @@ function updateHUD() {
   $("#bEdit").classList.toggle("hide", !inShop && !S.edit);
   $("#bEdit").textContent = S.edit ? "\uBC30\uCE58 \uB05D\uB0B4\uAE30" : "\uAC00\uAD6C \uBC30\uCE58";
   $("#bEdit").classList.toggle("soft", S.edit);
-  const key = [S.day, Math.floor(S.t / 5), S.money, showM, S.edit, S.orders.length, S.orders.map((o) => o.status + late(o) + here(o)).join(), S.t >= CLOSE_OK].join("|");
+  const key = [S.day, Math.floor(S.t / (S.orders.some((o) => o.urgent) ? 1 : 5)), S.money, showM, S.edit, S.orders.length, S.orders.map((o) => o.status + late(o) + here(o)).join(), S.t >= CLOSE_OK].join("|");
   if (key === hudKey) return;
   hudKey = key;
   $("#hMoney").classList.toggle("hide", !showM);
   $("#hMoney").textContent = won(S.money);
   const lab = { pending: "\uC900\uBE44", crafted: "\uBB36\uC74C", delivered: "\uC644\uB8CC", cancelled: "\uCDE8\uC18C" };
-  $("#hOrders").innerHTML = S.orders.map((o) => `<span class="chip ${o.status === "delivered" || o.status === "cancelled" ? "done" : ""} ${late(o) ? "late" : ""} ${here(o) ? "here" : ""}" data-id="${o.id}" role="button" tabindex="0" aria-label="${esc(o.title)}"><b>${clock(o.time).replace("\uC624\uC804 ", "").replace("\uC624\uD6C4 ", "")}</b>${reqChips(o.req)}${here(o) ? '<i class="hereDot"></i>' : o.status === "delivered" ? " \u2713" : ""}</span>`).join("");
+  $("#hOrders").innerHTML = S.orders.map((o) => {
+    const done = o.status === "delivered" || o.status === "cancelled";
+    const pct = o.urgent && !done ? clamp((o.deadline - S.t) / 130, 0, 1) * 100 : 0;
+    return `<span class="chip ${done ? "done" : ""} ${late(o) && !o.urgent ? "late" : ""} ${here(o) ? "here" : ""} ${o.urgent && !done ? "urgent" : ""}" data-id="${o.id}" role="button" tabindex="0" aria-label="${esc(o.title)}"><span class="ct">${o.urgent && !done ? "\uAE09\uD574\uC694 " : ""}${clock(o.time).replace("\uC624\uC804 ", "").replace("\uC624\uD6C4 ", "")}${here(o) ? '<i class="hereDot"></i>' : o.status === "delivered" ? " \u2713" : ""}</span>${Object.keys(o.req).map((t) => `<span class="fr">${flowerMini(t)}<b>\xD7${o.req[t]}</b></span>`).join("")}${o.urgent && !done ? `<i class="tbar"><i style="width:${pct.toFixed(0)}%"></i></i>` : ""}</span>`;
+  }).join("");
   $("#bClose").classList.toggle("hide", S.t < CLOSE_OK);
 }
 const SETTINGS_KEY = "ourflowershop_settings_v1";
@@ -3314,8 +3606,12 @@ function focusKey(b) {
 }
 function setFocus(ctx2, b) {
   ctx2.el.querySelectorAll(".gfocus").forEach((x) => x.classList.remove("gfocus"));
-  if (!b) return;
+  if (!b) {
+    hideTip();
+    return;
+  }
   b.classList.add("gfocus");
+  showTip(b);
   GP.ctxFocus[ctx2.key] = focusKey(b);
   try {
     b.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -3606,6 +3902,172 @@ addEventListener("visibilitychange", () => {
   if (document.hidden) saveMid();
 });
 addEventListener("pagehide", () => saveMid());
+function showTip(el2) {
+  const tip = $("#tip");
+  if (!tip) return;
+  const t = el2 && el2.dataset && el2.dataset.tip;
+  if (!t || t === "\uBE48 \uCE78") {
+    tip.className = "";
+    return;
+  }
+  tip.textContent = t;
+  tip.className = "on";
+  const r = el2.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = clamp(r.left + r.width / 2 - tw / 2, 6, innerWidth - tw - 6) + "px";
+  tip.style.top = (r.top - th - 8 < 4 ? r.bottom + 8 : r.top - th - 8) + "px";
+}
+function hideTip() {
+  const t = $("#tip");
+  if (t) t.className = "";
+}
+document.addEventListener("pointerover", (e) => {
+  if (e.pointerType !== "mouse") return;
+  const el2 = e.target.closest && e.target.closest("[data-tip]");
+  if (el2) showTip(el2);
+  else hideTip();
+});
+const STYLES = {
+  natural: { name: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", wall: "#EFE8DC", dot: "#E4D8C6", wain: "#D8C9B2", wainL: "#E5D8C3", trim: "#FAF6EE", side: "#E2D7C6", floor: "plank", f1: "#E7D0AF", f2: "#DCC29C", seam: "#CCB08A", frame: "#C9A57E" },
+  vintage: { name: "\uC720\uB7FD \uBE48\uD2F0\uC9C0", wall: "#34514A", dot: "#3E5E55", wain: "#5B3F2E", wainL: "#6A4A37", trim: "#C9A24A", side: "#2C453F", floor: "herring", f1: "#8C5C3E", f2: "#7A4E33", seam: "#5E3B27", frame: "#C9A24A" },
+  minimal: { name: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8", wall: "#F6F5F1", dot: "#ECEAE4", wain: "#ECE9E2", wainL: "#F3F1EB", trim: "#FFFFFF", side: "#E9E6DF", floor: "terrazzo", f1: "#F0EDE6", f2: "#E8E4DB", seam: "#DDD8CE", frame: "#D8D2C8" }
+};
+function curStyle() {
+  return STYLES[S.style] || STYLES.natural;
+}
+function wcol(c, w, to) {
+  return mix(c, to || "#B49A7E", w * 0.85);
+}
+function fHeadSVG(t, x, y, s, w, wet) {
+  const dr = w * s * 0.5, rot = w * 38 * (x < 30 ? -1 : 1);
+  let o = `<g transform="translate(${x.toFixed(1)} ${(y + dr).toFixed(1)}) rotate(${rot.toFixed(0)})">`;
+  if (t === "tulip") {
+    const a = wcol("#D9546F", w), b = wcol("#EF8AA3", w), c = wcol("#FAC6D2", w);
+    o += `<path d="M${-0.62 * s},0 C${-0.75 * s},${-0.9 * s} ${-0.3 * s},${-1.2 * s} 0,${-1.05 * s} C${0.3 * s},${-1.2 * s} ${0.75 * s},${-0.9 * s} ${0.62 * s},0 C${0.4 * s},${0.5 * s} ${-0.4 * s},${0.5 * s} ${-0.62 * s},0Z" fill="${a}"/><path d="M${-0.45 * s},${0.05 * s} C${-0.55 * s},${-0.75 * s} ${-0.12 * s},${-1.08 * s} ${0.05 * s},${-1 * s} C${0.35 * s},${-0.7 * s} ${0.38 * s},${-0.15 * s} ${0.25 * s},${0.3 * s} C${0},${0.42 * s} ${-0.3 * s},${0.35 * s} ${-0.45 * s},${0.05 * s}Z" fill="${b}"/><path d="M${-0.05 * s},${-0.15 * s} C${-0.08 * s},${-0.55 * s} ${0},${-0.8 * s} ${0.08 * s},${-0.88 * s}" stroke="${c}" stroke-width="${(0.12 * s).toFixed(2)}" fill="none" stroke-linecap="round"/>`;
+  } else if (t === "rose") {
+    const a = wcol("#B8263F", w), b = wcol("#D9435E", w), c = wcol("#EE7088", w), d = wcol("#8E1A30", w);
+    o += `<circle r="${0.62 * s}" fill="${a}"/>`;
+    for (let k = 0; k < 5; k++) {
+      const an = k * 72 + 10;
+      o += `<ellipse cx="0" cy="${-0.38 * s}" rx="${0.34 * s}" ry="${0.3 * s}" transform="rotate(${an})" fill="${k % 2 ? b : a}"/>`;
+    }
+    o += `<circle r="${0.36 * s}" fill="${b}"/><path d="M${-0.2 * s},0 A${0.2 * s},${0.2 * s} 0 1 1 ${0.12 * s},${0.15 * s} A${0.12 * s},${0.12 * s} 0 1 1 ${-0.05 * s},${-0.08 * s}" stroke="${d}" stroke-width="${(0.07 * s).toFixed(2)}" fill="none"/><path d="M${-0.45 * s},${-0.25 * s} Q${-0.1 * s},${-0.62 * s} ${0.35 * s},${-0.38 * s}" stroke="${c}" stroke-width="${(0.08 * s).toFixed(2)}" fill="none" opacity=".8"/>`;
+  } else if (t === "hydrangea") {
+    const cs = [wcol("#8FAEE6", w), wcol("#A9C1F0", w), wcol("#B8A6E3", w), wcol("#C9D8F6", w)];
+    const r = seedRand(Math.round(x * 7 + y));
+    o += `<circle r="${0.95 * s}" fill="${wcol("#7C97CC", w)}"/>`;
+    for (let k = 0; k < 16; k++) {
+      const an = r() * 6.28, rd = Math.sqrt(r()) * 0.8 * s, px = Math.cos(an) * rd, py = Math.sin(an) * rd * 0.9, fs = 0.19 * s, col = cs[k % 4];
+      o += `<g transform="translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${(r() * 90).toFixed(0)})"><ellipse cx="0" cy="${-fs}" rx="${fs * 0.8}" ry="${fs}" fill="${col}"/><ellipse cx="0" cy="${fs}" rx="${fs * 0.8}" ry="${fs}" fill="${col}"/><ellipse cx="${-fs}" cy="0" rx="${fs}" ry="${fs * 0.8}" fill="${col}"/><ellipse cx="${fs}" cy="0" rx="${fs}" ry="${fs * 0.8}" fill="${col}"/><circle r="${fs * 0.3}" fill="#F3F6FC"/></g>`;
+    }
+  } else if (t === "freesia") {
+    const a = wcol("#F2C53D", w), b = wcol("#FFE68A", w), c = wcol("#E39A2E", w);
+    o += `<path d="M${-0.4 * s},${0.3 * s} Q${0.4 * s},${0.2 * s} ${0.9 * s},${-0.6 * s}" stroke="${wcol("#86B263", w)}" stroke-width="${(0.1 * s).toFixed(2)}" fill="none"/>`;
+    const bl = (bx, by, r) => {
+      let q = "";
+      for (let k = 0; k < 6; k++) q += `<ellipse cx="0" cy="${-r * 0.55}" rx="${r * 0.38}" ry="${r * 0.56}" transform="rotate(${k * 60 + 15})" fill="${k % 2 ? a : b}"/>`;
+      return `<g transform="translate(${bx} ${by})">${q}<circle r="${r * 0.28}" fill="${c}"/></g>`;
+    };
+    o += bl(0, 0, 0.62 * s) + bl(0.45 * s, -0.25 * s, 0.45 * s) + `<ellipse cx="${0.8 * s}" cy="${-0.52 * s}" rx="${0.12 * s}" ry="${0.22 * s}" fill="${wcol("#D5D68A", w)}" transform="rotate(40 ${0.8 * s} ${-0.52 * s})"/>`;
+  } else {
+    const r = seedRand(Math.round(x * 13 + y * 3));
+    for (let k = 0; k < 11; k++) {
+      const px = (r() - 0.5) * 1.5 * s, py = (r() - 0.5) * 1.1 * s;
+      o += `<path d="M0,${0.6 * s} L${px.toFixed(1)},${py.toFixed(1)}" stroke="${wcol("#9DBB88", w)}" stroke-width=".35"/><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(0.14 * s + r() * 0.05 * s).toFixed(2)}" fill="${wcol("#FFFFFF", w, "#D9CDB6")}" stroke="#DCD6CC" stroke-width=".25"/>`;
+    }
+  }
+  if (wet && !w) o += `<circle cx="${0.3 * s}" cy="${-0.55 * s}" r="${0.1 * s}" fill="#fff" opacity=".9"/><path d="M${-0.35 * s},${-0.2 * s} l0,${-0.22 * s} M${-0.46 * s},${-0.31 * s} l${0.22 * s},0" stroke="#fff" stroke-width=".5" opacity=".9"/>`;
+  return o + "</g>";
+}
+function flowerMini(t) {
+  return `<svg viewBox="0 0 24 24" class="fm" aria-hidden="true"><path d="M12 23V14" stroke="#6E9A5A" stroke-width="1.6"/>${fHeadSVG(t, 12, t === "tulip" ? 15 : 12, t === "hydrangea" ? 9 : t === "gyp" ? 8 : 10, 0, false)}</svg>`;
+}
+function reqChips(req) {
+  return Object.keys(req).map((t) => `<span class="fq">${flowerMini(t)}${req[t]}</span>`).join("");
+}
+function bunchSVG(it) {
+  const st = it.stems, n = Math.min(it.t === "hydrangea" ? 3 : 5, st.length), trim = it.trim, f = avg(st.map((s) => s.f)), w = it.dried ? 0 : wither(f), wet = !it.dried && avg(st.map((s) => s.hyd || 0)) >= 0.99;
+  const sc = it.t === "hydrangea" ? 11.5 : it.t === "gyp" ? 7.5 : it.t === "rose" ? 8.5 : 9;
+  const stemC = wcol("#6E9A5A", w);
+  let stems = "", heads = "", leaves = "", extra = "";
+  for (let k = 0; k < n; k++) {
+    const fx = 30 + (k - (n - 1) / 2) * (it.t === "hydrangea" ? 14 : 8.5), fy = 15 + Math.abs(k - (n - 1) / 2) * 3 + k % 2 * 2;
+    const bx = 30 + (k - (n - 1) / 2) * 1.6, by = trim ? 49 : 57 + k % 3 * 1.5;
+    stems += `<path d="M${fx.toFixed(1)},${fy + 2} Q${((fx + bx) / 2).toFixed(1)},${(fy + by) / 2} ${bx.toFixed(1)},${by}" stroke="${stemC}" stroke-width="1.4" fill="none"/>`;
+    if (trim) stems += `<path d="M${(bx - 1.1).toFixed(1)},${by - 0.8} L${(bx + 1.1).toFixed(1)},${by + 1}" stroke="${mix(stemC, "#fff", 0.4)}" stroke-width="1.2"/>`;
+    else if (k % 2 === 0) {
+      const lx = bx + (k < n / 2 ? -1 : 1) * 2;
+      leaves += `<ellipse cx="${(lx + (k < n / 2 ? -3 : 3)).toFixed(1)}" cy="${by - 12}" rx="2.2" ry="6" transform="rotate(${k < n / 2 ? -30 : 30} ${lx.toFixed(1)} ${by - 12})" fill="${wcol("#7CA85F", w)}"/>`;
+    }
+    heads += fHeadSVG(it.t, fx, fy, sc, w, wet);
+  }
+  if (!trim) extra += `<path d="M17,36 L43,36 L38,58 L22,58Z" fill="#D8B994"/><path d="M17,36 L43,36 L41,40 L19,40Z" fill="#E6CDAA"/><path d="M26,40 L25,58 M34,40 L35,58" stroke="#C4A27A" stroke-width=".6"/>`;
+  else extra += `<rect x="25" y="41" width="10" height="3" rx="1.5" fill="#E07A7A"/>` + (wet ? `<ellipse cx="22" cy="44" rx="1" ry="1.5" fill="#9CCDF0"/><ellipse cx="38" cy="47" rx=".9" ry="1.4" fill="#9CCDF0"/>` : "");
+  return `<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">${stems}${leaves}${extra}${heads}${wet ? '<circle cx="46" cy="12" r="1.3" fill="#fff"/><path d="M14 20 l0 -4 M12 18 l4 0" stroke="#fff" stroke-width=".8"/>' : ""}</svg>`;
+}
+function sprSVG() {
+  return `<svg viewBox="0 0 40 40"><rect x="18" y="14" width="4" height="20" fill="#8E9CA6"/><ellipse cx="20" cy="14" rx="7" ry="3.5" fill="#BCC7CF"/><circle cx="20" cy="13" r="2.4" fill="#6E8FAE"/>${[0, 1, 2, 3, 4].map((k) => `<ellipse cx="${8 + k * 6}" cy="${6 + k % 2 * 2}" rx="1" ry="1.6" fill="#7FB8E6"/>`).join("")}</svg>`;
+}
+const ART_BG = '<rect width="64" height="64" rx="12" fill="#FBF6F0"/>';
+function sv(inner) {
+  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${inner}</svg>`;
+}
+function artPerson(extra, tee) {
+  return `<ellipse cx="32" cy="58" rx="16" ry="3" fill="#0001"/><rect x="18" y="38" width="28" height="22" rx="9" fill="${tee || "#4C82D4"}"/><rect x="28" y="30" width="8" height="10" rx="3" fill="#E0B597"/><ellipse cx="32" cy="24" rx="13" ry="14" fill="#F4D3B7"/><path d="M19 22 C19 8 45 8 45 22 C41 17 36 16 32 15 C28 16 23 17 19 22Z" fill="#3B2A22"/><ellipse cx="27" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><ellipse cx="37" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><path d="M29.5 31 Q32 33 34.5 31" stroke="#C0707E" stroke-width="1.1" fill="none"/>${extra}`;
+}
+function itemArt(it) {
+  const id = it.id;
+  if (it.style) {
+    const [k, v] = it.style;
+    if (k === "glasses") return sv(artPerson(v === "gold" ? '<circle cx="27" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><circle cx="37" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><path d="M31.4 25 L32.6 25" stroke="#C9A24A"/>' : '<rect x="21.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/><rect x="31.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/>'));
+    if (k === "hat") {
+      const h = { beret: '<ellipse cx="30" cy="11" rx="15" ry="6" fill="#C65C79" transform="rotate(-8 30 11)"/><circle cx="31" cy="5" r="1.5" fill="#A84C66"/>', sunhat: '<ellipse cx="32" cy="14" rx="22" ry="5" fill="#E9D3A4"/><rect x="21" y="3" width="22" height="12" rx="6" fill="#F0DEB4"/><rect x="21" y="11" width="22" height="3" fill="#E07A7A"/>', beanie: '<rect x="18" y="2" width="28" height="17" rx="9" fill="#E3A04A"/><rect x="17" y="14" width="30" height="5" rx="2.5" fill="#F0C27A"/><circle cx="32" cy="2" r="3" fill="#FFF1D6"/>', cap: '<path d="M18 16 C18 2 46 2 46 16Z" fill="#5C7FB8"/><ellipse cx="40" cy="16" rx="12" ry="3" fill="#46679C"/>' }[v];
+      return sv(artPerson(h));
+    }
+    if (k === "pin") {
+      const h = { ribbon: '<ellipse cx="38" cy="10" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(-25 38 10)"/><ellipse cx="45" cy="9" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(25 45 9)"/><circle cx="41.5" cy="9.5" r="1.6" fill="#C65C79"/>', flower: [0, 1, 2, 3, 4].map((q) => `<circle cx="${40 + Math.cos(q * 1.256) * 2.6}" cy="${11 + Math.sin(q * 1.256) * 2.6}" r="2" fill="#fff"/>`).join("") + '<circle cx="40" cy="11" r="1.5" fill="#F5CF4E"/>', band: '<path d="M19 20 C19 6 45 6 45 20" stroke="#B9A2E0" stroke-width="3" fill="none"/>' }[v];
+      return sv(artPerson(h));
+    }
+    if (k === "apron") return sv(`<path d="M20 14 h24 v10 l6 32 H14 l6-32Z" fill="${v}"/><rect x="26" y="34" width="12" height="9" rx="2" fill="${mix(v, "#000", 0.15)}"/><path d="M20 14 L14 4 M44 14 L50 4" stroke="${mix(v, "#000", 0.2)}" stroke-width="2"/>`);
+    if (k === "tee") return sv(`<path d="M14 18 L24 10 H40 L50 18 L45 26 L42 24 V54 H22 V24 L19 26Z" fill="${v}"/><path d="M27 10 Q32 15 37 10" stroke="${mix(v, "#000", 0.15)}" stroke-width="1.5" fill="none"/>`);
+  }
+  if (it.styleSet) {
+    const P = STYLES[it.styleSet];
+    const fl = P.floor === "plank" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2].map((q) => `<rect x="6" y="${40 + q * 6}" width="52" height=".8" fill="${P.seam}"/>`).join("")}` : P.floor === "herring" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6].map((q) => `<path d="M${6 + q * 8} 58 l8 -8 M${6 + q * 8} 48 l8 -8" stroke="${P.seam}" stroke-width="1.2"/>`).join("")}` : `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((q) => `<circle cx="${10 + q * 13 % 48}" cy="${40 + q * 7 % 16}" r="1.2" fill="${["#C9B8A6", "#9FB0A6", "#D9A89A"][q % 3]}"/>`).join("")}`;
+    const lamp = it.styleSet === "natural" ? '<path d="M26 8 L38 8 L42 18 L22 18Z" fill="#C9A06A"/><path d="M24 12 H40" stroke="#B08850"/>' : it.styleSet === "vintage" ? '<path d="M32 2 V10" stroke="#C9A24A"/><path d="M24 18 Q32 6 40 18Z" fill="#C9A24A"/>' : '<circle cx="32" cy="14" r="6" fill="#FFFFFF" stroke="#E4E0D8"/>';
+    return sv(`<rect x="6" y="6" width="52" height="30" fill="${P.wall}"/><rect x="6" y="27" width="52" height="9" fill="${P.wain}"/>${fl}${lamp}<rect x="42" y="40" width="7" height="10" rx="2" fill="#D98E6C"/><ellipse cx="45.5" cy="38" rx="6" ry="5" fill="#7FAF6C"/><rect x="12" y="20" width="12" height="10" fill="${P.frame}"/><rect x="13.5" y="21.5" width="9" height="7" fill="#FFF8EE"/>`);
+  }
+  const A = {
+    fridge: '<rect x="18" y="6" width="28" height="52" rx="4" fill="#8FB3D4"/><rect x="21" y="10" width="22" height="40" rx="2" fill="#E4F3FA"/>' + [18, 28, 38].map((y) => `<rect x="21" y="${y + 8}" width="22" height="1" fill="#BCD3E4"/><circle cx="27" cy="${y + 5}" r="3" fill="#EE8FA7"/><circle cx="36" cy="${y + 5}" r="3" fill="#F5CF4E"/>`).join(""),
+    bucket3: '<path d="M18 26 H46 L42 56 H22Z" fill="#B4C2CC"/><ellipse cx="32" cy="26" rx="14" ry="3.5" fill="#8CC3E6"/>' + [0, 1, 2].map((k) => `<path d="M${28 + k * 4} 26 L${24 + k * 8} 10" stroke="#6E9A5A" stroke-width="1.5"/>`).join("") + '<circle cx="24" cy="10" r="4" fill="#EE8FA7"/><circle cx="32" cy="8" r="4" fill="#D9435E"/><circle cx="40" cy="10" r="4" fill="#F5CF4E"/>',
+    dryer: '<rect x="12" y="8" width="3" height="50" fill="#9C6B4C"/><rect x="49" y="8" width="3" height="50" fill="#9C6B4C"/><rect x="10" y="7" width="44" height="4" rx="2" fill="#C99E78"/>' + [20, 32, 44].map((x, k) => `<path d="M${x} 11 V18" stroke="#B88A5A"/><path d="M${x} 18 L${x - 3} 34 M${x} 18 L${x + 3} 34 M${x} 18 V34" stroke="#A89A6E"/><circle cx="${x - 3}" cy="36" r="3" fill="${["#C9A07A", "#D8B06A", "#C98E8E"][k]}"/><circle cx="${x + 3}" cy="36" r="3" fill="${["#D8B06A", "#C98E8E", "#C9A07A"][k]}"/>`).join(""),
+    pickup: '<rect x="10" y="36" width="44" height="18" rx="3" fill="#C99873"/><rect x="8" y="32" width="48" height="6" rx="2" fill="#E9D3B6"/><path d="M26 32 L32 12 L38 32Z" fill="#F4B6C4"/><circle cx="29" cy="14" r="3.5" fill="#EE8FA7"/><circle cx="35" cy="15" r="3.5" fill="#F5CF4E"/><rect x="24" y="18" width="16" height="6" rx="3" fill="#fff"/>',
+    craft2: '<rect x="8" y="26" width="48" height="8" rx="2" fill="#F6D5DC"/><rect x="8" y="33" width="48" height="5" fill="#C98E9C"/><rect x="12" y="38" width="4" height="18" fill="#9C6B4C"/><rect x="48" y="38" width="4" height="18" fill="#9C6B4C"/><circle cx="40" cy="24" r="4" fill="#D8B994"/><path d="M18 26 L28 16" stroke="#6E9A5A" stroke-width="1.5"/><circle cx="28" cy="15" r="3.5" fill="#EE8FA7"/>',
+    scissors: '<path d="M20 44 L46 14" stroke="#AFBAC2" stroke-width="4" stroke-linecap="round"/><path d="M20 14 L46 44" stroke="#C9D2D8" stroke-width="4" stroke-linecap="round"/><circle cx="18" cy="48" r="6" fill="none" stroke="#E1B656" stroke-width="3"/><circle cx="46" cy="48" r="6" fill="none" stroke="#E1B656" stroke-width="3"/>',
+    sprinkler: '<rect x="30" y="26" width="4" height="30" fill="#8E9CA6"/><ellipse cx="32" cy="26" rx="10" ry="4" fill="#BCC7CF"/>' + [0, 1, 2, 3, 4, 5].map((k) => `<ellipse cx="${10 + k * 9}" cy="${12 + k % 2 * 5}" rx="1.4" ry="2.3" fill="#7FB8E6"/>`).join(""),
+    papers2: [["#BFE3D0", 14], ["#F6B7A0", 28], ["#D8B994", 42]].map(([c, x]) => `<rect x="${x}" y="10" width="10" height="44" rx="5" fill="${c}"/><ellipse cx="${x + 5}" cy="10" rx="5" ry="2" fill="${mix(c, "#fff", 0.4)}"/>`).join(""),
+    ribbons2: [["#B9A2E0", 22], ["#7FB070", 42]].map(([c, x]) => `<circle cx="${x}" cy="30" r="12" fill="${c}"/><circle cx="${x}" cy="30" r="4" fill="#FBF6F0"/><path d="M${x} 42 q-6 10 -2 16 M${x} 42 q6 10 2 16" stroke="${c}" stroke-width="3" fill="none"/>`).join(""),
+    d_pendant: '<path d="M32 4 V16" stroke="#8A7B74"/><path d="M20 28 Q32 8 44 28Z" fill="#C9A06A"/><path d="M22 24 H42 M24 20 H40" stroke="#B08850"/><ellipse cx="32" cy="30" rx="6" ry="2.5" fill="#FFE9A8"/>',
+    d_curtain: '<rect x="18" y="10" width="28" height="36" fill="#CFE3EE"/><path d="M8 6 H56" stroke="#9C8B7A" stroke-width="2"/><path d="M10 6 C16 20 12 40 18 56 H8 V6Z" fill="#EFE6D6"/><path d="M54 6 C48 20 52 40 46 56 H56 V6Z" fill="#EFE6D6"/>',
+    d_wreath: '<circle cx="32" cy="32" r="18" fill="none" stroke="#9DB07F" stroke-width="7"/>' + [0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<circle cx="${32 + Math.cos(k * 0.785) * 18}" cy="${32 + Math.sin(k * 0.785) * 18}" r="3" fill="${["#C9A07A", "#E3C9A8", "#C98E8E", "#EFE6D6"][k % 4]}"/>`).join("") + '<path d="M28 50 l4 4 l4 -4" stroke="#C9A07A" stroke-width="2" fill="none"/>',
+    d_wallshelf: '<rect x="8" y="34" width="48" height="4" rx="1" fill="#C9A07A"/><rect x="12" y="20" width="8" height="14" rx="3" fill="#E4DCCF"/><circle cx="32" cy="28" r="6" fill="#D98E6C"/><ellipse cx="32" cy="22" rx="6" ry="4" fill="#7FAF6C"/><rect x="42" y="16" width="10" height="18" fill="#F0E4CF"/><path d="M42 18 H52" stroke="#C9A24A"/>',
+    d_mirror: '<path d="M20 58 V22 A12 12 0 0 1 44 22 V58Z" fill="#C9A24A"/><path d="M23 56 V23 A9 9 0 0 1 41 23 V56Z" fill="#DDEEF5"/><path d="M27 30 L33 24 M27 38 L37 28" stroke="#fff" stroke-width="1.5" opacity=".8"/>',
+    d_ladder: '<path d="M18 58 L24 8 M46 58 L40 8" stroke="#B98A63" stroke-width="3"/>' + [16, 28, 40, 52].map((y, k) => `<path d="M${19.5 + k * 0} ${y} H44" stroke="#C9A07A" stroke-width="3"/>`).join("") + '<rect x="26" y="8" width="8" height="8" rx="2" fill="#D98E6C"/><ellipse cx="30" cy="7" rx="5" ry="3" fill="#7FAF6C"/><rect x="34" y="31" width="6" height="9" fill="#EFE6D6"/>',
+    d_monstera: '<path d="M24 44 H40 L37 58 H27Z" fill="#E8DCCB"/>' + [[-30, 14], [20, 18], [-5, 12], [40, 26], [-50, 26]].map(([a, l]) => `<g transform="translate(32 44) rotate(${a})"><path d="M0 0 V${-l}" stroke="#4E7A40" stroke-width="1.5"/><ellipse cx="0" cy="${-l - 8}" rx="9" ry="10" fill="#4F8A48"/><path d="M-6 ${-l - 8} h4 M2 ${-l - 6} h4 M-4 ${-l - 12} h3" stroke="#FBF6F0" stroke-width="1.3"/></g>`).join(""),
+    d_olive: '<path d="M26 46 H38 L36 58 H28Z" fill="#C98E6C"/><path d="M32 46 V18 M32 30 L24 22 M32 26 L40 18" stroke="#8C7458" stroke-width="2"/>' + [[24, 20], [30, 12], [38, 16], [26, 26], [40, 24], [34, 20], [22, 14], [36, 10]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="5" ry="2" fill="#9DAF8A" transform="rotate(${x * 7} ${x} ${y})"/>`).join(""),
+    d_terrarium: '<rect x="10" y="12" width="44" height="40" rx="3" fill="#C9A24A"/><rect x="13" y="15" width="38" height="34" fill="#DDEEF5" opacity=".9"/><path d="M32 15 V49 M13 32 H51" stroke="#C9A24A" stroke-width="1.5"/><ellipse cx="22" cy="28" rx="5" ry="4" fill="#7FAF6C"/><ellipse cx="42" cy="44" rx="5" ry="4" fill="#9DBB88"/><circle cx="40" cy="26" r="3" fill="#EE8FA7"/><rect x="12" y="52" width="4" height="6" fill="#8C6448"/><rect x="48" y="52" width="4" height="6" fill="#8C6448"/>',
+    d_jute: '<ellipse cx="32" cy="36" rx="26" ry="18" fill="#D8C29C"/>' + [0, 1, 2, 3].map((k) => `<ellipse cx="32" cy="36" rx="${22 - k * 5}" ry="${15 - k * 3.4}" fill="none" stroke="#C4AA80" stroke-width="1.2"/>`).join(""),
+    hanging: '<path d="M32 2 V18" stroke="#A08A7A"/><path d="M22 18 H42 L39 28 H25Z" fill="#E8D2B4"/>' + [0, 1, 2, 3, 4].map((k) => `<path d="M${24 + k * 4} 26 q${(k - 2) * 2} 14 ${(k - 2) * 3} 28" stroke="#4E7A40" fill="none"/><ellipse cx="${24 + k * 4 + (k - 2) * 3}" cy="${52 - k % 2 * 6}" rx="2.5" ry="1.6" fill="#6FA35E"/>`).join(""),
+    lights: '<path d="M4 14 Q16 26 32 14 Q48 26 60 14" stroke="#8A7B74" fill="none"/>' + [10, 20, 32, 44, 54].map((x, k) => `<circle cx="${x}" cy="${[18, 22, 16, 22, 18][k]}" r="3.5" fill="#FFE9A8"/><circle cx="${x}" cy="${[18, 22, 16, 22, 18][k]}" r="6" fill="#FFE9A8" opacity=".3"/>`).join(""),
+    sign: '<rect x="8" y="20" width="48" height="22" rx="4" fill="#FFF8EE" stroke="#E08FA4" stroke-width="2"/>' + [0, 1, 2, 3, 4, 5, 6].map((k) => `<circle cx="${10 + k * 7.3}" cy="${18 - Math.sin(k / 6 * Math.PI) * 6}" r="3" fill="${["#EE8FA7", "#F5CF4E", "#fff", "#D9435E", "#9DB8E8"][k % 5]}"/>`).join("") + '<path d="M18 31 H46" stroke="#C98E9C" stroke-width="2.5" stroke-linecap="round"/>'
+  };
+  if (id === "bucket4") return sv(A.bucket3);
+  if (/^exp/.test(id)) {
+    const n = +id.slice(3);
+    return sv(`<rect x="8" y="16" width="${20 + n * 4}" height="32" fill="#F0E4CF" stroke="#C9A07A" stroke-width="2"/><rect x="${28 + n * 4}" y="16" width="${8 + n * 4}" height="32" fill="#FBE6EA" stroke="#E08FA4" stroke-width="2" stroke-dasharray="3 2"/><path d="M${30 + n * 4} 32 h${n * 4 + 2} m-4 -4 l4 4 l-4 4" stroke="#E0708C" stroke-width="2" fill="none"/>`);
+  }
+  if (id === "fridge") return sv(A.fridge);
+  return sv(A[id] || '<circle cx="32" cy="32" r="16" fill="#EEE"/>');
+}
 const SKY = [[0, "#F7D6C4"], [60, "#BFE0F4"], [330, "#A8D6F3"], [450, "#F4CFA0"], [520, "#F0A98E"], [565, "#C98FA8"], [600, "#4E4F86"]];
 function lerpKeys(keys, t) {
   for (let k = 0; k < keys.length - 1; k++) {
@@ -3776,11 +4238,57 @@ function gypV(g, x, y, s, w) {
   });
   if (s > 1.3) pts.slice(0, 6).forEach(([dx, dy]) => el(g, x + dx * s, y + dy * s, s * 0.12, s * 0.12, mix("#E9DFA8", WITHER, w)));
 }
+function roseV(g, x, y, s, w) {
+  const a = mix("#B8263F", WITHER, w), b = mix("#D9435E", WITHER, w), c = mix("#F07C92", WITHER, w), d = mix("#8E1A30", "#6E5A4E", w);
+  el(g, x, y, s * 0.62, s * 0.56, a);
+  for (let k = 0; k < 5; k++) {
+    const an = k * 1.256 + 0.3;
+    el(g, x + Math.cos(an) * s * 0.3, y + Math.sin(an) * s * 0.26, s * 0.3, s * 0.26, k % 2 ? b : a);
+  }
+  el(g, x, y - s * 0.05, s * 0.34, s * 0.3, b);
+  if (s > 2.5) {
+    g.strokeStyle = d;
+    g.lineWidth = Math.max(0.2, s * 0.07);
+    g.beginPath();
+    g.arc(x, y - s * 0.05, s * 0.17, 0.4, 4.4);
+    g.stroke();
+    ln(g, x - s * 0.3, y - s * 0.3, x + s * 0.25, y - s * 0.38, c, Math.max(0.2, s * 0.07));
+  }
+}
+function hydrangeaV(g, x, y, s, w) {
+  const cs = [mix("#8FAEE6", WITHER, w), mix("#A9C1F0", WITHER, w), mix("#B8A6E3", WITHER, w), mix("#C9D8F6", WITHER, w)];
+  el(g, x, y, s * 0.9, s * 0.78, mix("#7C97CC", WITHER, w));
+  const r = seedRand(Math.round(x * 7 + y * 3) + 1);
+  const n = s > 3 ? 12 : 7;
+  for (let k = 0; k < n; k++) {
+    const an = r() * 6.28, rd = Math.sqrt(r()) * s * 0.72;
+    el(g, x + Math.cos(an) * rd, y + Math.sin(an) * rd * 0.85, s * 0.2, s * 0.2, cs[k % 4]);
+  }
+  if (s > 3) for (let k = 0; k < 5; k++) el(g, x + (r() - 0.5) * s, y + (r() - 0.5) * s * 0.8, s * 0.05, s * 0.05, "#F3F6FC");
+}
 function flowerHead(g, t, x, y, s, f, dried) {
   const w = dried ? 0.62 : wither(f);
+  if (w > 0.25 && !dried) {
+    y += w * s * 0.55;
+    x += (x % 2 ? 1 : -1) * w * s * 0.3;
+  }
   if (t === "tulip") tulipV(g, x, y, s, w);
   else if (t === "freesia") freesiaV(g, x, y, s * 0.75, w);
+  else if (t === "rose") roseV(g, x, y, s * 0.95, w);
+  else if (t === "hydrangea") hydrangeaV(g, x, y, s * 1.15, w);
   else gypV(g, x, y, s * 0.45, w);
+  if (w > 0.45 && !dried && s > 2.5) {
+    el(g, x + s * 0.3, y + s * 0.6, s * 0.12, s * 0.08, "#9C7A5E");
+  }
+}
+function wetSparkle(g, x, y, s) {
+  const tt = performance.now() / 400 + x;
+  const a = (Math.sin(tt) + 1) / 2;
+  g.globalAlpha = 0.35 + 0.55 * a;
+  el(g, x, y, s * 0.18, s * 0.18, "#FFFFFF");
+  ln(g, x - s * 0.35, y, x + s * 0.35, y, "#FFFFFF", 0.3);
+  ln(g, x, y - s * 0.35, x, y + s * 0.35, "#FFFFFF", 0.3);
+  g.globalAlpha = 1;
 }
 function drawItemV(g, it, x, y) {
   if (it.kind === "bunch") {
@@ -3798,6 +4306,7 @@ function drawItemV(g, it, x, y) {
       const dx = (k - (n - 1) / 2) * 1.8;
       flowerHead(g, it.t, x + dx, y - 9 - k % 2 * 1.5, 3.4, st[k].f, st[k].dried);
     }
+    if (!it.dried && avg(st.map((q) => q.hyd || 0)) >= 0.99) wetSparkle(g, x + 2, y - 11, 3);
     if (st.some((s) => s.hyd >= 0.99)) el(g, x + 4.5, y - 3, 0.8, 1.2, "#7FB8E6");
   } else if (it.kind === "bouquet") {
     const st = it.stems;
@@ -4691,19 +5200,9 @@ function drawStationV(g, s) {
       el(g, x + 6, y + 2.8, 1.8, 0.35, "#D6ECF8");
       el(g, x + 8, y + 9.5, 1.6, 2, "#7FB8E6");
       poly(g, [x + 6.6, y + 9, x + 9.4, y + 9, x + 8, y + 6.4], "#7FB8E6");
-      if (its.length) {
-        const hy = avg(its.map((it) => avg(it.stems.map((q) => q.hyd))));
-        g.lineCap = "round";
-        g.strokeStyle = "rgba(255,255,255,.9)";
-        g.lineWidth = 1.8;
-        g.beginPath();
-        g.arc(x + 8, y - 18, 3, 0, 7);
-        g.stroke();
-        g.strokeStyle = hy >= 1 ? "#7CC06A" : "#7FB8E6";
-        g.lineWidth = 1.2;
-        g.beginPath();
-        g.arc(x + 8, y - 18, 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hy);
-        g.stroke();
+      if (its.length && avg(its.map((it) => avg(it.stems.map((q) => q.hyd || 0)))) >= 0.99) {
+        wetSparkle(g, x + 5, y - 12, 4);
+        wetSparkle(g, x + 11, y - 8, 3);
       }
       break;
     }
@@ -4936,7 +5435,7 @@ function drawStationV(g, s) {
     }
     case "stall": {
       const closed = t >= MARKET_CLOSE;
-      const aw = { tulip: "#F4B6C4", freesia: "#F6DC86", gyp: "#BFE3D0" }[s.flower];
+      const aw = { tulip: "#F4B6C4", freesia: "#F6DC86", gyp: "#BFE3D0", rose: "#E7A3AE", hydrangea: "#BFD0F0" }[s.flower];
       g.fillStyle = CO.woodD;
       g.fillRect(x + 1, y - 24, 1.6, 26);
       g.fillRect(x + w - 2.6, y - 24, 1.6, 26);
@@ -5088,7 +5587,7 @@ function drawStationV(g, s) {
     }
   }
 }
-const VENDORS = { tulip: { style: "f", hair: "#6B4A3A", hairHi: "#8A6553", skin: "#F1C9A5", skinSh: "#DBAA86", tee: "#F4B6C4", teeSh: "#E08FA4", pants: "#5C6A8C", shoe: "#fff", num: "" }, freesia: { style: "m", hair: "#3B2A22", hairHi: "#5E4536", skin: "#EBC3A0", skinSh: "#D3A284", tee: "#F6DC86", teeSh: "#E2BD55", pants: "#6E5B4B", shoe: "#fff", num: "" }, gyp: { style: "f", hair: "#8A8A8A", hairHi: "#B0B0B0", skin: "#F4D3B7", skinSh: "#E0B597", tee: "#BFE3D0", teeSh: "#9CCBB4", pants: "#3E3E48", shoe: "#fff", num: "" } };
+const VENDORS = { rose: { style: "m", hs: "short", hair: "#2E2A3A", hairHi: "#4A4458", skin: "#F1C9A5", skinSh: "#DBAA86", tee: "#E7A3AE", teeSh: "#C98490", pants: "#3E3E48", shoe: "#fff", num: "", acc: "glasses" }, hydrangea: { style: "f", hs: "bob", hair: "#5A3A2E", hairHi: "#7A5A4E", skin: "#EBC3A0", skinSh: "#D3A284", tee: "#BFD0F0", teeSh: "#9CB0D6", pants: "#6E5B4B", shoe: "#fff", num: "" }, tulip: { style: "f", hair: "#6B4A3A", hairHi: "#8A6553", skin: "#F1C9A5", skinSh: "#DBAA86", tee: "#F4B6C4", teeSh: "#E08FA4", pants: "#5C6A8C", shoe: "#fff", num: "" }, freesia: { style: "m", hair: "#3B2A22", hairHi: "#5E4536", skin: "#EBC3A0", skinSh: "#D3A284", tee: "#F6DC86", teeSh: "#E2BD55", pants: "#6E5B4B", shoe: "#fff", num: "" }, gyp: { style: "f", hair: "#8A8A8A", hairHi: "#B0B0B0", skin: "#F4D3B7", skinSh: "#E0B597", tee: "#BFE3D0", teeSh: "#9CCBB4", pants: "#3E3E48", shoe: "#fff", num: "" } };
 const SEEDKEEPER = { style: "f", hs: "bun", acc: "sunhat", expr: "grin", hair: "#6B4A3A", hairHi: "#8A6553", skin: "#EBC3A0", skinSh: "#D3A284", tee: "#C6D8A8", teeSh: "#A9C08A", pants: "#6E5B4B", shoe: "#fff", num: "" };
 const KEEPER = { style: "m", hair: "#8A8A8A", hairHi: "#B5B5B5", skin: "#EBC3A0", skinSh: "#D3A284", tee: "#7FAF8E", teeSh: "#679A78", pants: "#4A4A55", shoe: "#fff", num: "" };
 function visRect(s) {
@@ -5405,14 +5904,168 @@ function drawDecor(g, d) {
       g.fillText(closed ? "\uC601\uC5C5 \uC885\uB8CC" : "\uC601\uC5C5 \uC911", x + 8, y + 3.6);
       break;
     }
-    case "tree": {
-      shadow(g, x + 8, y + 15, 8, 2.4);
-      g.fillStyle = CO.woodD;
-      g.fillRect(x + 6.5, y - 2, 3, 17);
-      leafyBlob(g, x + 8, y - 10, 11, "#7FAF6C", "#9FCB88");
-      el(g, x + 3, y - 12, 1.5, 1.5, "#F9C9D5");
-      el(g, x + 12, y - 7, 1.5, 1.5, "#FFFFFF");
-      el(g, x + 9, y - 16, 1.4, 1.4, "#F9C9D5");
+    case "tree":
+      drawTree(g, x + 8, y + 15, d.v || "round", d.x * 7 + d.y);
+      break;
+    case "rug_jute": {
+      rr(g, x + 2, y + 2, w - 4, h - 4, 12, "#D8C29C");
+      for (let k = 0; k < 4; k++) {
+        g.strokeStyle = "#C4AA80";
+        g.lineWidth = 0.8;
+        rr(g, x + 4 + k * 4, y + 4 + k * 3, w - 8 - k * 8, h - 8 - k * 6, Math.max(2, 10 - k * 3));
+        g.stroke();
+      }
+      break;
+    }
+    case "sandbox": {
+      rr(g, x, y, w, h, 3, "#B98A63");
+      rr(g, x + 2, y + 2, w - 4, h - 4, 2, "#EAD8B0");
+      el(g, x + 12, y + 8, 4, 2, "#D9C59A");
+      rr(g, x + 30, y + 5, 5, 4, 1, "#E07A7A");
+      break;
+    }
+    case "mirror": {
+      shadow(g, x + 8, y + 15, 5, 1.4);
+      g.fillStyle = "#C9A24A";
+      g.beginPath();
+      g.moveTo(x + 3, y + 14);
+      g.lineTo(x + 3, y - 14);
+      g.arc(x + 8, y - 14, 5, Math.PI, 0);
+      g.lineTo(x + 13, y + 14);
+      g.closePath();
+      g.fill();
+      g.fillStyle = "#DDEEF5";
+      g.beginPath();
+      g.moveTo(x + 4.5, y + 13);
+      g.lineTo(x + 4.5, y - 14);
+      g.arc(x + 8, y - 14, 3.5, Math.PI, 0);
+      g.lineTo(x + 11.5, y + 13);
+      g.closePath();
+      g.fill();
+      ln(g, x + 5.5, y - 8, x + 9, y - 13, "rgba(255,255,255,.8)", 0.6);
+      break;
+    }
+    case "ladder": {
+      shadow(g, x + 8, y + 15, 6, 1.4);
+      ln(g, x + 3, y + 15, x + 5, y - 20, "#B98A63", 1.2);
+      ln(g, x + 13, y + 15, x + 11, y - 20, "#B98A63", 1.2);
+      [-14, -5, 4, 12].forEach((yy, k) => {
+        ln(g, x + 3.5 + (12 - yy) * 0.03, y + yy, x + 12.5, y + yy, "#C9A07A", 1);
+        if (k === 0) {
+          rr(g, x + 5, y + yy - 5, 4, 5, 1, "#D98E6C");
+          leafyBlob(g, x + 7, y + yy - 6, 2.5, "#7FAF6C", "#A6D08F");
+        }
+        if (k === 1) {
+          rr(g, x + 9, y + yy - 4, 2.5, 4, 0.5, "#EFE6D6");
+          rr(g, x + 5, y + yy - 3, 3, 3, 1, "#E4DCCF");
+        }
+        if (k === 2) {
+          for (let j = 0; j < 3; j++) flowerHead(g, "gyp", x + 6 + j * 2, y + yy - 2, 2.5, 60, true);
+        }
+      });
+      break;
+    }
+    case "monstera": {
+      shadow(g, x + 8, y + 15, 6, 1.6);
+      poly(g, [x + 4, y + 6, x + 12, y + 6, x + 11, y + 15, x + 5, y + 15], "#E8DCCB");
+      [[-0.9, 12], [-0.35, 15], [0.3, 14], [0.85, 11]].forEach(([a, L], k) => {
+        const ex = x + 8 + Math.sin(a) * L, ey = y + 6 - Math.cos(a) * L;
+        ln(g, x + 8, y + 6, ex, ey, "#4E7A40", 0.6);
+        el(g, ex, ey, 5, 4, k % 2 ? "#4F8A48" : "#5E9A55", a);
+        g.strokeStyle = "#E3EFE6";
+        g.lineWidth = 0.5;
+        g.beginPath();
+        g.moveTo(ex - 2, ey);
+        g.lineTo(ex - 0.5, ey);
+        g.moveTo(ex + 0.8, ey + 1);
+        g.lineTo(ex + 2.2, ey + 1);
+        g.stroke();
+      });
+      break;
+    }
+    case "olive": {
+      shadow(g, x + 8, y + 15, 6, 1.6);
+      poly(g, [x + 5, y + 8, x + 11, y + 8, x + 10, y + 15, x + 6, y + 15], "#C98E6C");
+      ln(g, x + 8, y + 8, x + 8, y - 12, "#8C7458", 1);
+      ln(g, x + 8, y - 4, x + 4, y - 10, "#8C7458", 0.6);
+      ln(g, x + 8, y - 6, x + 12, y - 13, "#8C7458", 0.6);
+      const r2 = seedRand(d.x * 5 + d.y);
+      for (let k = 0; k < 16; k++) el(g, x + 8 + (r2() - 0.5) * 13, y - 12 + (r2() - 0.5) * 12, 2.2, 0.8, k % 2 ? "#9DAF8A" : "#8A9E78", r2() * 3);
+      break;
+    }
+    case "terrarium": {
+      shadow(g, x + w / 2, y + 16, w / 2, 2);
+      rr(g, x + 1, y - 20, w - 2, 34, 1.5, "#C9A24A");
+      rr(g, x + 2.5, y - 18.5, w - 5, 31, 1, "rgba(221,238,245,.85)");
+      ln(g, x + w / 2, y - 18.5, x + w / 2, y + 12.5, "#C9A24A", 0.7);
+      ln(g, x + 2.5, y - 3, x + w - 2.5, y - 3, "#C9A24A", 0.7);
+      leafyBlob(g, x + 8, y - 8, 4, "#7FAF6C", "#A6D08F");
+      leafyBlob(g, x + 23, y + 7, 4, "#6FA35E", "#9DBB88");
+      flowerHead(g, "rose", x + 24, y - 10, 3, 100);
+      flowerHead(g, "hydrangea", x + 9, y + 7, 2.6, 100);
+      g.fillStyle = "#8C6448";
+      g.fillRect(x + 3, y + 13, 2, 3);
+      g.fillRect(x + w - 5, y + 13, 2, 3);
+      break;
+    }
+    case "school": {
+      shadow(g, x + w / 2, y + h + 2, w / 2, 4);
+      const bw = w, by = y + h;
+      rr(g, x, y - 30, bw, h + 30, 2, "#F2E3CF");
+      for (let yy = y - 26; yy < by; yy += 5) {
+        g.fillStyle = "rgba(185,140,110,.12)";
+        g.fillRect(x, yy, bw, 0.6);
+      }
+      poly(g, [x - 4, y - 28, x + bw / 2, y - 50, x + bw + 4, y - 28], "#C9695A");
+      g.fillStyle = "#B25A4C";
+      g.fillRect(x - 4, y - 30, bw + 8, 3);
+      rr(g, x + bw / 2 - 10, y - 58, 20, 14, 2, "#F2E3CF");
+      poly(g, [x + bw / 2 - 12, y - 58, x + bw / 2, y - 70, x + bw / 2 + 12, y - 58], "#C9695A");
+      el(g, x + bw / 2, y - 51, 5, 5, "#FFFDF6");
+      ln(g, x + bw / 2, y - 51, x + bw / 2, y - 54, "#3B2F3F", 0.7);
+      ln(g, x + bw / 2, y - 51, x + bw / 2 + 2.5, y - 51, "#3B2F3F", 0.7);
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 8; c++) {
+        if (c === 3 || c === 4) {
+          continue;
+        }
+        const wx = x + 10 + c * 22, wy = y - 20 + r * 24;
+        rr(g, wx, wy, 14, 12, 1, "#FFFFFF");
+        rr(g, wx + 1.2, wy + 1.2, 11.6, 9.6, 0.5, "#CFE3EE");
+        g.fillStyle = "#FFFFFF";
+        g.fillRect(wx + 6.4, wy + 1, 1.2, 10);
+      }
+      rr(g, x + bw / 2 - 14, by - 26, 28, 26, 3, "#9C6B4C");
+      rr(g, x + bw / 2 - 12, by - 24, 11, 22, 1, "#CFE3EE");
+      rr(g, x + bw / 2 + 1, by - 24, 11, 22, 1, "#CFE3EE");
+      signBoard(g, x + bw / 2, y - 34, "\uAF43\uB9C8\uC744 \uCD08\uB4F1\uD559\uAD50", { size: 6, min: 70, line: "#C9695A", fg: "#6A3B30" });
+      ln(g, x + bw + 10, by, x + bw + 10, y - 46, "#8E9CA6", 1);
+      poly(g, [x + bw + 10, y - 46, x + bw + 24, y - 42, x + bw + 10, y - 38], "#E07A7A");
+      for (let k = 0; k < 10; k++) flowerHead(g, TYPES[k % 5], x + 6 + k * 6, by + 2, 3.2, 100);
+      break;
+    }
+    case "swing": {
+      const sw = Math.sin(performance.now() / 500) * 0.25;
+      ln(g, x + 2, y + 14, x + 8, y - 14, "#C9695A", 1.2);
+      ln(g, x + 14, y + 14, x + 8, y - 14, "#C9695A", 1.2);
+      ln(g, x + w - 14, y + 14, x + w - 8, y - 14, "#C9695A", 1.2);
+      ln(g, x + w - 2, y + 14, x + w - 8, y - 14, "#C9695A", 1.2);
+      ln(g, x + 8, y - 14, x + w - 8, y - 14, "#9C4E4A", 1.4);
+      [x + 18, x + 30].forEach((sx, k) => {
+        const a = k ? sw : -sw;
+        const ex = sx + Math.sin(a) * 14, ey = y - 14 + Math.cos(a) * 14;
+        ln(g, sx - 2, y - 14, ex - 2, ey, "#8A7B74", 0.4);
+        ln(g, sx + 2, y - 14, ex + 2, ey, "#8A7B74", 0.4);
+        rr(g, ex - 3.5, ey - 1, 7, 2, 0.8, "#F2C27A");
+      });
+      break;
+    }
+    case "slide": {
+      shadow(g, x + w / 2, y + 15, w / 2, 2);
+      ln(g, x + 4, y + 14, x + 4, y - 16, "#E3A04A", 1.2);
+      ln(g, x + 9, y + 14, x + 9, y - 16, "#E3A04A", 1.2);
+      for (let yy = -12; yy < 14; yy += 5) ln(g, x + 4, y + yy, x + 9, y + yy, "#E3A04A", 0.8);
+      rr(g, x + 2, y - 18, 10, 3, 1, "#7FA7C9");
+      poly(g, [x + 9, y - 16, x + 13, y - 16, x + w, y + 12, x + w - 5, y + 12], "#7FA7C9");
       break;
     }
     case "lamp": {
@@ -5491,6 +6144,63 @@ function signBoard(g, cx, cy, text, o = {}) {
   g.fillText(text, cx, cy + 0.5);
   return w;
 }
+function canopy(g, cx, cy, r, cols, seed) {
+  const q = seedRand(seed);
+  el(g, cx + r * 0.15, cy + r * 0.2, r, r * 0.82, cols[0]);
+  for (let k = 0; k < 9; k++) {
+    const a = q() * 6.28, d = q() * r * 0.6;
+    el(g, cx + Math.cos(a) * d - r * 0.1, cy + Math.sin(a) * d * 0.8 - r * 0.15, r * (0.38 + q() * 0.2), r * (0.32 + q() * 0.18), cols[1 + k % (cols.length - 1)]);
+  }
+  el(g, cx - r * 0.35, cy - r * 0.45, r * 0.28, r * 0.2, "rgba(255,255,255,.16)");
+}
+function drawTree(g, x, by, v, seed) {
+  const q = seedRand(seed + 3);
+  if (v === "bush") {
+    shadow(g, x, by - 1, 9, 2.2);
+    canopy(g, x, by - 6, 8, ["#5E8C4E", "#6FA35E", "#7DB36A", "#8CC077"], seed);
+    for (let k = 0; k < 5; k++) el(g, x - 6 + q() * 12, by - 10 + q() * 6, 1.1, 1.1, ["#F9C9D5", "#FFFFFF", "#F5CF4E"][k % 3]);
+    return;
+  }
+  shadow(g, x, by - 1, 10, 2.6);
+  if (v === "pine") {
+    g.fillStyle = "#6B4E3A";
+    g.fillRect(x - 1.5, by - 8, 3, 8);
+    [[0, 12], [7, 10], [13, 8], [18, 5.5]].forEach(([dy, wd], k) => {
+      poly(g, [x - wd, by - 8 - dy, x + wd, by - 8 - dy, x, by - 20 - dy], k % 2 ? "#4F7A4A" : "#5E8C55");
+      poly(g, [x, by - 20 - dy, x + wd, by - 8 - dy, x + wd * 0.3, by - 8 - dy], "rgba(0,0,0,.1)");
+    });
+    return;
+  }
+  if (v === "birch") {
+    g.fillStyle = "#F2EFE8";
+    g.fillRect(x - 1.6, by - 22, 3.2, 22);
+    for (let k = 0; k < 5; k++) {
+      g.fillStyle = "#3E3A3A";
+      g.fillRect(x - 1.6 + k % 2 * 1.6, by - 20 + k * 4, 1.4, 0.7);
+    }
+    ln(g, x, by - 16, x + 6, by - 22, "#E8E4DA", 0.8);
+    canopy(g, x, by - 27, 8.5, ["#8CB26A", "#A6CB82", "#B9D78F", "#9DC47A"], seed);
+    return;
+  }
+  g.fillStyle = "#7A5A44";
+  g.fillRect(x - 1.8, by - 16, 3.6, 16);
+  ln(g, x, by - 12, x - 5, by - 18, "#7A5A44", 1);
+  ln(g, x, by - 10, x + 5, by - 17, "#7A5A44", 1);
+  const C = { cherry: ["#E8A3B5", "#F2B8C6", "#F9D5DE", "#FBE3EA"], maple: ["#C4543E", "#D9674A", "#E8905A", "#F0A868"], ginkgo: ["#D9B03E", "#E8C44E", "#F2D878", "#F6E39A"], round: ["#6FA35E", "#7FAF6C", "#9FCB88", "#8CC077"] }[v] || ["#6FA35E", "#7FAF6C", "#9FCB88", "#8CC077"];
+  canopy(g, x, by - 22, 11, C, seed);
+  if (v === "cherry") for (let k = 0; k < 6; k++) el(g, x - 12 + q() * 24, by - 2 + q() * 4, 1, 0.6, "#F9D5DE");
+  if (v === "ginkgo" || v === "maple") for (let k = 0; k < 5; k++) el(g, x - 12 + q() * 24, by - 2 + q() * 4, 1.2, 0.7, C[1], q() * 3);
+}
+function grassTuft(g, x, y, c) {
+  ln(g, x, y, x - 1.5, y - 3, c, 0.5);
+  ln(g, x, y, x, y - 3.6, c, 0.5);
+  ln(g, x, y, x + 1.5, y - 3, c, 0.5);
+}
+function wildflower(g, x, y, c) {
+  ln(g, x, y, x, y - 3, "#6E9A5A", 0.4);
+  el(g, x, y - 3.3, 0.9, 0.9, c);
+  el(g, x, y - 3.3, 0.35, 0.35, "#F5E08A");
+}
 function wallpaper(g, x0, x1, y0, y1, base, dot) {
   g.fillStyle = base;
   g.fillRect(x0, y0, x1 - x0, y1 - y0);
@@ -5514,74 +6224,105 @@ function planks(g, x0, y0, x1, y1, c1, c2, seam, seed) {
   }
 }
 function shopStatic(g) {
-  const W = AREAS.shop.w * TILE;
-  planks(g, 16, 32, W - 16, 160, "#EBD2AE", "#DDBF97", "#CDAE85", 7);
-  if (S.up.rug) {
-    rr(g, 80, 98, 120, 56, 24, "#F4C8CF");
-    rr(g, 86, 103, 108, 46, 20, "#FBE3E6");
-    const r = seedRand(9);
-    for (let k = 0; k < 26; k++) {
-      const px = 90 + r() * 100, py = 106 + r() * 40;
-      el(g, px, py, 1.4, 1.4, [CO.pink, CO.yellow, "#BFE3D0"][k % 3]);
+  const W = AREAS.shop.w * TILE, P = curStyle(), r = seedRand(7);
+  g.save();
+  g.beginPath();
+  g.rect(16, 32, W - 32, 128);
+  g.clip();
+  if (P.floor === "plank") planks(g, 16, 32, W - 16, 160, P.f1, P.f2, P.seam, 7);
+  else if (P.floor === "herring") {
+    g.fillStyle = P.f2;
+    g.fillRect(16, 32, W - 32, 128);
+    for (let y = 28, row = 0; y < 164; y += 6, row++) for (let x = 12; x < W; x += 12) {
+      const c = mix(P.f1, P.f2, r() * 0.8);
+      const d = row % 2 ? 1 : -1;
+      poly(g, [x, y + 6, x + 6, y, x + 12, y, x + 6, y + 6].map((v, q) => q % 2 ? v : v + (d > 0 ? 0 : 0)), c);
+      g.strokeStyle = P.seam;
+      g.lineWidth = 0.4;
+      g.beginPath();
+      g.moveTo(x, y + 6);
+      g.lineTo(x + 6, y);
+      g.stroke();
     }
-    g.strokeStyle = "#E8A9B4";
-    g.lineWidth = 1;
-    rr(g, 83, 100.5, 114, 51, 22);
-    g.stroke();
   } else {
-    rr(g, 96, 104, 88, 44, 18, "#EAD7C0");
-    rr(g, 100, 108, 80, 36, 15, "#F2E4D2");
+    g.fillStyle = P.f1;
+    g.fillRect(16, 32, W - 32, 128);
+    for (let k = 0; k < (W - 32) * 1.4; k++) {
+      el(g, 16 + r() * (W - 32), 32 + r() * 128, 0.4 + r() * 0.9, 0.3 + r() * 0.7, ["#C9B8A6", "#9FB0A6", "#D9A89A", "#B7B0A6", "#E0D6C8"][k % 5], r() * 3);
+    }
+    g.fillStyle = P.seam;
+    for (let x = 16; x < W - 16; x += 32) g.fillRect(x, 32, 0.5, 128);
+    for (let y = 32; y < 160; y += 32) g.fillRect(16, y, W - 32, 0.5);
   }
-  wallpaper(g, 0, W, 0, 22, "#DCEBDF", "#F3D9DF");
-  g.fillStyle = CO.trim;
+  g.restore();
+  if (S.style === "vintage") {
+    rr(g, 100, 100, 88, 26, 2, "#7A3B3B");
+    rr(g, 103, 103, 82, 20, 1.5, "#9C4E4A");
+    g.strokeStyle = "#D9B87A";
+    g.lineWidth = 0.8;
+    rr(g, 106, 106, 76, 14, 1);
+    g.stroke();
+    for (let x = 112; x < 180; x += 10) {
+      el(g, x, 113, 2.5, 2.5, "#2F4A6B");
+      el(g, x, 113, 1, 1, "#D9B87A");
+    }
+  }
+  wallpaper(g, 0, W, 0, 22, P.wall, P.dot);
+  if (S.style === "vintage") {
+    for (let x = 8; x < W; x += 24) {
+      g.fillStyle = "rgba(201,162,74,.25)";
+      g.fillRect(x, 3, 0.6, 17);
+    }
+  }
+  g.fillStyle = P.trim;
   g.fillRect(0, 0, W, 2);
   g.fillRect(0, 21, W, 1.5);
-  g.fillStyle = CO.wain;
+  g.fillStyle = P.wain;
   g.fillRect(0, 22.5, W, 8.5);
-  for (let x = 2; x < W; x += 5) {
-    g.fillStyle = CO.wainL;
-    g.fillRect(x, 24, 2.2, 6);
+  for (let x = 2; x < W; x += S.style === "vintage" ? 12 : 5) {
+    g.fillStyle = P.wainL;
+    g.fillRect(x, 24, S.style === "vintage" ? 9 : 2.2, 6);
   }
-  g.fillStyle = CO.trim;
+  g.fillStyle = P.trim;
   g.fillRect(0, 31, W, 1.5);
-  rr(g, 50, 9, 26, 2, 0.8, CO.wood);
+  rr(g, 50, 9, 26, 2, 0.8, S.style === "minimal" ? "#E8E2D8" : CO.wood);
   [[54, "#D98E6C"], [61, "#E8D2B4"], [68, "#D98E6C"]].forEach(([px, c]) => {
-    rr(g, px - 2.5, 4, 5, 5, 1, c);
+    rr(g, px - 2.5, 4, 5, 5, 1, S.style === "minimal" ? "#F4F1EA" : c);
     leafyBlob(g, px, 3.5, 2.6, "#7FAF6C", "#A6D08F");
   });
-  [[180, 6], [194, 9]].forEach(([px, py], k) => {
-    rr(g, px, py, 11, 9, 0.8, CO.woodL);
+  if (!S.up.d_wallshelf) [[180, 6], [194, 9]].forEach(([px, py], k) => {
+    rr(g, px, py, 11, 9, 0.8, P.frame);
     rr(g, px + 1, py + 1, 9, 7, 0.5, "#FFF8EE");
-    k ? freesiaV(g, px + 5.5, py + 4.5, 2.2, 0) : tulipV(g, px + 5.5, py + 6, 3.2, 0);
+    k ? freesiaV(g, px + 5.5, py + 4.5, 2.2, 0) : roseV(g, px + 5.5, py + 4.5, 2.6, 0);
   });
-  g.fillStyle = "#C9DDD0";
+  g.fillStyle = P.side;
   g.fillRect(0, 0, 16, 176);
   g.fillRect(W - 16, 0, 16, 176);
-  g.fillStyle = "#B4CDBE";
+  g.fillStyle = mix(P.side, "#000", 0.08);
   g.fillRect(15, 32, 1, 128);
   g.fillRect(W - 16, 32, 1, 128);
-  g.fillStyle = "#C9DDD0";
+  g.fillStyle = P.side;
   g.fillRect(0, 160, W, 16);
-  g.fillStyle = "#B4CDBE";
+  g.fillStyle = mix(P.side, "#000", 0.08);
   g.fillRect(0, 160, W, 1);
   const segs = [[24, 96]];
   for (let a = 168; a + 80 <= W - 24; a += 96) segs.push([a, a + 80]);
   segs.forEach(([a, b]) => {
-    g.fillStyle = CO.trim;
+    g.fillStyle = P.trim;
     g.fillRect(a, 161, b - a, 4);
     for (let x = a + 2; x < b - 2; x += 4) {
-      el(g, x + 2, 160, 1.6, 1.6, [CO.pink, CO.yellow, CO.white, "#BFE3D0"][Math.floor(x / 4) % 4]);
+      el(g, x + 2, 160, 1.6, 1.6, [CO.pink, "#D9435E", CO.white, "#9DB8E8"][Math.floor(x / 4) % 4]);
     }
   });
   g.fillStyle = "#EFE2CF";
   g.fillRect(128, 160, 32, 16);
-  rr(g, 130, 152, 28, 8, 2, "#D8A7A0");
-  rr(g, 132, 153.5, 24, 5, 1.5, "#E9BDB6");
+  rr(g, 130, 152, 28, 8, 2, S.style === "vintage" ? "#7A3B3B" : "#CDBFA8");
+  rr(g, 132, 153.5, 24, 5, 1.5, S.style === "vintage" ? "#9C4E4A" : "#DCCFB9");
   const hang = S.up.hanging ? [40, 92, 132, 228, 258] : [92, 228];
   for (let x = 300; x < W - 20; x += 64) hang.push(x);
   hang.forEach((hx) => {
     ln(g, hx, 0, hx, 7, "#A08A7A", 0.4);
-    rr(g, hx - 3, 7, 6, 4, 1.5, "#E8D2B4");
+    rr(g, hx - 3, 7, 6, 4, 1.5, S.style === "minimal" ? "#F4F1EA" : "#E8D2B4");
     for (let k = 0; k < 4; k++) {
       const vx = hx - 3 + k * 2;
       ln(g, vx, 9, vx + (k - 1.5) * 0.6, 15 + k % 2 * 3, CO.leafD, 0.5);
@@ -5595,15 +6336,47 @@ function shopDynamic(g) {
   const Wd = AREAS.shop.w * TILE;
   const wins = [[86, 4], [214, 4]];
   for (let x = 290; x + 34 < Wd - 16; x += 112) wins.push([x, 4]);
+  const P = curStyle();
   wins.forEach(([x, y]) => {
-    rr(g, x, y, 34, 15, 2, CO.trim);
+    rr(g, x, y, 34, 15, 2, P.trim);
     rr(g, x + 2, y + 2, 30, 11, 1, sky);
     g.fillStyle = mix(sky, "#FFFFFF", 0.4);
     g.fillRect(x + 2, y + 2, 30, 3);
-    g.fillStyle = CO.trim;
+    g.fillStyle = P.trim;
     g.fillRect(x + 16, y + 2, 2, 11);
     g.fillRect(x + 2, y + 7, 30, 1.1);
+    if (S.up.d_curtain) {
+      [[x - 4, 1], [x + 34, -1]].forEach(([cx2, d]) => {
+        g.fillStyle = "#EFE6D6";
+        g.beginPath();
+        g.moveTo(cx2, y - 2);
+        g.quadraticCurveTo(cx2 + d * 6, y + 8, cx2 + d * 2, y + 19);
+        g.lineTo(cx2 - d * 2, y + 19);
+        g.lineTo(cx2 - d * 2, y - 2);
+        g.closePath();
+        g.fill();
+        g.fillStyle = "#DCCFB9";
+        g.fillRect(cx2 + d * 1.5 - 1, y + 11, 2, 1.5);
+      });
+      ln(g, x - 6, y - 2, x + 40, y - 2, "#9C8B7A", 0.8);
+    }
   });
+  if (S.up.d_wreath) {
+    for (let k = 0; k < 18; k++) {
+      const a = k * Math.PI / 9;
+      el(g, 160 + Math.cos(a) * 11.5, 12 + Math.sin(a) * 11.5, 2.3, 1.6, k % 2 ? "#9DB07F" : "#86A06A", a);
+      if (k % 3 === 0) el(g, 160 + Math.cos(a) * 11.5, 12 + Math.sin(a) * 11.5, 1.3, 1.3, ["#C9A07A", "#E3C9A8", "#C98E8E"][k % 3]);
+    }
+  }
+  if (S.up.d_wallshelf) {
+    rr(g, 176, 15, 32, 2, 0.6, P.frame);
+    rr(g, 179, 8, 5, 7, 2, "#E4DCCF");
+    el(g, 190, 12, 3, 3, "#D98E6C");
+    leafyBlob(g, 190, 9, 3, "#7FAF6C", "#A6D08F");
+    rr(g, 198, 7, 7, 8, 0.5, "#F0E4CF");
+    g.fillStyle = P.frame;
+    g.fillRect(198, 9, 7, 0.6);
+  }
   const cx = 160, cy = 12;
   el(g, cx, cy, 9.5, 9.5, CO.rim);
   el(g, cx, cy, 8, 8, CO.cream);
@@ -5616,9 +6389,33 @@ function shopDynamic(g) {
   ln(g, cx, cy, cx + Math.sin(ma) * 5.8, cy - Math.cos(ma) * 5.8, CO.ink, 0.8);
   el(g, cx, cy, 0.9, 0.9, CO.pinkD);
   [[112], [208]].forEach(([x]) => {
-    ln(g, x, 0, x, 5, CO.rim, 0.6);
-    poly(g, [x - 4, 9, x + 4, 9, x + 2, 5, x - 2, 5], "#F4E3B5");
-    el(g, x, 9, 4, 0.8, "#E3C98A");
+    ln(g, x, 0, x, S.up.d_pendant ? 7 : 5, CO.rim, 0.6);
+    if (!S.up.d_pendant) {
+      poly(g, [x - 4, 9, x + 4, 9, x + 2, 5, x - 2, 5], "#F4E3B5");
+      el(g, x, 9, 4, 0.8, "#E3C98A");
+    } else if (S.style === "vintage") {
+      g.fillStyle = "#C9A24A";
+      g.beginPath();
+      g.moveTo(x - 6, 15);
+      g.quadraticCurveTo(x, 3, x + 6, 15);
+      g.closePath();
+      g.fill();
+      el(g, x, 15, 2.2, 1, "#FFE9A8");
+    } else if (S.style === "minimal") {
+      el(g, x, 12, 5, 5, "#FFFFFF");
+      el(g, x - 1.5, 10.5, 1.5, 1.5, "#FFF8E6");
+    } else {
+      poly(g, [x - 7, 15, x + 7, 15, x + 4, 6, x - 4, 6], "#C9A06A");
+      g.strokeStyle = "#B08850";
+      g.lineWidth = 0.4;
+      for (let yy = 8; yy < 15; yy += 2) {
+        g.beginPath();
+        g.moveTo(x - 4 - (yy - 6) * 0.35, yy);
+        g.lineTo(x + 4 + (yy - 6) * 0.35, yy);
+        g.stroke();
+      }
+      el(g, x, 15.5, 3, 0.8, "#FFE9A8");
+    }
   });
   if (S.up.lights) {
     const L = lampAt(t);
@@ -5632,49 +6429,51 @@ function shopDynamic(g) {
   }
 }
 function marketStatic(g) {
+  const W = AREAS.market.w * TILE;
   g.fillStyle = CO.stone;
-  g.fillRect(0, 32, 288, 128);
-  for (let y = 34, k = 0; y < 160; y += 6, k++) for (let x = 16 + k % 2 * 5; x < 272; x += 10) {
+  g.fillRect(0, 32, W, 128);
+  for (let y = 34, k = 0; y < 160; y += 6, k++) for (let x = 16 + k % 2 * 5; x < W - 16; x += 10) {
     rr(g, x, y, 8.5, 4.4, 1.8, "#D1C8B8");
     g.fillStyle = CO.stoneL;
     g.fillRect(x + 1, y + 0.4, 6.5, 0.8);
   }
   g.fillStyle = "#E9DCC6";
-  g.fillRect(0, 0, 288, 32);
-  for (let x = 0; x < 288; x += 24) {
+  g.fillRect(0, 0, W, 32);
+  for (let x = 0; x < W; x += 24) {
     g.fillStyle = "#B98463";
     g.fillRect(x, 0, 3, 32);
   }
   g.fillStyle = "#9C6B4C";
-  g.fillRect(0, 0, 288, 3);
-  g.fillRect(0, 29, 288, 3);
+  g.fillRect(0, 0, W, 3);
+  g.fillRect(0, 29, W, 3);
   g.fillStyle = "#CFC6B6";
   g.fillRect(0, 0, 16, 176);
-  g.fillRect(272, 0, 16, 176);
-  g.fillRect(0, 160, 288, 16);
+  g.fillRect(W - 16, 0, 16, 176);
+  g.fillRect(0, 160, W, 16);
   g.fillStyle = "#B9AF9E";
-  g.fillRect(0, 160, 288, 1);
+  g.fillRect(0, 160, W, 1);
   g.fillStyle = "#E7DFD2";
   g.fillRect(128, 160, 32, 16);
   rr(g, 130, 152, 28, 8, 2, "#C9B79A");
-  [40, 120, 168, 248].forEach((bx, k) => {
+  [40, 100, 164, 230, 300].forEach((bx, k) => {
     ln(g, bx, 3, bx, 9, CO.twine, 0.5);
     for (let j = 0; j < 3; j++) {
       ln(g, bx, 9, bx - 2 + j * 2, 15, "#A89A6E", 0.4);
-      flowerHead(g, TYPES[(k + j) % 3], bx - 2 + j * 2, 16, 2.6, 60, true);
+      flowerHead(g, TYPES[(k + j) % 5], bx - 2 + j * 2, 16, 2.6, 60, true);
     }
   });
-  signBoard(g, 144, 5.5, "\uAF43\uC2DC\uC7A5 \xB7 \uC601\uC5C5 \uC624\uC804 9\uC2DC ~ \uC815\uC624", { size: 5, min: 60, line: "#C98F6E", fg: "#7A4A36", bg: "#FFF3E0" });
+  signBoard(g, W / 2, 5.5, "\uAF43\uC2DC\uC7A5 \xB7 \uC601\uC5C5 \uC624\uC804 9\uC2DC ~ \uC815\uC624", { size: 5, min: 60, line: "#C98F6E", fg: "#7A4A36", bg: "#FFF3E0" });
 }
 function marketDynamic(g) {
+  const W = AREAS.market.w * TILE;
   const L = lampAt(S.t);
   g.strokeStyle = "#8A7B74";
   g.lineWidth = 0.4;
   g.beginPath();
   g.moveTo(16, 6);
-  for (let x = 16; x <= 272; x += 20) g.quadraticCurveTo(x - 10, 12, x, 6);
+  for (let x = 16; x <= W - 16; x += 20) g.quadraticCurveTo(x - 10, 12, x, 6);
   g.stroke();
-  for (let x = 26; x < 272; x += 20) el(g, x, 9, 1.2, 1.4, mix("#FFE9A8", "#FFFFFF", L * 0.5));
+  for (let x = 26; x < W - 16; x += 20) el(g, x, 9, 1.2, 1.4, mix("#FFE9A8", "#FFFFFF", L * 0.5));
 }
 function supplyStatic(g) {
   const W = 224, H = 160;
@@ -5734,13 +6533,13 @@ function supplyStatic(g) {
 function supplyDynamic(g) {
 }
 function townStatic(g) {
-  const W = AREAS.town.w * TILE, H = AREAS.town.h * TILE, RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE;
+  const W = AREAS.town.w * TILE, H = AREAS.town.h * TILE, RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, LY = 27 * TILE, LX = 20 * TILE;
   g.fillStyle = "#A9D08F";
   g.fillRect(0, 0, W, H);
   const r = seedRand(5);
-  for (let k = 0; k < 560; k++) {
-    const x = r() * W, y = 100 + r() * 270;
-    el(g, x, y, 1.2, 0.5, r() < 0.5 ? "#9CC784" : "#B7DA9F");
+  for (let k = 0; k < 900; k++) {
+    const x = r() * W, y = 100 + r() * (H - 100);
+    el(g, x, y, 1.2 + r(), 0.5 + r() * 0.4, r() < 0.5 ? "#9CC784" : "#B7DA9F");
   }
   g.fillStyle = "#E8E0D2";
   g.fillRect(0, 96, W, 32);
@@ -5763,36 +6562,104 @@ function townStatic(g) {
   g.fillRect(0, 192, W, 0.8);
   g.fillRect(0, 207, W, 0.8);
   rr(g, 24, 212, 410, 152, 10, "#9FCB86");
-  [[16 * 13, 208, 20, 160], [16 * 9, 16 * 17 + 4, 16 * 19, 14], [16 * 26, 16 * 17 + 2, 32, 28]].forEach(([x, y, w, h]) => rr(g, x, y, w, h, 6, "#E9DFC8"));
+  g.fillStyle = "#E9DFC8";
+  g.fillRect(0, 368, W, 16);
+  g.fillStyle = "#DDD3C2";
+  g.fillRect(0, 368, W, 0.8);
+  g.fillRect(0, 383, W, 0.8);
+  [[16 * 13, 208, 20, 176], [16 * 9, 16 * 17 + 4, 16 * 19, 14], [16 * 26, 16 * 17 + 2, 32, 28]].forEach(([x, y, w, h]) => rr(g, x, y, w, h, 6, "#E9DFC8"));
   rr(g, 62, 238, 84, 68, 30, "#8FC2D8");
   rr(g, 66, 242, 76, 60, 26, "#A9D4E6");
   [[90, 258], [118, 282], [84, 286]].forEach(([x, y]) => {
     el(g, x, y, 5, 3, "#7FB070");
     el(g, x + 2, y - 1, 1.3, 1.3, "#F9C9D5");
   });
-  [[56, 214, 40], [160, 214, 56], [300, 300, 60], [200, 344, 70]].forEach(([x, y, w]) => {
-    rr(g, x, y, w, 8, 3, "#8E6B52");
-    for (let k = 0; k < w / 4; k++) flowerHead(g, TYPES[k % 3], x + 2 + k * 4, y + 3 - k % 2, 3.4, 100);
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * Math.PI * 2;
+    ln(g, 104 + Math.cos(a) * 44, 272 + Math.sin(a) * 36, 104 + Math.cos(a) * 46, 266 + Math.sin(a) * 36, "#7FA86A", 0.8);
+    el(g, 104 + Math.cos(a) * 46, 265 + Math.sin(a) * 36, 1.2, 2.2, "#8C6448");
+  }
+  const beds = [[40, 214, 48], [150, 214, 52], [300, 300, 70], [190, 346, 80], [240, 214, 60], [40, 330, 50], [320, 230, 40], [250, 262, 36], [160, 300, 40]];
+  beds.forEach(([x, y, w], b) => {
+    rr(g, x, y, w, 9, 4, "#8E6B52");
+    rr(g, x + 1, y + 1, w - 2, 3, 2, "#7A5A44");
+    for (let k = 0; k < w / 3.4; k++) {
+      const tp = TYPES[(k + b) % 5];
+      ln(g, x + 2 + k * 3.4, y + 5, x + 2 + k * 3.4, y + 1, "#6E9A5A", 0.4);
+      flowerHead(g, tp, x + 2 + k * 3.4, y + 1 - k % 2, tp === "hydrangea" ? 3 : 3.6, 100);
+    }
   });
+  const patch = (x0, y0, w, h, n, seed) => {
+    const q2 = seedRand(seed);
+    for (let k = 0; k < n; k++) {
+      const x = x0 + q2() * w, y = y0 + q2() * h;
+      const z = q2();
+      if (z < 0.45) grassTuft(g, x, y, z < 0.2 ? "#6E9A5A" : "#7FAF6C");
+      else if (z < 0.8) wildflower(g, x, y, ["#FFFFFF", "#F9C9D5", "#F5CF4E", "#B8A6E3", "#E8905A"][Math.floor(q2() * 5)]);
+      else if (z < 0.92) el(g, x, y, 1.8, 1.2, "#B9B2A6");
+      else {
+        ln(g, x, y, x - 2, y - 4, "#8FAE6A", 0.5);
+        ln(g, x, y, x + 2, y - 5, "#8FAE6A", 0.5);
+        el(g, x - 2, y - 4.5, 0.8, 0.8, "#EDE7C9");
+      }
+    }
+  };
+  patch(28, 216, 400, 146, 420, 11);
+  patch(500, 272, 120, 88, 120, 12);
+  patch(0, 388, 20, 150, 40, 13);
+  patch(868, 216, 56, 150, 70, 14);
+  patch(290, 388, 150, 40, 60, 15);
+  patch(620, 212, 10, 150, 30, 16);
   g.fillStyle = "#8FC2D8";
-  g.fillRect(RX0, 0, RX1 - RX0, H);
+  g.fillRect(RX0, 0, RX1 - RX0, LY);
   g.fillStyle = "#A9D4E6";
-  g.fillRect(RX0 + 6, 0, RX1 - RX0 - 12, H);
-  for (let y = 0; y < H; y += 4) {
+  g.fillRect(RX0 + 6, 0, RX1 - RX0 - 12, LY);
+  for (let y = 0; y < LY; y += 4) {
     g.fillStyle = y / 4 % 2 ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.02)";
     g.fillRect(RX0 + 6, y, RX1 - RX0 - 12, 2);
   }
-  [[RX0 - 3, "#B8A88E"], [RX1 - 3, "#B8A88E"]].forEach(([x, c]) => {
-    g.fillStyle = c;
-    g.fillRect(x, 0, 6, H);
-    for (let y = 0; y < H; y += 8) {
+  [[RX0 - 3], [RX1 - 3]].forEach(([x]) => {
+    g.fillStyle = "#B8A88E";
+    g.fillRect(x, 0, 6, LY);
+    for (let y = 0; y < LY; y += 8) {
       rr(g, x - 0.5, y, 7, 7, 2, "#C9BBA2");
     }
   });
+  const q = seedRand(21);
+  for (let k = 0; k < 30; k++) {
+    const side = k % 2 ? RX0 - 6 : RX1 + 4, y = 210 + q() * 150;
+    ln(g, side, y, side + (q() - 0.5) * 3, y - 8, "#6E9A5A", 0.6);
+    if (k % 3 === 0) el(g, side, y - 8, 0.8, 2.2, "#8C6448");
+  }
   [[RX0 + 10, 230], [RX1 - 14, 330], [RX0 + 14, 40]].forEach(([x, y]) => {
     el(g, x, y, 5, 3, "#7FB070");
     el(g, x + 1, y - 1, 1.3, 1.3, "#FFFFFF");
   });
+  const lg = g.createLinearGradient(0, LY, 0, H);
+  lg.addColorStop(0, "#A9D4E6");
+  lg.addColorStop(1, "#7FB3CF");
+  g.fillStyle = lg;
+  g.fillRect(LX, LY, W - LX, H - LY);
+  g.fillStyle = "#8FC2D8";
+  g.fillRect(RX0, LY - 4, RX1 - RX0, 8);
+  for (let k = 0; k < 60; k++) {
+    const x = LX + q() * (W - LX), y = LY + 6 + q() * (H - LY - 30);
+    g.fillStyle = "rgba(255,255,255,.18)";
+    g.fillRect(x, y, 4 + q() * 8, 0.6);
+  }
+  g.fillStyle = "#C9BBA2";
+  g.fillRect(LX, LY - 3, W - LX, 4);
+  for (let x = LX; x < W; x += 8) rr(g, x, LY - 4, 7, 5, 2, "#D6C9B2");
+  [[340, 470], [420, 500], [860, 455], [780, 505]].forEach(([x, y]) => {
+    el(g, x, y, 6, 3.5, "#7FB070");
+    el(g, x + 8, y + 2, 4, 2.4, "#8CBE7A");
+    el(g, x + 2, y - 1, 1.4, 1.4, "#F9C9D5");
+  });
+  rr(g, LX - 2, 386, W - LX + 2, 44, 2, "#D9C4A2");
+  for (let x = LX; x < W; x += 10) {
+    g.fillStyle = "#C9B08A";
+    g.fillRect(x, 386, 0.8, 44);
+  }
   rr(g, RX0 - 10, 94, RX1 - RX0 + 20, 116, 4, "#D6C6AE");
   for (let y = 98; y < 208; y += 8) {
     g.fillStyle = "#CDBB9F";
@@ -5802,16 +6669,50 @@ function townStatic(g) {
     rr(g, RX0 - 12, y, RX1 - RX0 + 24, 5, 2, "#B8A88E");
     for (let x = RX0 - 10; x < RX1 + 10; x += 8) rr(g, x, y - 5, 3, 6, 1, "#C9BBA2");
   });
-  rr(g, RX0 - 10, 268, RX1 - RX0 + 20, 40, 3, "#C99E78");
-  for (let x = RX0 - 8; x < RX1 + 10; x += 6) {
-    g.fillStyle = "#B8845F";
-    g.fillRect(x, 270, 0.8, 36);
-  }
-  [[266], [304]].forEach(([y]) => {
-    g.fillStyle = "#9C6B4C";
-    g.fillRect(RX0 - 12, y, RX1 - RX0 + 24, 3);
-    for (let x = RX0 - 10; x < RX1 + 12; x += 10) g.fillRect(x, y - 5, 2, 6);
+  [[268, 40], [382, 34]].forEach(([y0, hh]) => {
+    rr(g, RX0 - 10, y0, RX1 - RX0 + 20, hh, 3, "#C99E78");
+    for (let x = RX0 - 8; x < RX1 + 10; x += 6) {
+      g.fillStyle = "#B8845F";
+      g.fillRect(x, y0 + 2, 0.8, hh - 4);
+    }
+    [[y0 - 2], [y0 + hh]].forEach(([y]) => {
+      g.fillStyle = "#9C6B4C";
+      g.fillRect(RX0 - 12, y, RX1 - RX0 + 24, 3);
+      for (let x = RX0 - 10; x < RX1 + 12; x += 10) g.fillRect(x, y - 5, 2, 6);
+    });
   });
+  rr(g, 640, 430, 48, 68, 2, "#C99E78");
+  for (let y = 432; y < 496; y += 5) {
+    g.fillStyle = "#B8845F";
+    g.fillRect(642, y, 44, 0.7);
+  }
+  [[640], [686]].forEach(([x]) => {
+    for (let y = 436; y < 498; y += 14) {
+      rr(g, x - 1, y, 3, 5, 1, "#8C6448");
+    }
+  });
+  rr(g, 32, 448, 240, 84, 6, "#E6D6B4");
+  for (let k = 0; k < 40; k++) el(g, 40 + q() * 224, 454 + q() * 72, 0.8, 0.5, "#D9C59A");
+  g.strokeStyle = "#FFFFFF";
+  g.lineWidth = 1;
+  g.beginPath();
+  g.ellipse(200, 490, 26, 16, 0, 0, 7);
+  g.stroke();
+  [[32, 448, 240, 1], [32, 448, 1, 84], [271, 448, 1, 84], [32, 531, 240, 1]].forEach(([x, y, w, h]) => {
+    g.fillStyle = "#F4EFE6";
+    g.fillRect(x, y, w, h + 1);
+    for (let k = 0; k < (w > h ? w : h); k += 8) {
+      if (w > h) g.fillRect(x + k, y - 3, 1.4, 5);
+      else g.fillRect(x - 2, y + k, 5, 1.4);
+    }
+  });
+  g.fillStyle = "#E6D6B4";
+  g.fillRect(128, 446, 36, 6);
+  g.fillStyle = "#7FAF6C";
+  g.fillRect(0, H - 16, LX, 16);
+  for (let x = 0; x < LX; x += 10) el(g, x + 5, H - 15, 6, 4, "#8FBF7A");
+  g.fillStyle = "#8FBF7A";
+  g.fillRect(0, 96, 16, H - 96);
   rr(g, 500, 210, 120, 62, 12, "#E3D9C9");
   for (let k = 0; k < 3; k++) {
     g.strokeStyle = "#D3C7B3";
@@ -5825,14 +6726,7 @@ function townStatic(g) {
     g.fillStyle = "#A5825F";
     g.fillRect(636, y, 232, 4);
   }
-  g.fillStyle = "#E9DFC8";
   rr(g, 720, 208, 32, 16, 4, "#E9DFC8");
-  g.fillStyle = "#7FAF6C";
-  g.fillRect(0, H - 16, W, 16);
-  for (let x = 0; x < W; x += 10) el(g, x + 5, H - 15, 6, 4, "#8FBF7A");
-  g.fillStyle = "#8FBF7A";
-  g.fillRect(0, 96, 16, H - 96);
-  g.fillRect(W - 16, 96, 16, H - 96);
   FACADES.forEach((f) => drawFacade(g, f));
 }
 function drawFacade(g, f) {
@@ -5991,13 +6885,76 @@ function drawFacade(g, f) {
   }
 }
 function townDynamic(g) {
-  const RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, H = AREAS.town.h * TILE, tt = performance.now() / 1e3;
+  const RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, H = 27 * TILE, HH = AREAS.town.h * TILE, W = AREAS.town.w * TILE, LY = 27 * TILE, LX = 20 * TILE, tt = performance.now() / 1e3;
+  const sun = clamp((S.t - 400) / 200, 0, 1);
+  if (sun > 0) {
+    const sy = 468 + sun * 56, sx = 742;
+    const gr = g.createLinearGradient(0, LY, 0, HH);
+    gr.addColorStop(0, `rgba(255,190,150,${0.12 * sun})`);
+    gr.addColorStop(1, `rgba(255,140,110,${0.4 * sun})`);
+    g.fillStyle = gr;
+    g.fillRect(LX, LY, W - LX, HH - LY);
+    const glow = g.createRadialGradient(sx, sy, 0, sx, sy, 70);
+    glow.addColorStop(0, `rgba(255,220,160,${0.8 * sun})`);
+    glow.addColorStop(1, "rgba(255,170,120,0)");
+    g.fillStyle = glow;
+    g.fillRect(sx - 70, sy - 70, 140, 140);
+    el(g, sx, sy, 9, 9, mix("#FFE7A8", "#FF9A6A", sun));
+    for (let k = 0; k < 16; k++) {
+      const yy = LY + 8 + k * 5.6;
+      if (yy > sy - 4) break;
+      const wv = Math.sin(tt * 2 + k) * 3;
+      g.fillStyle = `rgba(255,200,140,${(0.18 + 0.3 * (k / 16)) * sun})`;
+      g.fillRect(sx - 8 - k * 0.5 + wv, yy, 16 + k, 1.2);
+    }
+  }
+  g.fillStyle = "#6F8FA0";
+  g.beginPath();
+  g.moveTo(LX, HH);
+  g.lineTo(LX, 516);
+  [[380, 506], [460, 512], [540, 500], [640, 510], [720, 498], [800, 508], [880, 502], [W, 510]].forEach(([x, y]) => g.lineTo(x, y));
+  g.lineTo(W, HH);
+  g.closePath();
+  g.fill();
+  g.fillStyle = "#5E7E8E";
+  g.beginPath();
+  g.moveTo(LX, HH);
+  g.lineTo(LX, 524);
+  [[420, 518], [520, 526], [610, 516], [700, 524], [820, 518], [W, 524]].forEach(([x, y]) => g.lineTo(x, y));
+  g.lineTo(W, HH);
+  g.closePath();
+  g.fill();
+  if (sun > 0) {
+    g.fillStyle = `rgba(255,160,120,${0.25 * sun})`;
+    g.fillRect(LX, 496, W - LX, HH - 496);
+  }
+  g.strokeStyle = "rgba(255,255,255,.5)";
+  g.lineWidth = 0.7;
+  for (let k = 0; k < 10; k++) {
+    const x = LX + 20 + (k * 97 + tt * 9) % (W - LX - 40), y = LY + 14 + k * 43 % 60;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.quadraticCurveTo(x + 4, y - 1.5, x + 8, y);
+    g.stroke();
+  }
+  if (S.t > 480) {
+    const a = clamp((S.t - 480) / 40, 0, 1);
+    for (let k = 0; k < 24; k++) {
+      const bx = [60, 200, 330, 480, 600, 760, 860][k % 7] + Math.sin(tt * 0.7 + k * 1.7) * 18, by = [250, 300, 420, 405, 300, 410, 395][k % 7] + Math.cos(tt * 0.9 + k) * 12;
+      const tw = (Math.sin(tt * 3 + k * 2) + 1) / 2;
+      g.globalAlpha = a * (0.3 + 0.7 * tw);
+      el(g, bx, by, 1.1, 1.1, "#FFF3A0");
+      g.globalAlpha = a * 0.25 * tw;
+      el(g, bx, by, 3.5, 3.5, "#FFF3A0");
+      g.globalAlpha = 1;
+    }
+  }
   g.strokeStyle = "rgba(255,255,255,.55)";
   g.lineWidth = 0.8;
   g.lineCap = "round";
-  for (let k = 0; k < 14; k++) {
+  for (let k = 0; k < 16; k++) {
     const y = (k * 37 + tt * 14) % H;
-    if (y > 90 && y < 212 || y > 262 && y < 310) continue;
+    if (y > 90 && y < 212 || y > 262 && y < 310 || y > 378 && y < 418) continue;
     const x = RX0 + 10 + k * 13 % (RX1 - RX0 - 22);
     g.beginPath();
     g.moveTo(x, y);
@@ -6084,6 +7041,9 @@ function drawWorldV(g, area) {
   sts.forEach((s) => ents.push({ y: (s.y + s.h) * TILE - (s.type === "bench" ? 6 : 2), draw: () => {
     drawStationV(g, s);
   } }));
+  DECOR[area].forEach((d) => {
+    if (d.flat && d.walk && !d.carried) drawDecor(g, d);
+  });
   DECOR[area].forEach((d) => {
     if (d.flat || d.carried) return;
     ents.push({ y: (d.y + d.h) * TILE - 2, draw: () => drawDecor(g, d) });
@@ -6192,7 +7152,8 @@ function lightsFor(area) {
   return [[112, 10]];
 }
 function viewports() {
-  const top = 48, H = CH - top;
+  const hud = $("#hud");
+  const top = hud && hud.style.display !== "none" ? Math.max(48, Math.round(hud.getBoundingClientRect().bottom) + 4) : 48, H = CH - top;
   const [a, b] = S.chars;
   const full = { x: 0, y: top, w: CW, h: H };
   if (a.area === b.area) {
@@ -6207,7 +7168,8 @@ function camera(v) {
   const A = AREAS[v.area], mw = A.w * TILE, mh = A.h * TILE;
   const s = Math.min(v.w / VW, v.h / VH) * (v.area === "town" ? 0.85 : 1);
   const vw = v.w / s, vh = v.h / s;
-  const up = v.area === "town" ? 30 : 8;
+  const lead = S.chars[v.chars[0]];
+  const up = v.area === "town" ? lead && lead.y > 22.5 * TILE ? -26 : 30 : 8;
   let tx, ty;
   if (v.chars.length === 2) {
     tx = (S.chars[0].x + S.chars[1].x) / 2;
