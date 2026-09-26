@@ -198,6 +198,9 @@ h1{font-size:34px;font-weight:normal;margin:0 0 4px;letter-spacing:-.5px}
 .stylepick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
 .stylepick .scard{cursor:pointer}
 .stylepick .sart{width:120px;height:120px}
+.confirm{display:flex;align-items:center;gap:10px;padding:10px;margin:0 0 10px;border:2px solid #E0708C;border-radius:14px;background:#FFF5F7}
+.confirm .sart{width:56px;height:56px;flex:none}
+.spart{font-size:12px;color:#8A7F96;background:#F3EEE8;border-radius:8px;padding:1px 7px}
 </style>
 </head>
 <body>
@@ -282,7 +285,7 @@ const TEMPLATES = [
   { title: "\uC9D1\uB4E4\uC774 \uC120\uBB3C", text: "\uB178\uB797\uACE0 \uD48D\uC131\uD558\uAC8C \uBD80\uD0C1\uB4DC\uB824\uC694.", req: { freesia: 6, gyp: 4 }, paper: "yellow", price: 41e3 },
   { title: "\uAC10\uC0AC \uC778\uC0AC", text: "\uC120\uC0DD\uB2D8\uAED8 \uB4DC\uB824\uC694. \uB2E8\uC815\uD558\uACE0 \uC608\uC058\uAC8C\uC694.", req: { tulip: 3, freesia: 2, gyp: 3 }, paper: "lilac", price: 37e3 }
 ];
-const STYLE_IDS = { natural: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", vintage: "\uC720\uB7FD \uBE48\uD2F0\uC9C0", minimal: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8" };
+const STYLE_IDS = { natural: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", vintage: "\uD30C\uB9AC \uAF43\uC9D1", minimal: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8" };
 const SHOP_CATS = [["equip", "\uC124\uBE44"], ["tool", "\uB3C4\uAD6C"], ["wrap", "\uD3EC\uC7A5\uC7AC"], ["deco", "\uAFB8\uBBF8\uAE30"], ["interior", "\uC778\uD14C\uB9AC\uC5B4"], ["style", "\uC637\xB7\uCE58\uC7A5"], ["expand", "\uAC00\uAC8C \uD655\uC7A5"]];
 const STYLE = {
   glasses: { label: "\uC548\uACBD", opts: [["horn", "\uAC80\uC740 \uBFD4\uD14C \uC548\uACBD", 15e3], ["gold", "\uB3D9\uADF8\uB780 \uAE08\uD14C \uC548\uACBD", 18e3]] },
@@ -302,21 +305,21 @@ const SHOP_ITEMS = [
   { id: "scissors", cat: "tool", name: "\uC88B\uC740 \uAC00\uC704", desc: "\uC0AC\uC120 \uC790\uB974\uAE30 \uC131\uACF5 \uAD6C\uAC04\uC774 \uB113\uC5B4\uC838\uC694.", price: 4e4 },
   { id: "papers2", cat: "wrap", name: "\uC0C8 \uD3EC\uC7A5\uC9C0 \uC138\uD2B8", desc: "\uBBFC\uD2B8, \uCF54\uB784, \uD06C\uB77C\uD504\uD2B8 \uD3EC\uC7A5\uC9C0\uAC00 \uC0DD\uACA8\uC694.", price: 25e3 },
   { id: "ribbons2", cat: "wrap", name: "\uC0C8 \uB9AC\uBCF8 \uC138\uD2B8", desc: "\uB77C\uBCA4\uB354, \uCD08\uB85D \uB9AC\uBCF8\uC774 \uC0DD\uACA8\uC694.", price: 15e3 },
-  { id: "d_jute", cat: "deco", name: "\uC8FC\uD2B8 \uB7EC\uADF8", desc: "", price: 28e3, repeat: true, floor: { t: "rug_jute", w: 4, h: 2, flat: true, walk: true } },
-  { id: "d_pendant", cat: "deco", name: "\uD39C\uB358\uD2B8 \uC870\uBA85", desc: "", price: 35e3 },
-  { id: "d_curtain", cat: "deco", name: "\uB9B0\uB128 \uCEE4\uD2BC", desc: "", price: 22e3 },
-  { id: "d_wreath", cat: "deco", name: "\uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC \uB9AC\uC2A4", desc: "", price: 18e3 },
-  { id: "d_wallshelf", cat: "deco", name: "\uBCBD \uC120\uBC18\uACFC \uC624\uBE0C\uC81C", desc: "", price: 2e4 },
-  { id: "d_mirror", cat: "deco", name: "\uC544\uCE58 \uAC70\uC6B8", desc: "", price: 26e3, repeat: true, floor: { t: "mirror", w: 1, h: 1 } },
-  { id: "d_ladder", cat: "deco", name: "\uC6D0\uBAA9 \uC0AC\uB2E4\uB9AC \uC120\uBC18", desc: "", price: 32e3, repeat: true, floor: { t: "ladder", w: 1, h: 1 } },
-  { id: "d_monstera", cat: "deco", name: "\uBAAC\uC2A4\uD14C\uB77C \uD654\uBD84", desc: "", price: 24e3, repeat: true, floor: { t: "monstera", w: 1, h: 1 } },
-  { id: "d_olive", cat: "deco", name: "\uC62C\uB9AC\uBE0C \uB098\uBB34", desc: "", price: 3e4, repeat: true, floor: { t: "olive", w: 1, h: 1 } },
-  { id: "d_terrarium", cat: "deco", name: "\uC720\uB9AC \uC628\uC2E4 \uC7A5\uC2DD\uC7A5", desc: "", price: 65e3, repeat: true, floor: { t: "terrarium", w: 2, h: 1 } },
-  { id: "hanging", cat: "deco", name: "\uD589\uC789 \uD654\uBD84", desc: "\uCC9C\uC7A5\uC5D0 \uCD08\uB85D \uD654\uBD84\uC744 \uB354 \uB9E4\uB2EC\uC544\uC694.", price: 18e3 },
-  { id: "lights", cat: "deco", name: "\uC804\uAD6C \uC870\uBA85", desc: "\uAC00\uAC8C\uC5D0 \uC804\uAD6C \uC904\uC744 \uB2EC\uC544\uC694. \uC800\uB141\uC774\uBA74 \uBC18\uC9DD\uC5EC\uC694.", price: 22e3 },
-  { id: "sign", cat: "deco", name: "\uC0C8 \uAC04\uD310 \uB2EC\uAE30", desc: "\uC6B0\uB9AC \uAF43\uC9D1 \uAC04\uD310\uC744 \uAF43\uC73C\uB85C \uAFB8\uBBF8\uACE0 \uC774\uB984\uC744 \uC0C8\uB85C \uC815\uD574\uC694. \uC5B8\uC81C\uB4E0 \uB2E4\uC2DC \uC0B4 \uC218 \uC788\uC5B4\uC694.", price: 3e4, repeat: true },
-  ...Object.entries(STYLE).flatMap(([k, v]) => v.opts.map(([val, name, price]) => ({ id: "st_" + k + "_" + val, cat: "style", name, desc: "\uAC00\uAC8C \uC637\uC7A5\uC5D0\uC11C \uAC08\uC544\uC785\uC744 \uC218 \uC788\uC5B4\uC694. \uB458 \uB2E4 \uC785\uC744 \uC218 \uC788\uC5B4\uC694.", price, style: [k, val] }))),
-  ...Object.keys(STYLE_IDS).map((k) => ({ id: "style_" + k, cat: "interior", name: STYLE_IDS[k], desc: "", price: 3e5, styleSet: k, repeat: true })),
+  { id: "d_jute", cat: "deco", part: "\uBC14\uB2E5", name: "\uC8FC\uD2B8 \uB7EC\uADF8", desc: "", price: 28e3, repeat: true, floor: { t: "rug_jute", w: 4, h: 2, flat: true, walk: true } },
+  { id: "d_pendant", cat: "deco", part: "\uCC9C\uC7A5", name: "\uD39C\uB358\uD2B8 \uC870\uBA85", desc: "", price: 35e3 },
+  { id: "d_curtain", cat: "deco", part: "\uCC3D\uBB38", name: "\uB9B0\uB128 \uCEE4\uD2BC", desc: "", price: 22e3 },
+  { id: "d_wreath", cat: "deco", part: "\uBCBD", name: "\uB4DC\uB77C\uC774\uD50C\uB77C\uC6CC \uB9AC\uC2A4", desc: "", price: 18e3 },
+  { id: "d_wallshelf", cat: "deco", part: "\uBCBD", name: "\uBCBD \uC120\uBC18\uACFC \uC624\uBE0C\uC81C", desc: "", price: 2e4 },
+  { id: "d_mirror", cat: "deco", part: "\uBC14\uB2E5 \uC18C\uD488", name: "\uC544\uCE58 \uAC70\uC6B8", desc: "", price: 26e3, repeat: true, floor: { t: "mirror", w: 1, h: 1 } },
+  { id: "d_ladder", cat: "deco", part: "\uBC14\uB2E5 \uC18C\uD488", name: "\uC6D0\uBAA9 \uC0AC\uB2E4\uB9AC \uC120\uBC18", desc: "", price: 32e3, repeat: true, floor: { t: "ladder", w: 1, h: 1 } },
+  { id: "d_monstera", cat: "deco", part: "\uBC14\uB2E5 \uC18C\uD488", name: "\uBAAC\uC2A4\uD14C\uB77C \uD654\uBD84", desc: "", price: 24e3, repeat: true, floor: { t: "monstera", w: 1, h: 1 } },
+  { id: "d_olive", cat: "deco", part: "\uBC14\uB2E5 \uC18C\uD488", name: "\uC62C\uB9AC\uBE0C \uB098\uBB34", desc: "", price: 3e4, repeat: true, floor: { t: "olive", w: 1, h: 1 } },
+  { id: "d_terrarium", cat: "deco", part: "\uBC14\uB2E5 \uC18C\uD488", name: "\uC720\uB9AC \uC628\uC2E4 \uC7A5\uC2DD\uC7A5", desc: "", price: 65e3, repeat: true, floor: { t: "terrarium", w: 2, h: 1 } },
+  { id: "hanging", cat: "deco", part: "\uCC9C\uC7A5", name: "\uD589\uC789 \uD654\uBD84", desc: "\uCC9C\uC7A5\uC5D0 \uCD08\uB85D \uD654\uBD84\uC744 \uB354 \uB9E4\uB2EC\uC544\uC694.", price: 18e3 },
+  { id: "lights", cat: "deco", part: "\uCC9C\uC7A5", name: "\uC804\uAD6C \uC870\uBA85", desc: "\uAC00\uAC8C\uC5D0 \uC804\uAD6C \uC904\uC744 \uB2EC\uC544\uC694. \uC800\uB141\uC774\uBA74 \uBC18\uC9DD\uC5EC\uC694.", price: 22e3 },
+  { id: "sign", cat: "deco", part: "\uAC00\uAC8C \uC55E", name: "\uC0C8 \uAC04\uD310 \uB2EC\uAE30", desc: "\uC6B0\uB9AC \uAF43\uC9D1 \uAC04\uD310\uC744 \uAF43\uC73C\uB85C \uAFB8\uBBF8\uACE0 \uC774\uB984\uC744 \uC0C8\uB85C \uC815\uD574\uC694. \uC5B8\uC81C\uB4E0 \uB2E4\uC2DC \uC0B4 \uC218 \uC788\uC5B4\uC694.", price: 3e4, repeat: true },
+  ...Object.entries(STYLE).flatMap(([k, v]) => v.opts.map(([val, name, price]) => ({ id: "st_" + k + "_" + val, cat: "style", name, desc: "\uAC00\uAC8C \uC637\uC7A5\uC5D0\uC11C \uAC08\uC544\uC785\uC744 \uC218 \uC788\uC5B4\uC694. \uB458 \uB2E4 \uC785\uC744 \uC218 \uC788\uC5B4\uC694.", price, style: [k, val], part: { glasses: "\uC5BC\uAD74", hat: "\uBA38\uB9AC", pin: "\uBA38\uB9AC", apron: "\uBAB8", tee: "\uBAB8" }[k] }))),
+  ...Object.keys(STYLE_IDS).map((k) => ({ id: "style_" + k, cat: "interior", name: STYLE_IDS[k], desc: "", price: 3e5, styleSet: k, repeat: true, part: "\uAC00\uAC8C \uC804\uCCB4" })),
   { id: "exp1", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 1\uB2E8\uACC4", desc: "\uAC00\uAC8C \uC624\uB978\uCABD \uBCBD\uC744 \uD130\uC11C \uBC14\uB2E5\uC774 \uB113\uC5B4\uC838\uC694. \uB113\uC5B4\uC9C4 \uACF3\uC5D0 \uAC00\uAD6C\uB97C \uC62E\uACA8 \uB193\uC744 \uC218 \uC788\uC5B4\uC694.", price: 5e5 },
   { id: "exp2", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 2\uB2E8\uACC4", desc: "\uAC00\uAC8C\uAC00 \uD55C \uBC88 \uB354 \uB113\uC5B4\uC838\uC694.", price: 12e5, need: "exp1" },
   { id: "exp3", cat: "expand", name: "\uAC00\uAC8C \uB113\uD788\uAE30 3\uB2E8\uACC4", desc: "\uAC00\uAC8C\uAC00 \uAC00\uC7A5 \uB113\uC5B4\uC838\uC694.", price: 25e5, need: "exp2" }
@@ -674,6 +677,7 @@ function newPal(kind) {
 }
 const DOG_NAMES = ["\uBB49\uCE58", "\uCD08\uCF54", "\uBCF4\uB9AC", "\uCF69\uC774", "\uB450\uBD80", "\uB9DD\uACE0", "\uAE4C\uBBF8", "\uC124\uAE30"];
 function park(zone) {
+  if (zone === "yard") return [rnd(3.4, 16.4) * TILE, rnd(29, 31.8) * TILE];
   if (zone === "lake") return Math.random() < 0.25 ? [rnd(40.3, 42.7) * TILE, rnd(26.5, 30.6) * TILE] : [rnd(18.5, 56) * TILE, rnd(24.3, 25.8) * TILE];
   return zone === "park" ? [rnd(10.5, 26) * TILE, rnd(13.8, 22.5) * TILE] : [rnd(35.5, 37.8) * TILE, rnd(17.8, 22.5) * TILE];
 }
@@ -1660,7 +1664,26 @@ function updateCustomers(dt) {
   });
   S.customers = S.customers.filter((k) => k.state !== "gone");
 }
+const RECESS = [[100, 114], [190, 232], [300, 314]];
 function updateWalkers(dt) {
+  const inRec = S.phase === "play" && RECESS.some(([a, b]) => S.t >= a && S.t < b), yard = S.walkers.filter((w) => w.zone === "yard");
+  if (inRec && !yard.length) {
+    for (let k = 0; k < 9; k++) {
+      const w = mkWalker("kid", "yard");
+      w.x = 8.5 * TILE + rnd(-6, 6);
+      w.y = 28.7 * TILE;
+      w.tx = w.x;
+      w.ty = w.y;
+      w.wait = k * 0.25;
+      S.walkers.push(w);
+    }
+  }
+  if (!inRec && yard.length) yard.forEach((w) => {
+    if (!w.goIn) {
+      w.goIn = true;
+      w.path = [[8.5 * TILE, 28.6 * TILE]];
+    }
+  });
   S.offers.forEach((t, n) => {
     if (t !== null && S.t >= t) {
       S.offers[n] = null;
@@ -1674,9 +1697,26 @@ function updateWalkers(dt) {
     w.mv = Math.hypot(w.x - px, w.y - py) > 0.02;
     if (w.dog) w.dog.mv = Math.hypot(w.dog.x - dpx, w.dog.y - dpy) > 0.02;
   });
+  if (S.walkers.some((w) => w.dead)) S.walkers = S.walkers.filter((w) => !w.dead);
 }
 const ERRAND_DOORS = [20 * TILE, 43 * TILE];
 function walkerStep(w, dt) {
+  if (w.zone === "yard" && !w.talking) {
+    if (w.goIn) {
+      if (stepToward(w, dt, 34)) w.dead = true;
+      return;
+    }
+    if (w.wait > 0) {
+      w.wait -= dt;
+      return;
+    }
+    w.path = [[w.tx, w.ty]];
+    if (stepToward(w, dt, 34)) {
+      w.wait = rnd(0.2, 1.1);
+      [w.tx, w.ty] = park("yard");
+    }
+    return;
+  }
   if (w.eve) {
     if (S.t < 430) {
       w.hidden = 1;
@@ -2463,9 +2503,10 @@ function renderModal(i) {
       <div class="row"><button class="btn primary" data-a="buy" ${S.money < tot || free < m.qty ? "disabled" : ""}>${free < m.qty ? "\uAC00\uBC29 \uCE78\uC774 \uBAA8\uC790\uB77C\uC694" : m.qty + "\uB2E8 \uC0AC\uAE30"}</button></div></div></div>`;
   } else if (m.type === "supply") {
     const cat = m.cat || "equip", imgOnly = ["style", "deco", "interior"].includes(cat);
-    h = head(i, "\uC6A9\uD488\uC0C1\uC810") + `<p class="req">\uAC00\uC9C4 \uB3C8 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k, n]) => `<button class="btn small ${k === cat ? "soft" : ""}" data-a="cat" data-v="${k}">${n}</button>`).join("")}</div><div class="shopgrid${imgOnly ? " img" : ""}">` + SHOP_ITEMS.filter((it) => it.cat === cat).map((it) => {
+    const pit = m.pending && SHOP_ITEMS.find((x) => x.id === m.pending);
+    h = head(i, "\uC6A9\uD488\uC0C1\uC810") + (pit ? `<div class="confirm"><div class="sart">${itemArt(pit)}</div><div class="grow"><b style="font-weight:normal">${pit.name}</b>${pit.part ? ` <small>\xB7 ${pit.part}</small>` : ""}<br>${won(pit.price)}\uC5D0 \uC0B4\uAE4C\uC694?</div><button class="btn primary small" data-a="buyok">\uC0B4\uAC8C\uC694</button><button class="btn small" data-a="buyno">\uC544\uB2C8\uC694</button></div>` : "") + `<p class="req">\uAC00\uC9C4 \uB3C8 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k, n]) => `<button class="btn small ${k === cat ? "soft" : ""}" data-a="cat" data-v="${k}">${n}</button>`).join("")}</div><div class="shopgrid${imgOnly ? " img" : ""}">` + SHOP_ITEMS.filter((it) => it.cat === cat).map((it) => {
       const cur = it.styleSet && S.style === it.styleSet, have = cur || (!!S.up[it.id] || !!S.closet[it.id]) && !it.repeat, lock = it.need && !S.up[it.need];
-      return `<div class="scard${have ? " own" : ""}"><div class="sart">${itemArt(it)}</div>${imgOnly ? "" : `<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock ? " (\uC55E \uB2E8\uACC4\uB97C \uBA3C\uC800 \uC0AC\uC57C \uD574\uC694)" : ""}</div>`}${have ? `<span class="sbad">${cur ? "\uC0AC\uC6A9 \uC911" : "\uBCF4\uC720"}</span>` : `<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} \xB7 ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock || S.money < it.price ? "disabled" : ""}>${won(it.price)}</button>`}</div>`;
+      return `<div class="scard${have ? " own" : ""}"><div class="sart">${itemArt(it)}</div>${it.part ? `<div class="spart">${it.part}</div>` : ""}${imgOnly ? "" : `<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock ? " (\uC55E \uB2E8\uACC4\uB97C \uBA3C\uC800 \uC0AC\uC57C \uD574\uC694)" : ""}</div>`}${have ? `<span class="sbad">${cur ? "\uC0AC\uC6A9 \uC911" : "\uBCF4\uC720"}</span>` : `<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} \xB7 ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock || S.money < it.price ? "disabled" : ""}>${won(it.price)}</button>`}</div>`;
     }).join("") + "</div>";
   } else if (m.type === "seedbuy") {
     const t = m.flower, p = SEED_PRICE[t], tot = p * m.qty, has = c.bag.some((it) => it && it.kind === "seed" && it.t === t) || bagFree(i) > 0;
@@ -2708,7 +2749,19 @@ function onModalClick(i, e) {
       renderModal(i);
     }
   } else if (m.type === "supply" && a === "shopbuy") {
-    const it = SHOP_ITEMS.find((x) => x.id === v);
+    m.pending = v;
+    GP.ctxFocus["m" + i] = '[data-a="buyok"]';
+    renderModal(i);
+    const mb = modalEl(i).querySelector(".mbody");
+    if (mb) mb.scrollTop = 0;
+    return;
+  } else if (m.type === "supply" && a === "buyno") {
+    m.pending = null;
+    renderModal(i);
+    return;
+  } else if (m.type === "supply" && a === "buyok") {
+    const it = SHOP_ITEMS.find((x) => x.id === m.pending);
+    m.pending = null;
     if (!it || (S.up[it.id] || S.closet[it.id]) && !it.repeat || S.money < it.price) return;
     if (it.bag) {
       const ex = bag.find((x) => x && x.kind === "sprinkler");
@@ -3928,8 +3981,8 @@ document.addEventListener("pointerover", (e) => {
 });
 const STYLES = {
   natural: { name: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", wall: "#EFE8DC", dot: "#E4D8C6", wain: "#D8C9B2", wainL: "#E5D8C3", trim: "#FAF6EE", side: "#E2D7C6", floor: "plank", f1: "#E7D0AF", f2: "#DCC29C", seam: "#CCB08A", frame: "#C9A57E" },
-  vintage: { name: "\uC720\uB7FD \uBE48\uD2F0\uC9C0", wall: "#34514A", dot: "#3E5E55", wain: "#5B3F2E", wainL: "#6A4A37", trim: "#C9A24A", side: "#2C453F", floor: "herring", f1: "#8C5C3E", f2: "#7A4E33", seam: "#5E3B27", frame: "#C9A24A" },
-  minimal: { name: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8", wall: "#F6F5F1", dot: "#ECEAE4", wain: "#ECE9E2", wainL: "#F3F1EB", trim: "#FFFFFF", side: "#E9E6DF", floor: "terrazzo", f1: "#F0EDE6", f2: "#E8E4DB", seam: "#DDD8CE", frame: "#D8D2C8" }
+  vintage: { name: "\uD30C\uB9AC \uAF43\uC9D1", wall: "#F4ECDD", dot: "#F4ECDD", wain: "#EADFCB", wainL: "#F2E9D8", trim: "#C9A24A", side: "#E6DBC6", floor: "check", f1: "#F3EFE6", f2: "#4B4A50", seam: "#D8D2C6", frame: "#C9A24A" },
+  minimal: { name: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8", wall: "#FAFAF8", dot: "#FAFAF8", wain: "#F3F3F0", wainL: "#F7F7F4", trim: "#FFFFFF", side: "#EFEFEC", floor: "plain", f1: "#F7F7F5", f2: "#F2F2EF", seam: "#EAEAE6", frame: "#E4E4E0" }
 };
 function curStyle() {
   return STYLES[S.style] || STYLES.natural;
@@ -4032,7 +4085,7 @@ function itemArt(it) {
   }
   if (it.styleSet) {
     const P = STYLES[it.styleSet];
-    const fl = P.floor === "plank" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2].map((q) => `<rect x="6" y="${40 + q * 6}" width="52" height=".8" fill="${P.seam}"/>`).join("")}` : P.floor === "herring" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6].map((q) => `<path d="M${6 + q * 8} 58 l8 -8 M${6 + q * 8} 48 l8 -8" stroke="${P.seam}" stroke-width="1.2"/>`).join("")}` : `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((q) => `<circle cx="${10 + q * 13 % 48}" cy="${40 + q * 7 % 16}" r="1.2" fill="${["#C9B8A6", "#9FB0A6", "#D9A89A"][q % 3]}"/>`).join("")}`;
+    const fl = P.floor === "check" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((q) => [0, 1, 2].map((r) => (q + r) % 2 ? `<rect x="${6 + q * 4}" y="${36 + r * 7.3}" width="4" height="7.3" fill="${P.f2}"/>` : "").join("")).join("")}` : P.floor === "plain" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>` : P.floor === "plank" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2].map((q) => `<rect x="6" y="${40 + q * 6}" width="52" height=".8" fill="${P.seam}"/>`).join("")}` : P.floor === "herring" ? `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6].map((q) => `<path d="M${6 + q * 8} 58 l8 -8 M${6 + q * 8} 48 l8 -8" stroke="${P.seam}" stroke-width="1.2"/>`).join("")}` : `<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((q) => `<circle cx="${10 + q * 13 % 48}" cy="${40 + q * 7 % 16}" r="1.2" fill="${["#C9B8A6", "#9FB0A6", "#D9A89A"][q % 3]}"/>`).join("")}`;
     const lamp = it.styleSet === "natural" ? '<path d="M26 8 L38 8 L42 18 L22 18Z" fill="#C9A06A"/><path d="M24 12 H40" stroke="#B08850"/>' : it.styleSet === "vintage" ? '<path d="M32 2 V10" stroke="#C9A24A"/><path d="M24 18 Q32 6 40 18Z" fill="#C9A24A"/>' : '<circle cx="32" cy="14" r="6" fill="#FFFFFF" stroke="#E4E0D8"/>';
     return sv(`<rect x="6" y="6" width="52" height="30" fill="${P.wall}"/><rect x="6" y="27" width="52" height="9" fill="${P.wain}"/>${fl}${lamp}<rect x="42" y="40" width="7" height="10" rx="2" fill="#D98E6C"/><ellipse cx="45.5" cy="38" rx="6" ry="5" fill="#7FAF6C"/><rect x="12" y="20" width="12" height="10" fill="${P.frame}"/><rect x="13.5" y="21.5" width="9" height="7" fill="#FFF8EE"/>`);
   }
@@ -4813,10 +4866,12 @@ function drawChar(g, x, y, p, dir, phase, moving, glasses, work, sit) {
     const lA = sw > 0 ? sw * 7 : 0, lB = sw < 0 ? -sw * 7 : 0;
     const lX = -9 * bw + st, rX = 9 * bw + st;
     if (sit) {
-      rr(g, lX - 7, -42, 14, 16, 5, p.pants);
-      rr(g, rX - 7, -42, 14, 16, 5, p.pants);
-      el(g, lX, -26, 9, 5, p.shoe);
-      el(g, rX, -26, 9, 5, p.shoe);
+      rr(g, lX - 7, -42, 14, back ? 10 : 16, 5, p.pants);
+      rr(g, rX - 7, -42, 14, back ? 10 : 16, 5, p.pants);
+      if (!back) {
+        el(g, lX, -26, 9, 5, p.shoe);
+        el(g, rX, -26, 9, 5, p.shoe);
+      }
     } else {
       rr(g, lX - 7, -40 - lA - t * 2, 14, 36, 5, t > 0 ? dark : p.pants);
       el(g, lX + t * 2, -4 - lA - t * 2, 11, 5.5, p.shoe, t * 0.5);
@@ -6144,6 +6199,128 @@ function signBoard(g, cx, cy, text, o = {}) {
   g.fillText(text, cx, cy + 0.5);
   return w;
 }
+const SUNSET_STOPS = [[0, "#8EC3E8", "#CFE8F5", "#FFFFFF", "#FFFFFF"], [0.35, "#93B8DE", "#FFE0A6", "#FFF3E2", "#FFD08E"], [0.6, "#7C86C0", "#FF9C6C", "#EBA6B8", "#FF8A66"], [0.82, "#4B4D8A", "#E57078", "#9A76A6", "#F48A8A"], [1, "#23264D", "#5E4574", "#3A375A", "#6E5580"]];
+function sunsetPal(t) {
+  const k = clamp((t - 420) / 175, 0, 1);
+  let a = SUNSET_STOPS[0], b = SUNSET_STOPS[SUNSET_STOPS.length - 1];
+  for (let i = 0; i < SUNSET_STOPS.length - 1; i++) {
+    if (k >= SUNSET_STOPS[i][0] && k <= SUNSET_STOPS[i + 1][0]) {
+      a = SUNSET_STOPS[i];
+      b = SUNSET_STOPS[i + 1];
+      break;
+    }
+  }
+  const f = (k - a[0]) / Math.max(1e-3, b[0] - a[0]);
+  return { k, top: mix(a[1], b[1], f), hor: mix(a[2], b[2], f), cloud: mix(a[3], b[3], f), lit: mix(a[4], b[4], f) };
+}
+function sunsetView(c) {
+  return c && c.rest && c.rest.bench && c.rest.bench.id === "bench6" && c.area === "town" && S.t >= 420;
+}
+function drawSunsetScene(g, X, Y, W, H, who) {
+  const P = sunsetPal(S.t), k = P.k, tt = performance.now() / 1e3, HZ = Y + H * 0.6;
+  const sg = g.createLinearGradient(0, Y, 0, HZ);
+  sg.addColorStop(0, P.top);
+  sg.addColorStop(0.65, mix(P.top, P.hor, 0.55));
+  sg.addColorStop(1, P.hor);
+  g.fillStyle = sg;
+  g.fillRect(X, Y, W, HZ - Y);
+  if (k > 0.8) {
+    g.globalAlpha = (k - 0.8) * 5;
+    const q = seedRand(9);
+    for (let i = 0; i < 50; i++) {
+      const sx = X + q() * W, sy = Y + q() * (HZ - Y) * 0.6, tw = (Math.sin(tt * 2 + i) + 1) / 2;
+      el(g, sx, sy, 0.6 + tw * 0.6, 0.6 + tw * 0.6, "#FFFFFF");
+    }
+    g.globalAlpha = 1;
+  }
+  const sunX = X + W * 0.62, sunY = Y + H * (0.2 + 0.46 * k), sr = Math.min(W, H) * 0.055;
+  const gl = g.createRadialGradient(sunX, sunY, 0, sunX, sunY, sr * 7);
+  gl.addColorStop(0, `rgba(255,236,190,${0.9 - 0.3 * k})`);
+  gl.addColorStop(1, "rgba(255,190,140,0)");
+  g.fillStyle = gl;
+  g.fillRect(X, Y, W, HZ - Y);
+  g.save();
+  g.beginPath();
+  g.rect(X, Y, W, HZ - Y);
+  g.clip();
+  el(g, sunX, sunY, sr, sr, mix("#FFF6D6", "#FF7A4A", k));
+  g.restore();
+  const clouds = [[0.12, 0.18, 0.28], [0.4, 0.1, 0.22], [0.78, 0.16, 0.3], [0.55, 0.3, 0.26], [0.2, 0.38, 0.2], [0.88, 0.36, 0.18], [0.33, 0.26, 0.14]];
+  clouds.forEach(([cx, cy, cw], i) => {
+    const x0 = X + (cx * W + tt * 4 * (1 + i % 3)) % (W * 1.3) - W * 0.15, y0 = Y + cy * H, w0 = cw * W;
+    const near = clamp(1 - Math.abs(x0 - sunX) / (W * 0.6), 0, 1);
+    for (let j = 0; j < 6; j++) el(g, x0 + (j - 2.5) * w0 * 0.16, y0 - j % 2 * H * 0.012, w0 * 0.16, H * 0.03, P.cloud);
+    g.globalAlpha = 0.55 + 0.45 * near;
+    for (let j = 0; j < 5; j++) el(g, x0 + (j - 2) * w0 * 0.17, y0 + H * 0.018, w0 * 0.14, H * 0.012, mix(P.cloud, P.lit, 0.5 + 0.5 * near));
+    g.globalAlpha = 1;
+  });
+  for (let i = 0; i < 3; i++) {
+    const bx = X + (tt * 18 + i * 120) % (W + 60) - 30, by = Y + H * (0.22 + i * 0.05) + Math.sin(tt + i) * 4;
+    g.strokeStyle = "rgba(40,35,60,.7)";
+    g.lineWidth = 1.3;
+    g.beginPath();
+    g.moveTo(bx - 6, by - 2);
+    g.quadraticCurveTo(bx - 3, by - 4, bx, by);
+    g.quadraticCurveTo(bx + 3, by - 4, bx + 6, by - 2);
+    g.stroke();
+  }
+  const wg = g.createLinearGradient(0, HZ, 0, Y + H);
+  wg.addColorStop(0, mix(P.hor, "#5B7FA0", 0.35));
+  wg.addColorStop(1, mix(P.top, "#1E2A44", 0.5));
+  g.fillStyle = wg;
+  g.fillRect(X, HZ, W, Y + H - HZ);
+  g.fillStyle = mix(P.hor, "#FFFFFF", 0.35);
+  g.fillRect(X, HZ, W, 1.2);
+  if (sunY < HZ + sr) {
+    for (let i = 0; i < 26; i++) {
+      const yy = HZ + 4 + i * (H * 0.016), wv = Math.sin(tt * 2.2 + i * 0.9) * W * 0.01, ww = W * (0.02 + 6e-3 * i);
+      g.globalAlpha = Math.max(0, 0.75 - i * 0.025);
+      g.fillStyle = mix("#FFE9B0", "#FF9A6A", k);
+      g.fillRect(sunX - ww / 2 + wv, yy, ww, 1.4);
+      g.globalAlpha = 1;
+    }
+  }
+  for (let i = 0; i < 14; i++) {
+    const yy = HZ + 8 + i * 37 % Math.max(1, Y + H - HZ - 20), xx = X + (i * 97 + tt * 6) % W;
+    g.fillStyle = "rgba(255,255,255,.12)";
+    g.fillRect(xx, yy, W * 0.04, 1);
+  }
+  const PY = Y + H * 0.78;
+  g.fillStyle = "#6E4E3A";
+  g.beginPath();
+  g.moveTo(X + W * 0.18, Y + H);
+  g.lineTo(X + W * 0.36, PY);
+  g.lineTo(X + W * 0.64, PY);
+  g.lineTo(X + W * 0.82, Y + H);
+  g.closePath();
+  g.fill();
+  for (let i = 1; i < 6; i++) {
+    const yy = PY + (Y + H - PY) * i / 6;
+    g.fillStyle = "rgba(0,0,0,.18)";
+    g.fillRect(X + W * (0.36 - 0.18 * i / 6), yy, W * (0.28 + 0.36 * i / 6), 1);
+  }
+  const sc = H / 150;
+  g.fillStyle = "#5A3E2E";
+  g.fillRect(X + W * 0.33, PY + H * 0.02, W * 0.34, H * 0.018);
+  g.fillRect(X + W * 0.35, PY + H * 0.035, W * 0.3, H * 0.012);
+  who.forEach((c, i) => {
+    const cx = X + W * (who.length > 1 ? i ? 0.535 : 0.465 : 0.5);
+    g.save();
+    g.translate(cx, Y + H * 0.9);
+    g.scale(sc * 2.1, sc * 2.1);
+    drawChar(g, 0, 0, palOf(c), Math.PI, 0, false, false, false, true);
+    g.restore();
+  });
+  rr(g, X + W * 0.39, Y + H * 0.8, W * 0.22, H * 0.05, 3, "#7A5540");
+  rr(g, X + W * 0.39, Y + H * 0.795, W * 0.22, H * 0.014, 2, "#8C6448");
+  g.fillStyle = "#5A3E2E";
+  g.fillRect(X + W * 0.4, Y + H * 0.85, W * 0.012, H * 0.08);
+  g.fillRect(X + W * 0.588, Y + H * 0.85, W * 0.012, H * 0.08);
+  g.fillStyle = "rgba(255,255,255,.75)";
+  g.font = `${Math.max(11, H * 0.035)}px 'Gowun Dodum',sans-serif`;
+  g.textAlign = "center";
+  g.fillText("\uD589\uB3D9 \uBC84\uD2BC\uC744 \uB204\uB974\uBA74 \uC77C\uC5B4\uB098\uC694", X + W / 2, Y + H * 0.06);
+}
 function canopy(g, cx, cy, r, cols, seed) {
   const q = seedRand(seed);
   el(g, cx + r * 0.15, cy + r * 0.2, r, r * 0.82, cols[0]);
@@ -6244,34 +6421,25 @@ function shopStatic(g) {
       g.lineTo(x + 6, y);
       g.stroke();
     }
+  } else if (P.floor === "check") {
+    for (let y = 32, a = 0; y < 160; y += 8, a++) for (let x = 16, b = 0; x < W - 16; x += 8, b++) {
+      g.fillStyle = (a + b) % 2 ? P.f2 : P.f1;
+      g.fillRect(x, y, 8, 8);
+    }
   } else {
     g.fillStyle = P.f1;
     g.fillRect(16, 32, W - 32, 128);
-    for (let k = 0; k < (W - 32) * 1.4; k++) {
-      el(g, 16 + r() * (W - 32), 32 + r() * 128, 0.4 + r() * 0.9, 0.3 + r() * 0.7, ["#C9B8A6", "#9FB0A6", "#D9A89A", "#B7B0A6", "#E0D6C8"][k % 5], r() * 3);
-    }
     g.fillStyle = P.seam;
-    for (let x = 16; x < W - 16; x += 32) g.fillRect(x, 32, 0.5, 128);
-    for (let y = 32; y < 160; y += 32) g.fillRect(16, y, W - 32, 0.5);
+    for (let x = 16; x < W - 16; x += 48) g.fillRect(x, 32, 0.35, 128);
+    for (let y = 32; y < 160; y += 48) g.fillRect(16, y, W - 32, 0.35);
   }
   g.restore();
-  if (S.style === "vintage") {
-    rr(g, 100, 100, 88, 26, 2, "#7A3B3B");
-    rr(g, 103, 103, 82, 20, 1.5, "#9C4E4A");
-    g.strokeStyle = "#D9B87A";
-    g.lineWidth = 0.8;
-    rr(g, 106, 106, 76, 14, 1);
-    g.stroke();
-    for (let x = 112; x < 180; x += 10) {
-      el(g, x, 113, 2.5, 2.5, "#2F4A6B");
-      el(g, x, 113, 1, 1, "#D9B87A");
-    }
-  }
   wallpaper(g, 0, W, 0, 22, P.wall, P.dot);
   if (S.style === "vintage") {
-    for (let x = 8; x < W; x += 24) {
-      g.fillStyle = "rgba(201,162,74,.25)";
-      g.fillRect(x, 3, 0.6, 17);
+    for (let x = 12; x < W; x += 48) {
+      g.strokeStyle = "rgba(201,162,74,.45)";
+      g.lineWidth = 0.5;
+      g.strokeRect(x, 4, 36, 15);
     }
   }
   g.fillStyle = P.trim;
@@ -6279,9 +6447,13 @@ function shopStatic(g) {
   g.fillRect(0, 21, W, 1.5);
   g.fillStyle = P.wain;
   g.fillRect(0, 22.5, W, 8.5);
-  for (let x = 2; x < W; x += S.style === "vintage" ? 12 : 5) {
+  for (let x = 2; x < W; x += S.style === "natural" ? 5 : 16) {
     g.fillStyle = P.wainL;
-    g.fillRect(x, 24, S.style === "vintage" ? 9 : 2.2, 6);
+    g.fillRect(x, 24, S.style === "natural" ? 2.2 : 13, 6);
+  }
+  if (S.style === "vintage") {
+    g.fillStyle = "#C9A24A";
+    g.fillRect(0, 26.8, W, 0.5);
   }
   g.fillStyle = P.trim;
   g.fillRect(0, 31, W, 1.5);
@@ -6316,8 +6488,8 @@ function shopStatic(g) {
   });
   g.fillStyle = "#EFE2CF";
   g.fillRect(128, 160, 32, 16);
-  rr(g, 130, 152, 28, 8, 2, S.style === "vintage" ? "#7A3B3B" : "#CDBFA8");
-  rr(g, 132, 153.5, 24, 5, 1.5, S.style === "vintage" ? "#9C4E4A" : "#DCCFB9");
+  rr(g, 130, 152, 28, 8, 2, S.style === "vintage" ? "#2F2F34" : S.style === "minimal" ? "#E4E4E0" : "#CDBFA8");
+  rr(g, 132, 153.5, 24, 5, 1.5, S.style === "vintage" ? "#44444A" : S.style === "minimal" ? "#EDEDEA" : "#DCCFB9");
   const hang = S.up.hanging ? [40, 92, 132, 228, 258] : [92, 228];
   for (let x = 300; x < W - 20; x += 64) hang.push(x);
   hang.forEach((hx) => {
@@ -6537,7 +6709,7 @@ function townStatic(g) {
   g.fillStyle = "#A9D08F";
   g.fillRect(0, 0, W, H);
   const r = seedRand(5);
-  for (let k = 0; k < 900; k++) {
+  for (let k = 0; k < 420; k++) {
     const x = r() * W, y = 100 + r() * (H - 100);
     el(g, x, y, 1.2 + r(), 0.5 + r() * 0.4, r() < 0.5 ? "#9CC784" : "#B7DA9F");
   }
@@ -6594,22 +6766,14 @@ function townStatic(g) {
     for (let k = 0; k < n; k++) {
       const x = x0 + q2() * w, y = y0 + q2() * h;
       const z = q2();
-      if (z < 0.45) grassTuft(g, x, y, z < 0.2 ? "#6E9A5A" : "#7FAF6C");
-      else if (z < 0.8) wildflower(g, x, y, ["#FFFFFF", "#F9C9D5", "#F5CF4E", "#B8A6E3", "#E8905A"][Math.floor(q2() * 5)]);
-      else if (z < 0.92) el(g, x, y, 1.8, 1.2, "#B9B2A6");
-      else {
-        ln(g, x, y, x - 2, y - 4, "#8FAE6A", 0.5);
-        ln(g, x, y, x + 2, y - 5, "#8FAE6A", 0.5);
-        el(g, x - 2, y - 4.5, 0.8, 0.8, "#EDE7C9");
-      }
+      if (z < 0.25) grassTuft(g, x, y, "#86B870");
+      else if (z < 0.85) wildflower(g, x, y, ["#FFFFFF", "#F9C9D5", "#F5CF4E"][Math.floor(q2() * 3)]);
+      else el(g, x, y, 1.6, 1, "#C2BCB0");
     }
   };
-  patch(28, 216, 400, 146, 420, 11);
-  patch(500, 272, 120, 88, 120, 12);
-  patch(0, 388, 20, 150, 40, 13);
-  patch(868, 216, 56, 150, 70, 14);
-  patch(290, 388, 150, 40, 60, 15);
-  patch(620, 212, 10, 150, 30, 16);
+  patch(28, 216, 400, 146, 45, 11);
+  patch(500, 272, 120, 88, 12, 12);
+  patch(868, 216, 56, 150, 8, 14);
   g.fillStyle = "#8FC2D8";
   g.fillRect(RX0, 0, RX1 - RX0, LY);
   g.fillStyle = "#A9D4E6";
@@ -6886,52 +7050,54 @@ function drawFacade(g, f) {
 }
 function townDynamic(g) {
   const RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, H = 27 * TILE, HH = AREAS.town.h * TILE, W = AREAS.town.w * TILE, LY = 27 * TILE, LX = 20 * TILE, tt = performance.now() / 1e3;
-  const sun = clamp((S.t - 400) / 200, 0, 1);
-  if (sun > 0) {
-    const sy = 468 + sun * 56, sx = 742;
-    const gr = g.createLinearGradient(0, LY, 0, HH);
-    gr.addColorStop(0, `rgba(255,190,150,${0.12 * sun})`);
-    gr.addColorStop(1, `rgba(255,140,110,${0.4 * sun})`);
-    g.fillStyle = gr;
+  const P = sunsetPal(S.t), k = P.k, BY = 506;
+  if (k > 0) {
+    g.fillStyle = P.hor;
+    g.globalAlpha = 0.32 * k;
     g.fillRect(LX, LY, W - LX, HH - LY);
-    const glow = g.createRadialGradient(sx, sy, 0, sx, sy, 70);
-    glow.addColorStop(0, `rgba(255,220,160,${0.8 * sun})`);
-    glow.addColorStop(1, "rgba(255,170,120,0)");
-    g.fillStyle = glow;
-    g.fillRect(sx - 70, sy - 70, 140, 140);
-    el(g, sx, sy, 9, 9, mix("#FFE7A8", "#FF9A6A", sun));
-    for (let k = 0; k < 16; k++) {
-      const yy = LY + 8 + k * 5.6;
-      if (yy > sy - 4) break;
-      const wv = Math.sin(tt * 2 + k) * 3;
-      g.fillStyle = `rgba(255,200,140,${(0.18 + 0.3 * (k / 16)) * sun})`;
-      g.fillRect(sx - 8 - k * 0.5 + wv, yy, 16 + k, 1.2);
+    g.globalAlpha = 1;
+  }
+  const sg = g.createLinearGradient(0, BY, 0, HH);
+  sg.addColorStop(0, P.hor);
+  sg.addColorStop(1, P.top);
+  g.fillStyle = sg;
+  g.fillRect(LX, BY, W - LX, HH - BY);
+  const sx = 742, sy = 486 + k * 70;
+  if (sy < HH + 12) {
+    const gl = g.createRadialGradient(sx, sy, 0, sx, sy, 90);
+    gl.addColorStop(0, `rgba(255,226,170,${0.55 + 0.3 * k})`);
+    gl.addColorStop(1, "rgba(255,190,140,0)");
+    g.fillStyle = gl;
+    g.fillRect(sx - 90, Math.max(LY, sy - 90), 180, 180);
+    g.save();
+    g.beginPath();
+    g.rect(LX, BY, W - LX, HH - BY);
+    g.clip();
+    el(g, sx, sy, 9, 9, mix("#FFF3C8", "#FF8A5A", k));
+    g.restore();
+    for (let q = 0; q < 14; q++) {
+      const yy = BY - 6 - q * 5.2;
+      if (yy < LY + 4) break;
+      const wv = Math.sin(tt * 2 + q) * 3;
+      g.fillStyle = `rgba(255,${210 - q * 3},${150 - q * 4},${(0.45 - 0.025 * q) * (0.35 + 0.65 * k)})`;
+      g.fillRect(sx - 7 - q * 0.9 + wv, yy, 14 + q * 1.8, 1.1);
     }
   }
-  g.fillStyle = "#6F8FA0";
-  g.beginPath();
-  g.moveTo(LX, HH);
-  g.lineTo(LX, 516);
-  [[380, 506], [460, 512], [540, 500], [640, 510], [720, 498], [800, 508], [880, 502], [W, 510]].forEach(([x, y]) => g.lineTo(x, y));
-  g.lineTo(W, HH);
-  g.closePath();
-  g.fill();
-  g.fillStyle = "#5E7E8E";
-  g.beginPath();
-  g.moveTo(LX, HH);
-  g.lineTo(LX, 524);
-  [[420, 518], [520, 526], [610, 516], [700, 524], [820, 518], [W, 524]].forEach(([x, y]) => g.lineTo(x, y));
-  g.lineTo(W, HH);
-  g.closePath();
-  g.fill();
-  if (sun > 0) {
-    g.fillStyle = `rgba(255,160,120,${0.25 * sun})`;
-    g.fillRect(LX, 496, W - LX, HH - 496);
-  }
+  [[400, 520, 60], [520, 530, 48], [620, 514, 70], [840, 524, 60], [700, 536, 40]].forEach(([cx, cy, cw], q) => {
+    const dx = (tt * 1.5 + q * 40) % 30;
+    for (let j = 0; j < 4; j++) {
+      el(g, cx + dx + j * cw * 0.22 - cw * 0.3, cy - j % 2 * 2, cw * 0.22, 3.2, P.cloud);
+    }
+    g.globalAlpha = 0.8;
+    el(g, cx + dx, cy - 2.5, cw * 0.45, 1.2, Math.abs(cx - sx) < 160 ? P.lit : P.cloud);
+    g.globalAlpha = 1;
+  });
+  g.fillStyle = "rgba(255,255,255,.35)";
+  g.fillRect(LX, BY - 0.5, W - LX, 1);
   g.strokeStyle = "rgba(255,255,255,.5)";
   g.lineWidth = 0.7;
-  for (let k = 0; k < 10; k++) {
-    const x = LX + 20 + (k * 97 + tt * 9) % (W - LX - 40), y = LY + 14 + k * 43 % 60;
+  for (let k2 = 0; k2 < 10; k2++) {
+    const x = LX + 20 + (k2 * 97 + tt * 9) % (W - LX - 40), y = LY + 14 + k2 * 43 % 60;
     g.beginPath();
     g.moveTo(x, y);
     g.quadraticCurveTo(x + 4, y - 1.5, x + 8, y);
@@ -6939,9 +7105,9 @@ function townDynamic(g) {
   }
   if (S.t > 480) {
     const a = clamp((S.t - 480) / 40, 0, 1);
-    for (let k = 0; k < 24; k++) {
-      const bx = [60, 200, 330, 480, 600, 760, 860][k % 7] + Math.sin(tt * 0.7 + k * 1.7) * 18, by = [250, 300, 420, 405, 300, 410, 395][k % 7] + Math.cos(tt * 0.9 + k) * 12;
-      const tw = (Math.sin(tt * 3 + k * 2) + 1) / 2;
+    for (let k2 = 0; k2 < 24; k2++) {
+      const bx = [60, 200, 330, 480, 600, 760, 860][k2 % 7] + Math.sin(tt * 0.7 + k2 * 1.7) * 18, by = [250, 300, 420, 405, 300, 410, 395][k2 % 7] + Math.cos(tt * 0.9 + k2) * 12;
+      const tw = (Math.sin(tt * 3 + k2 * 2) + 1) / 2;
       g.globalAlpha = a * (0.3 + 0.7 * tw);
       el(g, bx, by, 1.1, 1.1, "#FFF3A0");
       g.globalAlpha = a * 0.25 * tw;
@@ -6952,10 +7118,10 @@ function townDynamic(g) {
   g.strokeStyle = "rgba(255,255,255,.55)";
   g.lineWidth = 0.8;
   g.lineCap = "round";
-  for (let k = 0; k < 16; k++) {
-    const y = (k * 37 + tt * 14) % H;
+  for (let k2 = 0; k2 < 16; k2++) {
+    const y = (k2 * 37 + tt * 14) % H;
     if (y > 90 && y < 212 || y > 262 && y < 310 || y > 378 && y < 418) continue;
-    const x = RX0 + 10 + k * 13 % (RX1 - RX0 - 22);
+    const x = RX0 + 10 + k2 * 13 % (RX1 - RX0 - 22);
     g.beginPath();
     g.moveTo(x, y);
     g.quadraticCurveTo(x + 3, y - 1.5, x + 6, y);
@@ -7192,6 +7358,16 @@ function render() {
     Object.assign(v, cam);
     const { s, ox, oy, mw, mh } = cam;
     const x0 = Math.max(v.x, ox), y0 = Math.max(v.y, oy), x1 = Math.min(v.x + v.w, ox + mw * s), y1 = Math.min(v.y + v.h, oy + mh * s);
+    const viewers = S.mode === "solo" ? [S.chars[S.active]].filter((c) => v.chars.includes(c.i)) : v.chars.map((i) => S.chars[i]);
+    if (viewers.length && viewers.every(sunsetView)) {
+      ctx.save();
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      roundRect(v.x, v.y, v.w, v.h, 14);
+      ctx.clip();
+      drawSunsetScene(ctx, v.x, v.y, v.w, v.h, v.chars.map((i) => S.chars[i]).filter(sunsetView));
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     roundRect(x0, y0, x1 - x0, y1 - y0, 14);
