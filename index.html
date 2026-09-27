@@ -233,14 +233,17 @@ const TILE = 16, VW = 288, VH = 176;
 const DAY_LEN = 600, REAL_PER_MIN = 1.5, MARKET_CLOSE = 180, CLOSE_OK = 540;
 const HYDRATE_MIN = 30, DRY_MIN = 60, WILT = 15, REST_MIN = 5, BOOST_MIN = 60;
 const SAVE_KEY = "ourflowershop_save_v1";
-const AREAS = { shop: { h: 11 }, market: { w: 22, h: 11 }, supply: { w: 14, h: 10 }, town: { w: 58, h: 34 } };
+const AREAS = { shop: { h: 11 }, market: { w: 22, h: 11 }, supply: { w: 14, h: 10 }, town: { w: 58, h: 34 }, north: { w: 58, h: 22 } };
 function shopLevel() {
   return S.up.exp3 ? 3 : S.up.exp2 ? 2 : S.up.exp1 ? 1 : 0;
 }
 Object.defineProperty(AREAS.shop, "w", { get: () => 18 + 4 * shopLevel() });
 const GROW = { tulip: 3, freesia: 3, gyp: 2, rose: 4, hydrangea: 4 };
 const SEED_PRICE = { tulip: 4e3, freesia: 3500, gyp: 2500, rose: 6e3, hydrangea: 5e3 };
-const RIVER = [28, 30];
+const RIVER = [27, 33];
+function walkCol(tx) {
+  return tx >= 24 && tx <= 26 || tx >= 34 && tx <= 36;
+}
 function bridgeRow(ty) {
   return ty >= 6 && ty <= 12 || ty >= 17 && ty <= 18 || ty >= 24 && ty <= 25;
 }
@@ -436,10 +439,16 @@ const STATION_DEFS = [
   ["keeper", "keeper", "supply", 5, 3, 4, 1],
   ["bench1", "bench", "town", 16, 15, 2, 1],
   ["bench2", "bench", "town", 20, 19, 2, 1],
-  ["bench3", "bench", "town", 35, 16, 2, 1],
-  ["bench4", "bench", "town", 24, 24, 2, 1],
+  ["bench3", "bench", "town", 37, 18, 2, 1],
+  ["bench4", "bench", "town", 21, 24, 2, 1],
   ["bench5", "bench", "town", 50, 24, 2, 1],
   ["bench6", "bench", "town", 40, 29, 2, 1],
+  ["rb1", "bench", "town", 24, 15, 2, 1],
+  ["rb2", "bench", "town", 24, 20, 2, 1],
+  ["rb3", "bench", "town", 35, 9 + 11, 2, 1],
+  ...[[6, 7], [14, 7], [40, 7], [48, 7], [20, 7]].map(([x, y], k) => ["nv" + k, "bench", "north", x, y, 2, 1]),
+  ["nb1", "bench", "north", 24, 16, 2, 1],
+  ["nb2", "bench", "north", 35, 11, 2, 1],
   ...[41, 44, 47, 50].flatMap((x, a) => [15, 17, 19].map((y, b) => ["plot" + a + b, "plot", "town", x, y, 2, 1])),
   ...[43, 46, 49].flatMap((x, a) => [16, 18].map((y, b) => ["spr" + a + b, "sprspot", "town", x, y, 1, 1]))
 ];
@@ -447,24 +456,28 @@ const DECOR_BASE = {
   shop: [{ t: "table", x: 11, y: 8, w: 1, h: 1 }, { t: "waitbench", x: 14, y: 8, w: 2, h: 1 }, { t: "bigplant", x: 1, y: 9, w: 1, h: 1 }, { t: "bigplant", x: 16, y: 9, w: 1, h: 1 }, { t: "easel", x: 6, y: 9, w: 1, h: 1 }],
   market: [{ t: "crate", x: 2, y: 7, w: 1, h: 1 }, { t: "crate", x: 19, y: 7, w: 1, h: 1 }, { t: "planterTree", x: 1, y: 9, w: 1, h: 1 }, { t: "planterTree", x: 20, y: 9, w: 1, h: 1 }, { t: "bucketRow", x: 2, y: 5, w: 3, h: 1 }, { t: "bucketRow", x: 17, y: 5, w: 3, h: 1 }, { t: "boxes", x: 4, y: 8, w: 2, h: 1 }],
   supply: [{ t: "tallshelf", x: 1, y: 2, w: 3, h: 1 }, { t: "tallshelf", x: 10, y: 2, w: 3, h: 1 }, { t: "tooltable", x: 1, y: 6, w: 2, h: 1 }, { t: "pottable", x: 11, y: 6, w: 2, h: 1 }, { t: "bigplant", x: 12, y: 8, w: 1, h: 1 }, { t: "fridgeDemo", x: 4, y: 2, w: 1, h: 1 }, { t: "seedRack", x: 1, y: 4, w: 1, h: 1 }, { t: "canRack", x: 12, y: 4, w: 1, h: 1 }],
+  north: [
+    ...[[2, 9, "maple"], [4, 14, "ginkgo"], [9, 11, "maple"], [12, 17, "ginkgo"], [16, 12, "maple"], [19, 18, "pine"], [3, 19, "ginkgo"], [8, 19, "maple"], [21, 10, "ginkgo"], [30, 17 + 2, "maple"], [39, 15, "ginkgo"], [43, 10, "maple"], [46, 16, "ginkgo"], [51, 12, "maple"], [54, 18, "ginkgo"], [49, 19, "pine"], [56, 9, "maple"], [41, 19, "maple"], [14, 9, "ginkgo"], [33, 9, "birch"].slice(0, 3)].filter((t) => !(t[0] >= RIVER[0] && t[0] <= RIVER[1])).map(([x, y, v]) => ({ t: "tree", v, x, y, w: 1, h: 1 })),
+    ...[[10, 10], [22, 12], [38, 12], [50, 10], [18, 19], [44, 19], [5, 16]].map(([x, y]) => ({ t: "lamp", x, y, w: 1, h: 1 }))
+  ],
   town: [
     { t: "pond", x: 4, y: 15, w: 5, h: 4, flat: true },
     ...[
       [2, 13, "cherry"],
       [11, 14, "maple"],
-      [24, 13, "cherry"],
+      [23, 13, "ginkgo"],
       [3, 21, "pine"],
       [13, 21, "birch"],
-      [25, 20, "ginkgo"],
+      [23, 20, "ginkgo"],
       [10, 22, "bush"],
-      [37, 19, "maple"],
-      [37, 22, "pine"],
+      [37, 21, "maple"],
+      [38, 23, "pine"],
       [56, 15, "ginkgo"],
       [56, 20, "birch"],
-      [32, 21, "cherry"],
+      [37, 11 + 2, "ginkgo"],
       [1, 17, "pine"],
       [20, 13, "bush"],
-      [26, 16, "bush"],
+      [23, 17, "maple"],
       [18, 22, "birch"],
       [1, 25, "pine"],
       [17, 25, "birch"],
@@ -475,8 +488,8 @@ const DECOR_BASE = {
       [35, 23, "bush"],
       [46, 23, "bush"]
     ].map(([x, y, v]) => ({ t: "tree", v, x, y, w: 1, h: 1 })),
-    ...[[5, 12], [15, 12], [25, 12], [33, 12], [46, 12], [55, 12], [22, 24], [32, 24], [44, 24], [54, 24]].map(([x, y]) => ({ t: "lamp", x, y, w: 1, h: 1 })),
-    { t: "clocktower", x: 33, y: 13, w: 2, h: 2 },
+    ...[[5, 12], [15, 12], [23, 12], [37, 12], [46, 12], [55, 12], [20, 24], [37, 24], [44, 24], [54, 24], [24, 2], [36, 2]].map(([x, y]) => ({ t: "lamp", x, y, w: 1, h: 1 })),
+    { t: "clocktower", x: 37, y: 15, w: 2, h: 2 },
     { t: "fenceH", x: 39, y: 13, w: 6, h: 1 },
     { t: "fenceH", x: 47, y: 13, w: 8, h: 1 },
     { t: "fenceH", x: 39, y: 21, w: 16, h: 1 },
@@ -485,7 +498,6 @@ const DECOR_BASE = {
     { t: "shed", x: 52, y: 15, w: 2, h: 2 },
     { t: "mailbox", x: 9, y: 6, w: 1, h: 1 },
     { t: "planterBox", x: 13, y: 6, w: 2, h: 1 },
-    { t: "planterBox", x: 32, y: 6, w: 2, h: 1 },
     { t: "hoursSign", x: 40, y: 6, w: 1, h: 1 },
     { t: "school", x: 3, y: 24, w: 12, h: 4 },
     { t: "swing", x: 4, y: 30, w: 3, h: 1 },
@@ -493,7 +505,9 @@ const DECOR_BASE = {
     { t: "sandbox", x: 8, y: 31, w: 3, h: 1, flat: true, walk: true }
   ]
 };
-const DECOR = { get shop() {
+const DECOR = { get north() {
+  return DECOR_BASE.north;
+}, get shop() {
   return S.decor || DECOR_BASE.shop;
 }, get market() {
   return DECOR_BASE.market;
@@ -503,6 +517,10 @@ const DECOR = { get shop() {
   return DECOR_BASE.town;
 } };
 const DOORS = [
+  { area: "town", x0: 24 * TILE, x1: 27 * TILE, edge: "top", y: 0.5 * TILE, to: "north", sx: 25.5 * TILE, sy: 20.4 * TILE, dir: "up" },
+  { area: "town", x0: 34 * TILE, x1: 37 * TILE, edge: "top", y: 0.5 * TILE, to: "north", sx: 35.5 * TILE, sy: 20.4 * TILE, dir: "up" },
+  { area: "north", x0: 24 * TILE, x1: 27 * TILE, edge: "bottom", y: 21.7 * TILE, to: "town", sx: 25.5 * TILE, sy: 1.4 * TILE, dir: "down" },
+  { area: "north", x0: 34 * TILE, x1: 37 * TILE, edge: "bottom", y: 21.7 * TILE, to: "town", sx: 35.5 * TILE, sy: 1.4 * TILE, dir: "down" },
   { area: "shop", x0: 8 * TILE, x1: 10 * TILE, edge: "bottom", y: 10.3 * TILE, to: "town", sx: 7 * TILE, sy: 7.2 * TILE, dir: "down" },
   { area: "market", x0: 8 * TILE, x1: 10 * TILE, edge: "bottom", y: 10.3 * TILE, to: "town", sx: 43 * TILE, sy: 7.2 * TILE, dir: "down" },
   { area: "supply", x0: 6 * TILE, x1: 8 * TILE, edge: "bottom", y: 9.3 * TILE, to: "town", sx: 20 * TILE, sy: 7.2 * TILE, dir: "down" },
@@ -513,10 +531,8 @@ const DOORS = [
 const FACADES = [
   { t: "shopFront", x: 1, w: 11, door: 6 },
   { t: "house", x: 12, w: 4, c: "#F3D7D0" },
-  { t: "supplyFront", x: 16, w: 9, door: 19 },
-  { t: "house", x: 25, w: 3, c: "#DCE8D4" },
-  { t: "house", x: 31, w: 5, c: "#F5E6BF" },
-  { t: "marketFront", x: 36, w: 13, door: 42 },
+  { t: "supplyFront", x: 16, w: 8, door: 19 },
+  { t: "marketFront", x: 37, w: 12, door: 42 },
   { t: "house", x: 49, w: 5, c: "#D9DDF0" },
   { t: "house", x: 54, w: 3, c: "#F3D7D0" }
 ];
@@ -533,6 +549,10 @@ function makeStations() {
     if (type === "stall") o.flower = id.slice(3);
     if (SLOTN[type]) o.slots = Array(SLOTN[type]).fill(null);
     if (type === "plot") o.plot = null;
+    if (area === "north" && id.startsWith("nv")) {
+      o.view = true;
+      o.up = true;
+    }
     S.st[id] = o;
     S.stList.push(o);
   });
@@ -551,11 +571,16 @@ function solid(area, px, py) {
   const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
   if (tx < 1 || tx > A.w - 2 || py < 0) return true;
   if (area === "town") {
-    if (ty < 6 && !doorGap(area, tx, ty)) return true;
+    if (ty < 6 && !doorGap(area, tx, ty) && !walkCol(tx)) return true;
     if (ty >= A.h - 1) return true;
     if (tx >= RIVER[0] && tx <= RIVER[1] && !bridgeRow(ty) && ty < 27) return true;
     if (ty >= 27 && tx >= 20 && !(tx >= 40 && tx <= 42 && ty <= 30)) return true;
-  } else {
+  } else if (area === "north") {
+    if (ty < 7) return true;
+    if (ty >= A.h - 1 && !walkCol(tx)) return true;
+    if (py >= A.h * TILE) return true;
+    if (tx >= RIVER[0] && tx <= RIVER[1] && !(ty >= 13 && ty <= 14)) return true;
+  } else if (area !== "north") {
     if (ty < 2) return true;
     if (ty >= A.h - 1 && !doorGap(area, tx, ty)) return true;
     if (ty >= A.h) return true;
@@ -584,7 +609,7 @@ function targetOf(c) {
   const [dx, dy] = DIRV[c.dir];
   const fx = c.x + dx * 12, fy = c.y - 3 + dy * 12;
   if (!S.edit) {
-    const pool = c.area === "town" ? S.walkers.filter((w) => !w.hidden).concat(S.customers.filter((k) => k.area === "town")) : c.area === "shop" ? S.customers.filter((k) => k.area === "shop" && k.goal !== "out") : [];
+    const pool = c.area === "north" ? S.walkers.filter((w) => !w.hidden && w.zone === "north") : c.area === "town" ? S.walkers.filter((w) => !w.hidden && w.zone !== "north").concat(S.customers.filter((k) => k.area === "town")) : c.area === "shop" ? S.customers.filter((k) => k.area === "shop" && k.goal !== "out") : [];
     for (const w of pool) {
       if (Math.hypot(w.x - fx, w.y - 3 - fy) < 12) return { type: "npc", walker: w };
     }
@@ -677,9 +702,10 @@ function newPal(kind) {
 }
 const DOG_NAMES = ["\uBB49\uCE58", "\uCD08\uCF54", "\uBCF4\uB9AC", "\uCF69\uC774", "\uB450\uBD80", "\uB9DD\uACE0", "\uAE4C\uBBF8", "\uC124\uAE30"];
 function park(zone) {
+  if (zone === "north") return [pick([rnd(3, 23), rnd(37, 56)]) * TILE, rnd(8.4, 20.5) * TILE];
   if (zone === "yard") return [rnd(3.4, 16.4) * TILE, rnd(29, 31.8) * TILE];
   if (zone === "lake") return Math.random() < 0.25 ? [rnd(40.3, 42.7) * TILE, rnd(26.5, 30.6) * TILE] : [rnd(18.5, 56) * TILE, rnd(24.3, 25.8) * TILE];
-  return zone === "park" ? [rnd(10.5, 26) * TILE, rnd(13.8, 22.5) * TILE] : [rnd(35.5, 37.8) * TILE, rnd(17.8, 22.5) * TILE];
+  return zone === "park" ? [rnd(10.5, 23.4) * TILE, rnd(13.8, 22.5) * TILE] : [rnd(34.4, 37.8) * TILE, rnd(17.8, 22.5) * TILE];
 }
 function mkWalker(kind, zone, extra) {
   const [x, y] = zone === "lane" ? [rnd(3, 54) * TILE, pick([9.4, 10.2, 11.1]) * TILE] : park(zone);
@@ -699,6 +725,10 @@ function makeWalkers() {
     mkWalker("dog", "right"),
     mkWalker("kid", "right", { school: true }),
     mkWalker("kid", "park", { school: true }),
+    mkWalker("adult", "north"),
+    mkWalker("couple", "north"),
+    mkWalker("elder", "north"),
+    mkWalker("dog", "north"),
     mkWalker("adult", "lake", { eve: true }),
     mkWalker("elder", "lake", { eve: true }),
     mkWalker("dog", "lake", { eve: true }),
@@ -1158,8 +1188,14 @@ function doAction(i) {
       c.rest = { bench: s, seat, start: S.t };
       c.x = (s.x + 0.5 + seat) * TILE;
       c.y = (s.y + 1) * TILE - 3;
-      c.dir = "down";
-      c.face = c.ang = 0;
+      if (s.up) {
+        c.dir = "up";
+        c.face = c.ang = Math.PI;
+        c.y = (s.y + 1) * TILE - 1;
+      } else {
+        c.dir = "down";
+        c.face = c.ang = 0;
+      }
       return;
     }
     case "field":
@@ -1858,7 +1894,8 @@ function talkLine(w) {
   if (o0.hat) extra.push("\uBAA8\uC790 \uC4F4 \uC624\uBE60, \uC798 \uC5B4\uC6B8\uB824\uC694!");
   if (o1.pin) extra.push("\uBA38\uB9AC\uD540 \uC608\uC058\uB124\uC694. \uC5B4\uB514\uC11C \uC0C0\uC5B4\uC694?");
   if (o0.apron || o1.apron) extra.push("\uC55E\uCE58\uB9C8 \uC785\uC73C\uB2C8\uAE4C \uC9C4\uC9DC \uAF43\uC9D1 \uC0AC\uC7A5\uB2D8 \uAC19\uC544\uC694.");
-  if (S.t > 450) extra.push("\uD638\uC218 \uCABD \uC804\uB9DD \uB370\uD06C\uC5D0\uC11C \uBCF4\uB294 \uB178\uC744\uC774 \uC815\uB9D0 \uC608\uBED0\uC694.", "\uD574 \uC9C8 \uB158 \uAC15\uAC00\uB97C \uAC77\uB294 \uAC8C \uC81C \uB099\uC774\uC5D0\uC694.");
+  if (S.t > 400) extra.push("\uAC15 \uB530\uB77C \uC704\uCABD \uC5B8\uB355\uAE38 \uBCA4\uCE58\uC5D0\uC11C \uBCF4\uB294 \uB178\uC744\uC774 \uC815\uB9D0 \uC608\uBED0\uC694.", "\uD574 \uC9C8 \uB158 \uAC15\uAC00\uB97C \uAC77\uB294 \uAC8C \uC81C \uB099\uC774\uC5D0\uC694.");
+  if (w.zone === "north") extra.push("\uC740\uD589\uC78E\uC774 \uB178\uB797\uAC8C \uBB3C\uB4E4\uC5C8\uB124\uC694. \uAC00\uC744\uC774 \uC654\uC5B4\uC694.", "\uB2E8\uD48D \uBC1F\uB294 \uC18C\uB9AC\uAC00 \uC88B\uC544\uC694.", "\uC5EC\uAE30 \uBCA4\uCE58\uC5D0 \uC549\uC544 \uC788\uC73C\uBA74 \uD574\uAC00 \uC9C0\uB294 \uAC8C \uB2E4 \uBCF4\uC5EC\uC694.");
   if (w.zone === "lake") extra.push("\uBB3C\uACB0 \uC704\uB85C \uB178\uC744\uC774 \uBC88\uC9C0\uB294 \uAC70 \uBCF4\uC5EC\uC694?", "\uC800\uB141 \uBC14\uB78C\uC774 \uC120\uC120\uD574\uC11C \uC88B\uB124\uC694.");
   if (w.kind === "kid" && S.t > 330) extra.push("\uBC29\uAE08 \uD559\uAD50 \uB05D\uB0AC\uC5B4\uC694! \uC774\uC81C \uB180 \uAC70\uC608\uC694.");
   if (extra.length && Math.random() < 0.45 && w.kind !== "order") return tb + pick(extra);
@@ -3979,6 +4016,11 @@ document.addEventListener("pointerover", (e) => {
   if (el2) showTip(el2);
   else hideTip();
 });
+try {
+  if ("serviceWorker" in navigator && /github\.io$/.test(location.hostname)) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {
+  }));
+} catch (e) {
+}
 const STYLES = {
   natural: { name: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", wall: "#EFE8DC", dot: "#E4D8C6", wain: "#D8C9B2", wainL: "#E5D8C3", trim: "#FAF6EE", side: "#E2D7C6", floor: "plank", f1: "#E7D0AF", f2: "#DCC29C", seam: "#CCB08A", frame: "#C9A57E" },
   vintage: { name: "\uD30C\uB9AC \uAF43\uC9D1", wall: "#F4ECDD", dot: "#F4ECDD", wain: "#EADFCB", wainL: "#F2E9D8", trim: "#C9A24A", side: "#E6DBC6", floor: "check", f1: "#F3EFE6", f2: "#4B4A50", seam: "#D8D2C6", frame: "#C9A24A" },
@@ -6214,7 +6256,7 @@ function sunsetPal(t) {
   return { k, top: mix(a[1], b[1], f), hor: mix(a[2], b[2], f), cloud: mix(a[3], b[3], f), lit: mix(a[4], b[4], f) };
 }
 function sunsetView(c) {
-  return c && c.rest && c.rest.bench && c.rest.bench.id === "bench6" && c.area === "town" && S.t >= 420;
+  return c && c.rest && c.rest.bench && c.rest.bench.view && S.t >= 420;
 }
 function drawSunsetScene(g, X, Y, W, H, who) {
   const P = sunsetPal(S.t), k = P.k, tt = performance.now() / 1e3, HZ = Y + H * 0.6;
@@ -6285,24 +6327,39 @@ function drawSunsetScene(g, X, Y, W, H, who) {
     g.fillStyle = "rgba(255,255,255,.12)";
     g.fillRect(xx, yy, W * 0.04, 1);
   }
-  const PY = Y + H * 0.78;
-  g.fillStyle = "#6E4E3A";
+  const PY = Y + H * 0.74, dk = mix("#3E4A2E", P.top, 0.35 * k);
+  g.fillStyle = mix("#5E7A48", P.top, 0.4 * k);
   g.beginPath();
-  g.moveTo(X + W * 0.18, Y + H);
-  g.lineTo(X + W * 0.36, PY);
-  g.lineTo(X + W * 0.64, PY);
-  g.lineTo(X + W * 0.82, Y + H);
+  g.moveTo(X, Y + H);
+  g.lineTo(X, PY + H * 0.04);
+  g.quadraticCurveTo(X + W * 0.5, PY - H * 0.03, X + W, PY + H * 0.05);
+  g.lineTo(X + W, Y + H);
   g.closePath();
   g.fill();
-  for (let i = 1; i < 6; i++) {
-    const yy = PY + (Y + H - PY) * i / 6;
-    g.fillStyle = "rgba(0,0,0,.18)";
-    g.fillRect(X + W * (0.36 - 0.18 * i / 6), yy, W * (0.28 + 0.36 * i / 6), 1);
+  g.fillStyle = "rgba(0,0,0,.15)";
+  g.fillRect(X, PY + H * 0.1, W, 1.2);
+  for (let x = X; x < X + W; x += W / 24) {
+    g.fillStyle = dk;
+    g.fillRect(x, PY + H * 0.03, W * 6e-3, H * 0.09);
+  }
+  g.fillRect(X, PY + H * 0.05, W, H * 0.01);
+  const tree = (tx, ty, r, cols) => {
+    g.fillStyle = dk;
+    g.fillRect(tx - r * 0.08, ty, r * 0.16, Y + H - ty);
+    [[0, -r * 0.2, r], [-r * 0.5, r * 0.1, r * 0.7], [r * 0.5, r * 0.15, r * 0.75], [0, -r * 0.8, r * 0.7]].forEach(([dx, dy, rr2], i) => el(g, tx + dx, ty + dy, rr2, rr2 * 0.85, mix(cols[i % cols.length], P.top, 0.45 * k)));
+  };
+  tree(X + W * 0.06, Y + H * 0.62, H * 0.16, ["#C4543E", "#D9674A", "#E8905A"]);
+  tree(X + W * 0.94, Y + H * 0.58, H * 0.18, ["#D9B03E", "#E8C44E", "#C9A23E"]);
+  tree(X + W * 0.18, Y + H * 0.72, H * 0.09, ["#E8905A", "#D9674A"]);
+  for (let i = 0; i < 14; i++) {
+    const lx = X + (i * 131 + tt * 20 * (1 + i % 3)) % W, ly = Y + (i * 67 + tt * 30 * (1 + i % 2)) % (H * 0.9);
+    g.save();
+    g.translate(lx, ly);
+    g.rotate(tt * 2 + i);
+    el(g, 0, 0, H * 0.012, H * 6e-3, ["#E8B84A", "#D9674A", "#E8905A"][i % 3]);
+    g.restore();
   }
   const sc = H / 150;
-  g.fillStyle = "#5A3E2E";
-  g.fillRect(X + W * 0.33, PY + H * 0.02, W * 0.34, H * 0.018);
-  g.fillRect(X + W * 0.35, PY + H * 0.035, W * 0.3, H * 0.012);
   who.forEach((c, i) => {
     const cx = X + W * (who.length > 1 ? i ? 0.535 : 0.465 : 0.5);
     g.save();
@@ -6733,7 +6790,7 @@ function townStatic(g) {
   g.fillStyle = "#DDD3C2";
   g.fillRect(0, 192, W, 0.8);
   g.fillRect(0, 207, W, 0.8);
-  rr(g, 24, 212, 410, 152, 10, "#9FCB86");
+  rr(g, 24, 212, 356, 152, 10, "#9FCB86");
   g.fillStyle = "#E9DFC8";
   g.fillRect(0, 368, W, 16);
   g.fillStyle = "#DDD3C2";
@@ -6771,8 +6828,7 @@ function townStatic(g) {
       else el(g, x, y, 1.6, 1, "#C2BCB0");
     }
   };
-  patch(28, 216, 400, 146, 45, 11);
-  patch(500, 272, 120, 88, 12, 12);
+  patch(28, 216, 350, 146, 40, 11);
   patch(868, 216, 56, 150, 8, 14);
   g.fillStyle = "#8FC2D8";
   g.fillRect(RX0, 0, RX1 - RX0, LY);
@@ -6799,6 +6855,24 @@ function townStatic(g) {
     el(g, x, y, 5, 3, "#7FB070");
     el(g, x + 1, y - 1, 1.3, 1.3, "#FFFFFF");
   });
+  [[24 * TILE, 0, 3 * TILE, 26 * TILE], [34 * TILE, 0, 3 * TILE, 26 * TILE]].forEach(([x, y, w, h]) => {
+    g.fillStyle = "#E4DACB";
+    g.fillRect(x, y, w, h);
+    for (let yy = y; yy < y + h; yy += 12) {
+      g.fillStyle = "#D8CDBB";
+      g.fillRect(x, yy, w, 0.7);
+    }
+    g.fillStyle = "#CFC3AE";
+    g.fillRect(x + (x < RX0 ? w - 2 : 0), y, 2, h);
+  });
+  for (let k = 0; k < 26; k++) {
+    const yy = 20 + k * 14;
+    if (yy > 90 && yy < 212 || yy > 262 && yy < 312) continue;
+    [[24 * TILE + 1], [37 * TILE - 3]].forEach(([x]) => {
+      el(g, x, yy, 2.2, 1.6, "#7FAF6C");
+      if (k % 3 === 0) wildflower(g, x, yy - 1, ["#F5CF4E", "#F9C9D5", "#FFFFFF"][k % 3]);
+    });
+  }
   const lg = g.createLinearGradient(0, LY, 0, H);
   lg.addColorStop(0, "#A9D4E6");
   lg.addColorStop(1, "#7FB3CF");
@@ -6875,14 +6949,30 @@ function townStatic(g) {
   g.fillStyle = "#7FAF6C";
   g.fillRect(0, H - 16, LX, 16);
   for (let x = 0; x < LX; x += 10) el(g, x + 5, H - 15, 6, 4, "#8FBF7A");
+  g.fillStyle = "#C9BBA2";
+  g.fillRect(LX, H - 18, W - LX, 18);
+  for (let x = LX; x < W; x += 8) rr(g, x, H - 18, 7, 6, 2, "#D6C9B2");
+  g.fillStyle = "#8FBF7A";
+  g.fillRect(LX, H - 10, W - LX, 10);
+  for (let x = LX + 4; x < W; x += 14) {
+    rr(g, x, H - 30, 3, 14, 1, "#FFFFFF");
+  }
+  g.fillStyle = "#F4EFE6";
+  g.fillRect(LX, H - 27, W - LX, 1.6);
+  g.fillRect(LX, H - 21, W - LX, 1.6);
+  for (let k = 0; k < 30; k++) {
+    const x = LX + 10 + k * 20;
+    ln(g, x, H - 18, x - 2, H - 26, "#6E9A5A", 0.5);
+    ln(g, x + 3, H - 18, x + 4, H - 27, "#6E9A5A", 0.5);
+  }
   g.fillStyle = "#8FBF7A";
   g.fillRect(0, 96, 16, H - 96);
-  rr(g, 500, 210, 120, 62, 12, "#E3D9C9");
-  for (let k = 0; k < 3; k++) {
+  rr(g, 576, 230, 48, 70, 12, "#E3D9C9");
+  for (let k = 0; k < 2; k++) {
     g.strokeStyle = "#D3C7B3";
     g.lineWidth = 0.8;
     g.beginPath();
-    g.ellipse(544, 236, 22 + k * 12, 14 + k * 7, 0, 0, 7);
+    g.ellipse(608, 262, 14 + k * 8, 18 + k * 8, 0, 0, 7);
     g.stroke();
   }
   rr(g, 630, 222, 244, 130, 4, "#B89574");
@@ -7048,52 +7138,150 @@ function drawFacade(g, f) {
     return;
   }
 }
-function townDynamic(g) {
-  const RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, H = 27 * TILE, HH = AREAS.town.h * TILE, W = AREAS.town.w * TILE, LY = 27 * TILE, LX = 20 * TILE, tt = performance.now() / 1e3;
-  const P = sunsetPal(S.t), k = P.k, BY = 506;
-  if (k > 0) {
-    g.fillStyle = P.hor;
-    g.globalAlpha = 0.32 * k;
-    g.fillRect(LX, LY, W - LX, HH - LY);
+function northStatic(g) {
+  const W = AREAS.north.w * TILE, H = AREAS.north.h * TILE, RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, q = seedRand(41);
+  g.fillStyle = "#B5C98E";
+  g.fillRect(0, 96, W, H - 96);
+  for (let k = 0; k < 500; k++) {
+    const x = q() * W, y = 100 + q() * (H - 100);
+    el(g, x, y, 1.3 + q(), 0.6, q() < 0.5 ? "#A9BF82" : "#C4D49C");
+  }
+  for (let k = 0; k < 420; k++) {
+    const x = q() * W, y = 110 + q() * (H - 110);
+    el(g, x, y, 1.2, 0.8, ["#E8B84A", "#D9674A", "#E8905A", "#C9A23E", "#B8543E"][k % 5], q() * 3);
+  }
+  const path = (pts, w) => {
+    g.strokeStyle = "#E4D6BC";
+    g.lineWidth = w;
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.beginPath();
+    pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+    g.stroke();
+    g.strokeStyle = "#D8C8AA";
+    g.lineWidth = 0.8;
+    g.stroke();
+  };
+  path([[25.5 * TILE, H], [25.5 * TILE, 17 * TILE], [20 * TILE, 15 * TILE], [12 * TILE, 16 * TILE], [6 * TILE, 12 * TILE], [4 * TILE, 8.6 * TILE]], 28);
+  path([[35.5 * TILE, H], [35.5 * TILE, 14 * TILE], [42 * TILE, 12 * TILE], [50 * TILE, 14 * TILE], [55 * TILE, 10 * TILE], [56 * TILE, 8.6 * TILE]], 28);
+  g.fillStyle = "#E4D6BC";
+  g.fillRect(0, 7 * TILE, W, 2.2 * TILE);
+  for (let x = 0; x < W; x += 12) {
+    g.fillStyle = "#D8C8AA";
+    g.fillRect(x, 7 * TILE, 0.7, 2.2 * TILE);
+  }
+  g.fillStyle = "#8FC2D8";
+  g.fillRect(RX0, 6 * TILE, RX1 - RX0, H - 6 * TILE);
+  g.fillStyle = "#A9D4E6";
+  g.fillRect(RX0 + 6, 6 * TILE, RX1 - RX0 - 12, H - 6 * TILE);
+  [[RX0 - 3], [RX1 - 3]].forEach(([x]) => {
+    g.fillStyle = "#B8A88E";
+    g.fillRect(x, 6 * TILE, 6, H - 6 * TILE);
+    for (let y = 6 * TILE; y < H; y += 8) rr(g, x - 0.5, y, 7, 7, 2, "#C9BBA2");
+  });
+  rr(g, RX0 - 10, 13 * TILE - 4, RX1 - RX0 + 20, 2 * TILE + 8, 3, "#C99E78");
+  for (let x = RX0 - 8; x < RX1 + 10; x += 6) {
+    g.fillStyle = "#B8845F";
+    g.fillRect(x, 13 * TILE - 2, 0.8, 2 * TILE + 4);
+  }
+  [[13 * TILE - 6], [15 * TILE + 4]].forEach(([y]) => {
+    g.fillStyle = "#9C6B4C";
+    g.fillRect(RX0 - 12, y, RX1 - RX0 + 24, 3);
+    for (let x = RX0 - 10; x < RX1 + 12; x += 10) g.fillRect(x, y - 5, 2, 6);
+  });
+  [[24 * TILE, 17 * TILE], [34 * TILE, 14 * TILE]].forEach(([x, y]) => {
+    g.fillStyle = "#E4D6BC";
+    g.fillRect(x, y, 3 * TILE, H - y);
+  });
+  g.fillStyle = "#9C6B4C";
+  g.fillRect(0, 6.6 * TILE, W, 3);
+  for (let x = 4; x < W; x += 16) {
+    g.fillRect(x, 6.2 * TILE, 3, 0.9 * TILE);
+  }
+  g.fillRect(0, 6.35 * TILE, W, 1.5);
+  const q2 = seedRand(43);
+  for (let k = 0; k < 40; k++) {
+    const side = k % 2 ? RX0 - 6 : RX1 + 4, y = 16 * TILE + q2() * 5 * TILE;
+    ln(g, side, y, side + (q2() - 0.5) * 3, y - 8, "#8F9E62", 0.6);
+    if (k % 3 === 0) el(g, side, y - 8, 0.8, 2.2, "#8C6448");
+  }
+}
+function northDynamic(g) {
+  const W = AREAS.north.w * TILE, RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, P = sunsetPal(S.t), k = P.k, tt = performance.now() / 1e3, HZ = 5.6 * TILE;
+  const sg = g.createLinearGradient(0, 0, 0, HZ);
+  sg.addColorStop(0, P.top);
+  sg.addColorStop(0.7, mix(P.top, P.hor, 0.6));
+  sg.addColorStop(1, P.hor);
+  g.fillStyle = sg;
+  g.fillRect(0, 0, W, HZ);
+  if (k > 0.8) {
+    g.globalAlpha = (k - 0.8) * 5;
+    const q = seedRand(9);
+    for (let i = 0; i < 70; i++) {
+      const tw = (Math.sin(tt * 2 + i) + 1) / 2;
+      el(g, q() * W, q() * HZ * 0.7, 0.5 + tw * 0.4, 0.5 + tw * 0.4, "#FFFFFF");
+    }
     g.globalAlpha = 1;
   }
-  const sg = g.createLinearGradient(0, BY, 0, HH);
-  sg.addColorStop(0, P.hor);
-  sg.addColorStop(1, P.top);
-  g.fillStyle = sg;
-  g.fillRect(LX, BY, W - LX, HH - BY);
-  const sx = 742, sy = 486 + k * 70;
-  if (sy < HH + 12) {
-    const gl = g.createRadialGradient(sx, sy, 0, sx, sy, 90);
-    gl.addColorStop(0, `rgba(255,226,170,${0.55 + 0.3 * k})`);
-    gl.addColorStop(1, "rgba(255,190,140,0)");
-    g.fillStyle = gl;
-    g.fillRect(sx - 90, Math.max(LY, sy - 90), 180, 180);
-    g.save();
-    g.beginPath();
-    g.rect(LX, BY, W - LX, HH - BY);
-    g.clip();
-    el(g, sx, sy, 9, 9, mix("#FFF3C8", "#FF8A5A", k));
-    g.restore();
-    for (let q = 0; q < 14; q++) {
-      const yy = BY - 6 - q * 5.2;
-      if (yy < LY + 4) break;
-      const wv = Math.sin(tt * 2 + q) * 3;
-      g.fillStyle = `rgba(255,${210 - q * 3},${150 - q * 4},${(0.45 - 0.025 * q) * (0.35 + 0.65 * k)})`;
-      g.fillRect(sx - 7 - q * 0.9 + wv, yy, 14 + q * 1.8, 1.1);
-    }
-  }
-  [[400, 520, 60], [520, 530, 48], [620, 514, 70], [840, 524, 60], [700, 536, 40]].forEach(([cx, cy, cw], q) => {
-    const dx = (tt * 1.5 + q * 40) % 30;
-    for (let j = 0; j < 4; j++) {
-      el(g, cx + dx + j * cw * 0.22 - cw * 0.3, cy - j % 2 * 2, cw * 0.22, 3.2, P.cloud);
-    }
-    g.globalAlpha = 0.8;
-    el(g, cx + dx, cy - 2.5, cw * 0.45, 1.2, Math.abs(cx - sx) < 160 ? P.lit : P.cloud);
+  const sx = (RX0 + RX1) / 2, sy = 10 + k * (HZ - 4);
+  const gl = g.createRadialGradient(sx, sy, 0, sx, sy, 110);
+  gl.addColorStop(0, `rgba(255,232,180,${0.7 - 0.2 * k})`);
+  gl.addColorStop(1, "rgba(255,190,140,0)");
+  g.fillStyle = gl;
+  g.fillRect(sx - 110, 0, 220, HZ);
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, W, HZ);
+  g.clip();
+  el(g, sx, sy, 10, 10, mix("#FFF6D6", "#FF7A4A", k));
+  g.restore();
+  [[0.1, 0.25, 0.2], [0.28, 0.12, 0.16], [0.62, 0.2, 0.22], [0.82, 0.1, 0.15], [0.45, 0.35, 0.12], [0.92, 0.32, 0.14]].forEach(([cx, cy, cw], i) => {
+    const x0 = (cx * W + tt * 3 * (1 + i % 3)) % (W * 1.2) - W * 0.1, y0 = cy * HZ, w0 = cw * W * 0.5, near = clamp(1 - Math.abs(x0 - sx) / (W * 0.35), 0, 1);
+    for (let j = 0; j < 6; j++) el(g, x0 + (j - 2.5) * w0 * 0.16, y0 - j % 2 * 2, w0 * 0.16, 4.5, P.cloud);
+    g.globalAlpha = 0.5 + 0.5 * near;
+    for (let j = 0; j < 5; j++) el(g, x0 + (j - 2) * w0 * 0.17, y0 + 3, w0 * 0.14, 1.8, mix(P.cloud, P.lit, 0.5 + 0.5 * near));
     g.globalAlpha = 1;
   });
-  g.fillStyle = "rgba(255,255,255,.35)";
-  g.fillRect(LX, BY - 0.5, W - LX, 1);
+  g.fillStyle = mix("#6F8F5E", P.top, 0.35 * k);
+  g.beginPath();
+  g.moveTo(0, HZ + 2);
+  for (let x = 0; x <= W; x += 20) g.lineTo(x, HZ - 2 - Math.abs(Math.sin(x * 0.05)) * 2.5 - (x % 60 < 20 ? 2 : 0));
+  g.lineTo(W, HZ + 8);
+  g.lineTo(0, HZ + 8);
+  g.closePath();
+  g.fill();
+  g.fillStyle = "#B5C98E";
+  g.fillRect(0, HZ + 6, W, 6.2 * TILE - HZ);
+  if (k > 0) {
+    g.fillStyle = P.hor;
+    g.globalAlpha = 0.3 * k;
+    g.fillRect(RX0 + 2, 6 * TILE, RX1 - RX0 - 4, AREAS.north.h * TILE);
+    g.globalAlpha = 1;
+    for (let i = 0; i < 20; i++) {
+      const yy = 6.4 * TILE + i * 9;
+      g.fillStyle = `rgba(255,215,160,${(0.5 - 0.02 * i) * k})`;
+      g.fillRect(sx - 6 - i * 0.6 + Math.sin(tt * 2 + i) * 2, yy, 12 + i * 1.2, 1.2);
+    }
+  }
+  for (let i = 0; i < 18; i++) {
+    const x = (i * 83 + tt * (8 + i % 4)) % W, y = (i * 47 + tt * (14 + i % 5)) % (AREAS.north.h * TILE - 120) + 110;
+    g.save();
+    g.translate(x, y);
+    g.rotate(tt * 2 + i);
+    el(g, 0, 0, 1.6, 0.9, ["#E8B84A", "#D9674A", "#E8905A"][i % 3]);
+    g.restore();
+  }
+}
+function townDynamic(g) {
+  const RX0 = RIVER[0] * TILE, RX1 = (RIVER[1] + 1) * TILE, H = 27 * TILE, HH = AREAS.town.h * TILE, W = AREAS.town.w * TILE, LY = 27 * TILE, LX = 20 * TILE, tt = performance.now() / 1e3;
+  const P = sunsetPal(S.t), k = P.k;
+  if (k > 0) {
+    g.fillStyle = P.hor;
+    g.globalAlpha = 0.28 * k;
+    g.fillRect(LX, LY, W - LX, HH - LY - 18);
+    g.fillRect(RX0, 0, RX1 - RX0, LY);
+    g.globalAlpha = 1;
+  }
   g.strokeStyle = "rgba(255,255,255,.5)";
   g.lineWidth = 0.7;
   for (let k2 = 0; k2 < 10; k2++) {
@@ -7156,12 +7344,12 @@ function bgCanvas(area, s) {
   cv.height = Math.ceil(A.h * TILE * s * q);
   const g = cv.getContext("2d");
   g.setTransform(s * q, 0, 0, s * q, 0, 0);
-  ({ shop: shopStatic, market: marketStatic, supply: supplyStatic, town: townStatic })[area](g);
+  ({ shop: shopStatic, market: marketStatic, supply: supplyStatic, town: townStatic, north: northStatic })[area](g);
   BG_CACHE[key] = cv;
   return cv;
 }
 function drawWorldV(g, area) {
-  ({ shop: shopDynamic, market: marketDynamic, supply: supplyDynamic, town: townDynamic })[area](g);
+  ({ shop: shopDynamic, market: marketDynamic, supply: supplyDynamic, town: townDynamic, north: northDynamic })[area](g);
   const sts = stationsIn(area);
   S.chars.forEach((c) => {
     if (c.area !== area || c.modal || c.rest || c.waterT > 0) return;
@@ -7265,8 +7453,8 @@ function drawWorldV(g, area) {
       if (k.bouquet) drawItemV(g, k.bouquet, k.x, k.y - 11);
     } });
   });
-  if (area === "town") S.walkers.forEach((w) => {
-    if (w.hidden) return;
+  S.walkers.forEach((w) => {
+    if (w.hidden || w.zone === "north" !== (area === "north") || area !== "town" && area !== "north") return;
     ents.push({ y: w.y, draw: () => drawChar(g, w.x, w.y, w.pal, w.dir, w.walk, !!w.mv, false) });
     if (w.dog) {
       const d = w.dog;
@@ -7313,7 +7501,7 @@ function lightsFor(area) {
     if (S.up.lights) for (let x = 40; x < W - 16; x += 48) a.push([x, 7]);
     return a;
   }
-  if (area === "town") return DECOR.town.filter((d) => d.t === "lamp").map((d) => [d.x * TILE + 8, d.y * TILE - 24]);
+  if (area === "town" || area === "north") return DECOR[area].filter((d) => d.t === "lamp").map((d) => [d.x * TILE + 8, d.y * TILE - 24]);
   if (area === "market") return [[80, 10], [208, 10]];
   return [[112, 10]];
 }
@@ -7323,7 +7511,7 @@ function viewports() {
   const [a, b] = S.chars;
   const full = { x: 0, y: top, w: CW, h: H };
   if (a.area === b.area) {
-    const s = Math.min(CW / VW, H / VH) * (a.area === "town" ? 0.85 : 1);
+    const s = Math.min(CW / VW, H / VH) * (a.area === "town" || a.area === "north" ? 0.85 : 1);
     const mw = AREAS[a.area].w * TILE;
     if (mw <= CW / s) return [{ ...full, area: a.area, chars: [0, 1] }];
     if (Math.abs(a.x - b.x) < CW / s - 70 && Math.abs(a.y - b.y) < H / s - 60) return [{ ...full, area: a.area, chars: [0, 1] }];
@@ -7332,10 +7520,10 @@ function viewports() {
 }
 function camera(v) {
   const A = AREAS[v.area], mw = A.w * TILE, mh = A.h * TILE;
-  const s = Math.min(v.w / VW, v.h / VH) * (v.area === "town" ? 0.85 : 1);
+  const s = Math.min(v.w / VW, v.h / VH) * (v.area === "town" || v.area === "north" ? 0.85 : 1);
   const vw = v.w / s, vh = v.h / s;
   const lead = S.chars[v.chars[0]];
-  const up = v.area === "town" ? lead && lead.y > 22.5 * TILE ? -26 : 30 : 8;
+  const up = v.area === "town" ? lead && lead.y > 22.5 * TILE ? -26 : 30 : v.area === "north" ? 36 : 8;
   let tx, ty;
   if (v.chars.length === 2) {
     tx = (S.chars[0].x + S.chars[1].x) / 2;
@@ -7464,9 +7652,9 @@ function overlays(v) {
       }
     });
   }
-  if (v.area === "town") {
+  if (v.area === "town" || v.area === "north") {
     S.walkers.forEach((w) => {
-      if (!w.offer) return;
+      if (!w.offer || w.zone === "north" !== (v.area === "north")) return;
       const [x, y] = S2(w.x, w.y - 33);
       if (inV(x, y)) pillText("\uC608\uC57D\uD558\uACE0 \uC2F6\uC5B4\uC694", x, y, "#FBDDE4", "#4A3F5C", 10);
     });
