@@ -3694,8 +3694,50 @@ function slotOf(gp) {
 }
 const PADVEC = [[0, 0], [0, 0]];
 let TOUCH_MODE = false;
+function isCombo(id) {
+  return /l\s*\+\s*r|200e/i.test(id);
+}
+function stickVec(x, y) {
+  const m = Math.hypot(x, y);
+  if (m < 0.28) return [0, 0];
+  const k = Math.min(1, (m - 0.28) / 0.62) / m;
+  return [x * k, y * k];
+}
+function sideSlot(side) {
+  const sw = !!SET.swapSides;
+  return side === "L" ? sw ? 1 : 0 : sw ? 0 : 1;
+}
+function padUnits(gp) {
+  const ax = gp.axes, duo = S.mode === "duo", id = gp.id;
+  if (isCombo(id)) {
+    if (duo) return [
+      { side: "L", slot: sideSlot("L"), vec: stickVec(ax[1] || 0, -(ax[0] || 0)), btn: { act: [12, 13, 14, 15], back: [8, 4, 6], menu: [10], swap: [] } },
+      { side: "R", slot: sideSlot("R"), vec: stickVec(-(ax[3] || 0), ax[2] || 0), btn: { act: [0, 1, 2, 3], back: [9, 5, 7], menu: [11], swap: [] } }
+    ];
+    return [{ side: "LR", slot: S.active, vec: stickVec(ax[0] || 0, ax[1] || 0), btn: { act: [1, 3], back: [0], menu: [9, 8], swap: [2, 4, 5] } }];
+  }
+  const sd = isJoy(id) ? joySide(id) : null;
+  if (sd && duo) return [{ side: sd, slot: sideSlot(sd), vec: sd === "L" ? stickVec(ax[1] || 0, -(ax[0] || 0)) : stickVec(-(ax[1] || 0), ax[0] || 0), btn: { act: [0, 1, 2, 3, 12, 13, 14, 15], back: [8, 9], menu: [10, 11, 16], swap: [] } }];
+  const m = autoMap(gp);
+  return [{ side: "X", slot: duo ? slotOf(gp) : S.active, vec: stickVec(ax[0] || 0, ax[1] || 0), btn: { act: m.act, back: m.back, menu: m.menu, swap: m.swap } }];
+}
+function applyPadBinds(gp, u) {
+  const p = u.slot, K = SET.keys[S.mode === "duo" ? p : u.side === "R" ? 1 : 0] || {}, own = {};
+  let any = false;
+  for (const [fn] of BFN) {
+    const b = K[fn];
+    if (b && b.t === "p" && b.id === gp.id) {
+      own[fn] = [b.b];
+      any = true;
+    }
+  }
+  if (!any) return u.btn;
+  const out = { act: [], back: [], menu: [], swap: [] };
+  Object.assign(out, own);
+  return out;
+}
 function pollPads(dt) {
-  const list = padsList();
+  let list = padsList();
   PADVEC[0] = [0, 0];
   PADVEC[1] = [0, 0];
   if (BIND.on) {
@@ -3703,8 +3745,13 @@ function pollPads(dt) {
     return;
   }
   if (list.length) audioInit();
+  if (list.some((g) => isCombo(g.id))) list = list.filter((g) => isCombo(g.id) || !isJoy(g.id));
   for (const gp of list) {
-    const key = padKey(gp), st = GP.pads[key] || (GP.pads[key] = { prev: [], hold: 0, dir: null });
+    const key = padKey(gp), st = GP.pads[key] || (GP.pads[key] = { prev: [], hold: {}, dir: {} });
+    if (!st.dir || typeof st.dir !== "object") {
+      st.dir = {};
+      st.hold = {};
+    }
     const pressed = (k) => gp.buttons[k] && gp.buttons[k].pressed;
     const any = (arr) => arr.some((k) => pressed(k) && !st.prev[k]);
     if (gp.buttons.some((b) => b.pressed) && TOUCH_MODE) {
@@ -3716,35 +3763,31 @@ function pollPads(dt) {
       st.prev = gp.buttons.map((b) => b.pressed);
       continue;
     }
-    if (hasPadBind(gp.id)) {
-      padBindPoll(gp, st);
-      st.prev = gp.buttons.map((b) => b.pressed);
-      continue;
-    }
-    const duo = S.mode === "duo", slot = duo ? slotOf(gp) : S.active, m = mapOf(gp), v = padVec(gp, st, duo);
-    const ctx2 = navContext(slot);
-    if (ctx2) {
-      const d = Math.hypot(v[0], v[1]) > 0.5 ? Math.abs(v[0]) > Math.abs(v[1]) ? v[0] > 0 ? "right" : "left" : v[1] > 0 ? "down" : "up" : null;
-      if (d && d !== st.dir) {
-        st.dir = d;
-        st.hold = 0;
-        navMove(ctx2, d);
-      } else if (d) {
-        st.hold += dt;
-        if (st.hold > 0.38) {
-          st.hold = 0.26;
+    for (const u of padUnits(gp)) {
+      const slot = u.slot, v = u.vec, B = applyPadBinds(gp, u), ctx2 = navContext(slot), dk = u.side;
+      if (ctx2) {
+        const d = Math.hypot(v[0], v[1]) > 0.5 ? Math.abs(v[0]) > Math.abs(v[1]) ? v[0] > 0 ? "right" : "left" : v[1] > 0 ? "down" : "up" : null;
+        if (d && d !== st.dir[dk]) {
+          st.dir[dk] = d;
+          st.hold[dk] = 0;
           navMove(ctx2, d);
-        }
-      } else st.dir = null;
-      if (any(m.act)) navPress(ctx2);
-      else if (any(m.back)) navBack(ctx2);
-      else if (any(m.menu)) navMenu();
-    } else {
-      PADVEC[slot] = [PADVEC[slot][0] + v[0], PADVEC[slot][1] + v[1]];
-      if (any(m.act)) doAction(slot);
-      else if (any(m.menu)) togglePause();
-      else if (!duo && any(m.swap)) swapChar();
-      else if (any(m.back) && S.chars[slot] && S.chars[slot].rest) doAction(slot);
+        } else if (d) {
+          st.hold[dk] = (st.hold[dk] || 0) + dt;
+          if (st.hold[dk] > 0.38) {
+            st.hold[dk] = 0.26;
+            navMove(ctx2, d);
+          }
+        } else st.dir[dk] = null;
+        if (any(B.act)) navPress(ctx2);
+        else if (any(B.back)) navBack(ctx2);
+        else if (any(B.menu)) navMenu();
+      } else {
+        PADVEC[slot] = [PADVEC[slot][0] + v[0], PADVEC[slot][1] + v[1]];
+        if (any(B.act)) doAction(slot);
+        else if (any(B.menu)) togglePause();
+        else if (S.mode === "solo" && any(B.swap)) swapChar();
+        else if (any(B.back) && S.chars[slot] && S.chars[slot].rest) doAction(slot);
+      }
     }
     st.prev = gp.buttons.map((b) => b.pressed);
   }
@@ -4041,8 +4084,9 @@ function diagRender() {
   const pads = padsList();
   box.innerHTML = guide + (pads.length ? pads.map((gp) => {
     const st = GP.pads[padKey(gp)] || {};
-    const v = padVec(gp, st, S.mode === "duo");
-    return `<div class="diag"><b>${esc(gp.id)}</b><br>\uBC88\uD638 ${gp.index} \xB7 \uBC29\uC2DD ${gp.mapping || "(\uC5C6\uC74C)"} \xB7 \uC778\uC2DD ${esc(shortPad(gp.id))}<br>\uC2A4\uD2F1 \uAC12: ${gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join("  ")}<br>\uB20C\uB9B0 \uBC84\uD2BC: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter((x) => x !== null).join(", ") || "\uC5C6\uC74C"}<br>\uAC8C\uC784\uC774 \uC77D\uC740 \uBC29\uD5A5: ${v.map((x) => x.toFixed(2)).join(", ")}</div>`;
+    const v = [0, 0];
+    const us = padUnits(gp);
+    return `<div class="diag"><b>${esc(gp.id)}</b><br>\uBC88\uD638 ${gp.index} \xB7 \uBC29\uC2DD ${gp.mapping || "(\uC5C6\uC74C)"} \xB7 \uC778\uC2DD ${esc(shortPad(gp.id))}<br>\uC2A4\uD2F1 \uAC12: ${gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join("  ")}<br>\uB20C\uB9B0 \uBC84\uD2BC: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter((x) => x !== null).join(", ") || "\uC5C6\uC74C"}<br>\uAC8C\uC784\uC774 \uC77D\uC740 \uBC29\uD5A5: ${us.map((u) => `${u.side === "L" ? "\uC67C\uCABD \uC870\uC774\uCF58" : u.side === "R" ? "\uC624\uB978\uCABD \uC870\uC774\uCF58" : "\uCEE8\uD2B8\uB864\uB7EC"}(${u.slot ? "SK" : "SM"}) \u2192 ${u.vec.map((x) => x.toFixed(2)).join(", ")}`).join(" / ")}${S.mode === "duo" ? "" : " (\uD63C\uC790 \uBAA8\uB4DC \uAE30\uC900)"}</div>`;
   }).join("") : '<p class="note" style="text-align:left">\uAC8C\uC784\uD328\uB4DC\uB85C \uC778\uC2DD\uB41C \uCEE8\uD2B8\uB864\uB7EC\uAC00 \uC5C6\uC5B4\uC694. \uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD55C \uBC88 \uB20C\uB7EC \uBCF4\uC138\uC694.</p>') + `<div class="diag"><b>\uB9AC\uBAA8\uCEE8\xB7\uD0A4 \uC785\uB825</b><br>${KEYLOG.join(" / ") || "\uC544\uC9C1 \uC5C6\uC74C"}</div><div class="diag"><small>${esc(navigator.userAgent)}</small></div>`;
 }
 function showDiag() {
@@ -4078,14 +4122,9 @@ function showSettings(from) {
     <div class="setrow"><span class="grow">\uBC30\uACBD\uC74C\uC545</span><button class="btn small" data-set="music" data-d="-1" aria-label="\uBC30\uACBD\uC74C\uC545 \uC904\uC774\uAE30">\u2212</button>${bar(SET.music)}<button class="btn small" data-set="music" data-d="1" aria-label="\uBC30\uACBD\uC74C\uC545 \uD0A4\uC6B0\uAE30">+</button></div>
     <div class="setrow"><span class="grow">\uD6A8\uACFC\uC74C</span><button class="btn small" data-set="sfx" data-d="-1" aria-label="\uD6A8\uACFC\uC74C \uC904\uC774\uAE30">\u2212</button>${bar(SET.sfx)}<button class="btn small" data-set="sfx" data-d="1" aria-label="\uD6A8\uACFC\uC74C \uD0A4\uC6B0\uAE30">+</button></div>
     <div class="setrow"><span class="grow">\uADF8\uB798\uD53D<br><small>${LITE ? "\uAC00\uBCCD\uAC8C (\uBE60\uB984)" : "\uBCF4\uD1B5"}${SET.gfx === "auto" ? " \xB7 \uC790\uB3D9" : ""}</small></span><button class="btn small ${SET.gfx === "auto" ? "primary" : ""}" data-gfx="auto">\uC790\uB3D9</button><button class="btn small ${SET.gfx === "high" ? "primary" : ""}" data-gfx="high">\uBCF4\uD1B5</button><button class="btn small ${SET.gfx === "lite" ? "primary" : ""}" data-gfx="lite">\uAC00\uBCCD\uAC8C</button></div>
-    <div class="lbl" id="setPads">\uCEE8\uD2B8\uB864\uB7EC (${pads.length}\uAC1C \uC5F0\uACB0\uB428)</div>
-    ${pads.length ? pads.map((gp) => {
-    const sl = slotOf(gp);
-    return `<div class="setrow"><span class="grow">${esc(shortPad(gp.id))}<br><small>${SET.pads[gp.id] ? "\uBC84\uD2BC \uC124\uC815 \uC644\uB8CC" : "\uAE30\uBCF8 \uBC84\uD2BC"}</small></span>
-      <button class="btn small ${sl === 0 ? "primary" : ""}" data-assign="${esc(gp.id)}" data-slot="0">SM</button><button class="btn small ${sl === 1 ? "primary" : ""}" data-assign="${esc(gp.id)}" data-slot="1">SK</button><button class="btn small soft" data-calib="${gp.index}">\uBC84\uD2BC \uC124\uC815</button></div>`;
-  }).join("") : '<p class="note" style="text-align:left">\uC5F0\uACB0\uB41C \uCEE8\uD2B8\uB864\uB7EC\uAC00 \uC5C6\uC5B4\uC694. \uC870\uC774\uCF58\uC744 \uAE30\uAE30\uC5D0 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uC5F0\uACB0\uD55C \uB4A4 \uC544\uBB34 \uBC84\uD2BC\uC774\uB098 \uB20C\uB7EC \uC8FC\uC138\uC694.</p>'}
-    <p class="req" id="calibMsg"></p>
-    <p class="hint">\uD63C\uC790 \uD560 \uB54C\uB294 \uC870\uC774\uCF58 L\uC744 \uC67C\uC190, R\uC744 \uC624\uB978\uC190\uC5D0 \uC950\uACE0 L \uC2A4\uD2F1\uC73C\uB85C \uC774\uB3D9, R\uC758 A\uB85C \uD589\uB3D9, B\uB85C \uB2EB\uAE30, +\uB85C \uBA54\uB274\uC608\uC694. \uB458\uC774 \uD560 \uB54C\uB294 \uD55C \uC0AC\uB78C\uB2F9 \uC870\uC774\uCF58 1\uAC1C\uB97C \uAC00\uB85C\uB85C \uC950\uC5B4\uC694. \uB458\uC774 \uD560 \uB54C SM\xB7SK \uBC84\uD2BC\uC73C\uB85C \uB204\uAC00 \uC5B4\uB290 \uCEE8\uD2B8\uB864\uB7EC\uB97C \uC4F8\uC9C0 \uC815\uD574\uC694. \uC870\uC774\uCF58\uC744 \uAC00\uB85C\uB85C \uC950\uC5C8\uC744 \uB54C \uBC29\uD5A5\uC774 \uC774\uC0C1\uD558\uBA74 "\uBC84\uD2BC \uC124\uC815"\uC744 \uB20C\uB7EC \uC548\uB0B4\uB300\uB85C \uB530\uB77C \uD574 \uC8FC\uC138\uC694.</p>
+    <div class="lbl" id="setPads">\uC870\uC774\uCF58</div>
+    ${pads.length ? `<div class="setrow"><span class="grow">${padsList().some((g) => isCombo(g.id)) || padsList().some((g) => joySide(g.id) === "L") && padsList().some((g) => joySide(g.id) === "R") ? "\uC870\uC774\uCF58 \uB450 \uAC1C\uAC00 \uC5F0\uACB0\uB410\uC5B4\uC694" : "\uC870\uC774\uCF58(\uCEE8\uD2B8\uB864\uB7EC)\uC774 \uC5F0\uACB0\uB410\uC5B4\uC694"}<br><small>\uB458\uC774 \uD560 \uB54C: \uC67C\uCABD \uC870\uC774\uCF58 \u2192 <b style="font-weight:normal">${SET.swapSides ? "SK" : "SM"}</b>, \uC624\uB978\uCABD \uC870\uC774\uCF58 \u2192 <b style="font-weight:normal">${SET.swapSides ? "SM" : "SK"}</b></small></span><button class="btn small soft" id="swapSides">SM\xB7SK \uC790\uB9AC \uBC14\uAFB8\uAE30</button></div>` : '<p class="note" style="text-align:left">\uC5F0\uACB0\uB41C \uC870\uC774\uCF58\uC774 \uC5C6\uC5B4\uC694. \uC2A4\uD0E0\uBC14\uC774\uBBF8\uC5D0 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uC5F0\uACB0\uD55C \uB4A4 \uC544\uBB34 \uBC84\uD2BC\uC774\uB098 \uB20C\uB7EC \uC8FC\uC138\uC694.</p>'}
+    <p class="hint">\uB458\uC774 \uD560 \uB54C\uB294 \uD55C \uC0AC\uB78C\uB2F9 \uC870\uC774\uCF58 1\uAC1C\uB97C \uAC00\uB85C\uB85C \uC950\uC5B4\uC694. \uC2A4\uD2F1\uC744 \uAE30\uC6B8\uC778 \uBC29\uD5A5 \uADF8\uB300\uB85C, \uB300\uAC01\uC120\uAE4C\uC9C0 \uC6C0\uC9C1\uC5EC\uC694. \uBC84\uD2BC \uC5ED\uD560\uC744 \uBC14\uAFB8\uACE0 \uC2F6\uC73C\uBA74 "\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815"\uC744 \uC368 \uC8FC\uC138\uC694.</p>
     <div class="opts"><button class="btn primary" id="goKeys">\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815</button><button class="btn soft" id="goDiag">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</button><button class="btn primary" data-back="1" id="setBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
   const sc = $("#screen");
   sc.querySelectorAll("[data-gfx]").forEach((b) => b.onclick = () => {
@@ -4096,6 +4135,12 @@ function showSettings(from) {
   });
   $("#goDiag").onclick = showDiag;
   $("#goKeys").onclick = showKeys;
+  const swb = $("#swapSides");
+  if (swb) swb.onclick = () => {
+    SET.swapSides = !SET.swapSides;
+    saveSettings();
+    showSettings();
+  };
   sc.querySelectorAll("[data-set]").forEach((b) => b.onclick = () => {
     const k = b.dataset.set;
     SET[k] = clamp(Math.round((SET[k] + +b.dataset.d * 0.1) * 10) / 10, 0, 1);
@@ -4208,6 +4253,7 @@ try {
 } catch (e) {
 }
 const BFN = [["up", "\uC704"], ["down", "\uC544\uB798"], ["left", "\uC67C\uCABD"], ["right", "\uC624\uB978\uCABD"], ["act", "\uD589\uB3D9\xB7\uD655\uC778"], ["back", "\uB2EB\uAE30\xB7\uCDE8\uC18C"], ["menu", "\uBA54\uB274"], ["swap", "\uCE90\uB9AD\uD130 \uBC14\uAFB8\uAE30"]];
+const BFN_UI = BFN.filter(([fn]) => !["up", "down", "left", "right"].includes(fn));
 const VOLKEYS = [447, 448, 449, 174, 175, 173, 427, 428];
 if (!SET.keys) SET.keys = { 0: {}, 1: {} };
 const KB_HELD = {};
@@ -4249,10 +4295,10 @@ function assignBind(val) {
       if (b && b.t === val.t && (val.t === "k" ? b.c === val.c : b.id === val.id && b.b === val.b)) delete K[fn];
     }
   }
-  (SET.keys[BIND.p] || (SET.keys[BIND.p] = {}))[BFN[BIND.fi][0]] = val;
+  (SET.keys[BIND.p] || (SET.keys[BIND.p] = {}))[BFN_UI[BIND.fi][0]] = val;
   saveSettings();
   sfx("tap");
-  if (BIND.seq && BIND.fi < BFN.length - 1) {
+  if (BIND.seq && BIND.fi < BFN_UI.length - 1) {
     BIND.fi++;
     BIND.t0 = performance.now();
     BIND.msg = "";
@@ -4370,7 +4416,7 @@ function padBindPoll(gp, st) {
 function renderKeys() {
   const box = $("#keyBox");
   if (!box) return;
-  const col = (p) => `<div><div class="lbl">${p ? "SK (\uB458\uC774 \uD560 \uB54C 2P)" : "SM (\uB458\uC774 \uD560 \uB54C 1P)"}</div>${BFN.map(([fn, n], fi) => {
+  const col = (p) => `<div><div class="lbl">${p ? "SK" : "SM"} \xB7 ${p === sideSlot("L") ? "\uC67C\uCABD" : "\uC624\uB978\uCABD"} \uC870\uC774\uCF58</div>${BFN_UI.map(([fn, n], fi) => {
     const on = BIND.on && BIND.p === p && BIND.fi === fi;
     return `<div class="setrow"><span class="grow">${n}<br><small>${on ? '<b style="color:#C65C79;font-weight:normal">\uC9C0\uAE08 \uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uB204\uB974\uC138\uC694\u2026</b>' : esc(bindLabel((SET.keys[p] || {})[fn]))}</small></span><button class="btn small ${on ? "primary" : ""}" data-bk="${p}|${fi}">${on ? "\uB300\uAE30 \uC911" : "\uC9C0\uC815"}</button></div>`;
   }).join("")}
@@ -4394,7 +4440,7 @@ function renderKeys() {
 }
 function showKeys() {
   showScreen(`<div class="sheet" style="width:min(820px,96vw)"><h1 style="font-size:22px">\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815</h1>
-    <p class="sub">\uB9AC\uBAA8\uCEE8 \uD3EC\uC778\uD130\uB098 \uD654\uBA74 \uD130\uCE58\uB85C "\uC9C0\uC815"\uC744 \uB204\uB978 \uB4A4, \uC870\uC774\uCF58\uC5D0\uC11C \uC4F0\uACE0 \uC2F6\uC740 \uBC84\uD2BC\uC774\uB098 \uC2A4\uD2F1 \uBC29\uD5A5\uC744 \uD55C \uBC88 \uB204\uB974\uC138\uC694. \uADF8 \uBC84\uD2BC\uC774 \uACC4\uC18D \uADF8 \uAE30\uB2A5\uC73C\uB85C \uC791\uB3D9\uD574\uC694.<br>\uD63C\uC790 \uD560 \uB54C\uB294 SM\xB7SK \uCE78\uC5D0 \uC9C0\uC815\uD55C \uBC84\uD2BC\uC774 \uBAA8\uB450 \uC9C0\uAE08 \uC870\uC791 \uC911\uC778 \uCE90\uB9AD\uD130\uB97C \uC6C0\uC9C1\uC5EC\uC694. \uC608) \uC870\uC774\uCF58 L \uC2A4\uD2F1 \u2192 SM\uC758 \uC704\xB7\uC544\uB798\xB7\uC67C\uCABD\xB7\uC624\uB978\uCABD, \uC870\uC774\uCF58 R \uBC84\uD2BC \u2192 SK\uC758 \uD589\uB3D9\xB7\uB2EB\uAE30\xB7\uBA54\uB274</p>
+    <p class="sub">\uC2A4\uD2F1 \uC774\uB3D9\uC740 \uC790\uB3D9\uC774\uB77C \uC9C0\uC815\uD558\uC9C0 \uC54A\uC544\uB3C4 \uB3FC\uC694. \uB9AC\uBAA8\uCEE8 \uD3EC\uC778\uD130\uB098 \uD654\uBA74 \uD130\uCE58\uB85C "\uC9C0\uC815"\uC744 \uB204\uB978 \uB4A4, \uADF8 \uC0AC\uB78C\uC774 \uC954 \uC870\uC774\uCF58\uC5D0\uC11C \uC4F0\uACE0 \uC2F6\uC740 \uBC84\uD2BC\uC744 \uD55C \uBC88 \uB204\uB974\uC138\uC694. \uD55C \uBC88 \uC9C0\uC815\uD558\uBA74 \uACC4\uC18D \uADF8 \uBC84\uD2BC\uC73C\uB85C \uC791\uB3D9\uD574\uC694.</p>
     <div id="keyBox"></div><div class="opts"><button class="btn primary" id="keyBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
   BIND.on = false;
   BIND.msg = "";
