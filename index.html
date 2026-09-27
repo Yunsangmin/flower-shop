@@ -2035,16 +2035,22 @@ function update(dtReal) {
 const JOY = [{ x: 0, y: 0 }, { x: 0, y: 0 }];
 const KEYS = /* @__PURE__ */ new Set();
 addEventListener("keydown", (e) => {
+  const actKey = e.keyCode === 13 || e.keyCode === 33 || e.keyCode === 34;
   {
     const nav = { 37: "left", 38: "up", 39: "right", 40: "down" }[e.keyCode];
     const ctx2 = navContext(S.active);
-    if (ctx2 && (nav || e.keyCode === 13)) {
+    if (ctx2 && (nav || actKey)) {
       e.preventDefault();
-      if (e.repeat && e.keyCode === 13) return;
+      if (e.repeat && actKey) return;
       if (nav) navMove(ctx2, nav);
       else navPress(ctx2);
       return;
     }
+  }
+  if ((e.keyCode === 33 || e.keyCode === 34) && S.phase === "play") {
+    e.preventDefault();
+    if (!e.repeat) doAction(S.active);
+    return;
   }
   if (e.keyCode === 461 || e.key === "Escape" || e.key === "GoBack" || e.key === "BrowserBack") {
     e.preventDefault();
@@ -3733,9 +3739,10 @@ addEventListener("gamepaddisconnected", (e) => {
   toastAll("\uCEE8\uD2B8\uB864\uB7EC \uC5F0\uACB0\uC774 \uB04A\uACBC\uC5B4\uC694");
 });
 function shortPad(id) {
-  if (/\(L\)/.test(id)) return "\uC870\uC774\uCF58 \uC67C\uCABD";
-  if (/\(R\)/.test(id)) return "\uC870\uC774\uCF58 \uC624\uB978\uCABD";
-  if (/pro/i.test(id)) return "\uD504\uB85C \uCEE8\uD2B8\uB864\uB7EC";
+  if (/joy-?con\s*l\s*\+\s*r|200e/i.test(id)) return "\uC870\uC774\uCF58 L+R \uD55C \uC30D";
+  if (/\(L\)|2006/.test(id)) return "\uC870\uC774\uCF58 \uC67C\uCABD";
+  if (/\(R\)|2007/.test(id)) return "\uC870\uC774\uCF58 \uC624\uB978\uCABD";
+  if (/pro controller|2009/i.test(id)) return "\uD504\uB85C \uCEE8\uD2B8\uB864\uB7EC";
   return id.replace(/\(.*?\)/g, "").slice(0, 24);
 }
 function navContext(i) {
@@ -3955,23 +3962,82 @@ addEventListener("keydown", (e) => {
   KEYLOG.unshift(`${e.key || "?"} (${e.keyCode})`);
   if (KEYLOG.length > 8) KEYLOG.pop();
 }, true);
+const DG = { on: false, step: 0, res: [], base: null };
+const DG_STEPS = ["A \uBC84\uD2BC", "B \uBC84\uD2BC", "X \uBC84\uD2BC", "Y \uBC84\uD2BC", "+ \uBC84\uD2BC", "\u2212 \uBC84\uD2BC", "L \uC2A4\uD2F1\uC744 \uC704\uB85C", "L \uC2A4\uD2F1\uC744 \uC624\uB978\uCABD\uC73C\uB85C", "R \uC2A4\uD2F1\uC744 \uC704\uB85C", "R \uC2A4\uD2F1\uC744 \uC624\uB978\uCABD\uC73C\uB85C", "\uC2ED\uC790 \uBC84\uD2BC \uC704(L\uC758 \u2191)", "L \uBC84\uD2BC", "R \uBC84\uD2BC", "ZL \uBC84\uD2BC", "ZR \uBC84\uD2BC"];
+function dgRecord(txt) {
+  if (!DG.on) return;
+  DG.res[DG.step] = txt;
+  DG.step++;
+  DG.cool = performance.now();
+  if (DG.step >= DG_STEPS.length) DG.on = false;
+  diagT = 0;
+  diagRender();
+}
+function dgPoll() {
+  if (!DG.on || performance.now() - (DG.cool || 0) < 500) return;
+  const pads = padsList();
+  if (!DG.base) {
+    DG.base = {};
+    pads.forEach((gp) => DG.base[gp.index] = { ax: gp.axes.slice(), bt: gp.buttons.map((b) => b.pressed) });
+    return;
+  }
+  for (const gp of pads) {
+    const b = DG.base[gp.index] || { ax: [], bt: [] };
+    const k = gp.buttons.findIndex((x, i) => x.pressed && !b.bt[i]);
+    if (k >= 0) {
+      dgRecord(`\uD328\uB4DC${gp.index} \uBC84\uD2BC ${k}`);
+      DG.base = null;
+      return;
+    }
+    const a = gp.axes.findIndex((v, i) => Math.abs(v - (b.ax[i] || 0)) > 0.6);
+    if (a >= 0) {
+      dgRecord(`\uD328\uB4DC${gp.index} \uCD95 ${a} \u2192 ${gp.axes[a].toFixed(2)}`);
+      DG.base = null;
+      return;
+    }
+  }
+}
+addEventListener("keydown", (e) => {
+  if (DG.on && performance.now() - (DG.cool || 0) >= 500 && e.keyCode !== 13) {
+    e.preventDefault();
+    e.stopPropagation();
+    dgRecord(`\uD0A4 ${e.key} (${e.keyCode})`);
+    DG.base = null;
+  }
+}, true);
 let diagT = 0;
 function diagRender() {
+  dgPoll();
   const now = performance.now();
   if (now - diagT < 120) return;
   diagT = now;
   const box = $("#diagBox");
   if (!box) return;
+  const guide = `<div class="diag"><b>\uBC84\uD2BC \uD558\uB098\uC529 \uD14C\uC2A4\uD2B8</b> ${DG.on ? `<span style="color:#C65C79">\uC9C0\uAE08 \uB204\uB97C \uAC83: ${DG_STEPS[DG.step]} (\uC5C6\uC73C\uBA74 \uAC74\uB108\uB6F0\uAE30)</span>` : DG.res.length ? "\uC644\uB8CC! \uC774 \uD654\uBA74\uC744 \uCC0D\uC5B4 \uBCF4\uB0B4 \uC8FC\uC138\uC694" : "\uC2DC\uC791 \uBC84\uD2BC\uC744 \uB20C\uB7EC \uC8FC\uC138\uC694"}<br>${DG_STEPS.map((n, i) => `${n}: ${DG.res[i] || (DG.on && i === DG.step ? "\u2026" : "-")}`).join(" \xB7 ")}</div>`;
   const pads = padsList();
-  box.innerHTML = (pads.length ? pads.map((gp) => {
+  box.innerHTML = guide + (pads.length ? pads.map((gp) => {
     const st = GP.pads[padKey(gp)] || {};
     const v = padVec(gp, st, S.mode === "duo");
     return `<div class="diag"><b>${esc(gp.id)}</b><br>\uBC88\uD638 ${gp.index} \xB7 \uBC29\uC2DD ${gp.mapping || "(\uC5C6\uC74C)"} \xB7 \uC778\uC2DD ${esc(shortPad(gp.id))}<br>\uC2A4\uD2F1 \uAC12: ${gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join("  ")}<br>\uB20C\uB9B0 \uBC84\uD2BC: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter((x) => x !== null).join(", ") || "\uC5C6\uC74C"}<br>\uAC8C\uC784\uC774 \uC77D\uC740 \uBC29\uD5A5: ${v.map((x) => x.toFixed(2)).join(", ")}</div>`;
   }).join("") : '<p class="note" style="text-align:left">\uAC8C\uC784\uD328\uB4DC\uB85C \uC778\uC2DD\uB41C \uCEE8\uD2B8\uB864\uB7EC\uAC00 \uC5C6\uC5B4\uC694. \uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD55C \uBC88 \uB20C\uB7EC \uBCF4\uC138\uC694.</p>') + `<div class="diag"><b>\uB9AC\uBAA8\uCEE8\xB7\uD0A4 \uC785\uB825</b><br>${KEYLOG.join(" / ") || "\uC544\uC9C1 \uC5C6\uC74C"}</div><div class="diag"><small>${esc(navigator.userAgent)}</small></div>`;
 }
 function showDiag() {
-  showScreen(`<div class="sheet" style="width:min(760px,96vw)"><h1 style="font-size:22px">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</h1><p class="sub">\uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD558\uB098\uC529 \uB204\uB974\uACE0 \uC2A4\uD2F1\uC744 \uC6C0\uC9C1\uC5EC \uBCF4\uC138\uC694. \uC774 \uD654\uBA74\uC744 \uC0AC\uC9C4\uC73C\uB85C \uCC0D\uC5B4 \uBCF4\uB0B4 \uC8FC\uC2DC\uBA74 \uB9DE\uCDB0 \uB4DC\uB9B4\uAC8C\uC694.</p><div id="diagBox"></div><div class="opts"><button class="btn primary" id="diagBack" data-back="1">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
-  $("#diagBack").onclick = () => showSettings();
+  showScreen(`<div class="sheet" style="width:min(760px,96vw)"><h1 style="font-size:22px">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</h1><p class="sub">\uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD558\uB098\uC529 \uB204\uB974\uACE0 \uC2A4\uD2F1\uC744 \uC6C0\uC9C1\uC5EC \uBCF4\uC138\uC694. \uC774 \uD654\uBA74\uC744 \uC0AC\uC9C4\uC73C\uB85C \uCC0D\uC5B4 \uBCF4\uB0B4 \uC8FC\uC2DC\uBA74 \uB9DE\uCDB0 \uB4DC\uB9B4\uAC8C\uC694.</p><div id="diagBox"></div><div class="opts"><button class="btn primary" id="dgStart">\uD14C\uC2A4\uD2B8 \uC2DC\uC791</button><button class="btn" id="dgSkip">\uAC74\uB108\uB6F0\uAE30</button><button class="btn" id="diagBack" data-back="1">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
+  $("#diagBack").onclick = () => {
+    DG.on = false;
+    showSettings();
+  };
+  $("#dgStart").onclick = () => {
+    DG.on = true;
+    DG.step = 0;
+    DG.res = [];
+    DG.base = null;
+    DG.cool = performance.now();
+    diagT = 0;
+  };
+  $("#dgSkip").onclick = () => {
+    if (DG.on) dgRecord("\uBC18\uC751 \uC5C6\uC74C");
+  };
 }
 addEventListener("pointerdown", (e) => {
   if (e.pointerType === "touch" && !TOUCH_MODE) {
