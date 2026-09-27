@@ -288,7 +288,7 @@ const TEMPLATES = [
   { title: "\uC9D1\uB4E4\uC774 \uC120\uBB3C", text: "\uB178\uB797\uACE0 \uD48D\uC131\uD558\uAC8C \uBD80\uD0C1\uB4DC\uB824\uC694.", req: { freesia: 6, gyp: 4 }, paper: "yellow", price: 41e3 },
   { title: "\uAC10\uC0AC \uC778\uC0AC", text: "\uC120\uC0DD\uB2D8\uAED8 \uB4DC\uB824\uC694. \uB2E8\uC815\uD558\uACE0 \uC608\uC058\uAC8C\uC694.", req: { tulip: 3, freesia: 2, gyp: 3 }, paper: "lilac", price: 37e3 }
 ];
-const STYLE_IDS = { natural: "\uBAA8\uB358 \uB0B4\uCD94\uB7F4", vintage: "\uD30C\uB9AC \uAF43\uC9D1", minimal: "\uBBF8\uB2C8\uBA40 \uD654\uC774\uD2B8" };
+const STYLE_IDS = { natural: "\uC6B0\uB4DC\uD1A4", minimal: "\uD654\uC774\uD2B8\uD1A4" };
 const SHOP_CATS = [["equip", "\uC124\uBE44"], ["tool", "\uB3C4\uAD6C"], ["wrap", "\uD3EC\uC7A5\uC7AC"], ["deco", "\uAFB8\uBBF8\uAE30"], ["interior", "\uC778\uD14C\uB9AC\uC5B4"], ["style", "\uC637\xB7\uCE58\uC7A5"], ["expand", "\uAC00\uAC8C \uD655\uC7A5"]];
 const STYLE = {
   glasses: { label: "\uC548\uACBD", opts: [["horn", "\uAC80\uC740 \uBFD4\uD14C \uC548\uACBD", 15e3], ["gold", "\uB3D9\uADF8\uB780 \uAE08\uD14C \uC548\uACBD", 18e3]] },
@@ -767,7 +767,7 @@ function newGame(mode) {
   makeStations();
   const base = TEMPLATES.filter((t) => !t.req.rose && !t.req.hydrangea);
   S.orders = [genOrder(base[0], 195, 1), genOrder(base[1], 300, 1), genOrder(base[2], 420, 1)];
-  S.style = null;
+  S.style = "natural";
   startDaySetup();
 }
 function bump() {
@@ -817,11 +817,15 @@ function saveGame(mid) {
   } catch (e) {
   }
 }
-const SAVE_VER = 5;
+const SAVE_VER = 6;
 const MIGRATE = { 4: (d) => {
   d.v = 5;
   d.style = d.style || null;
   if (d.up) delete d.up.rug;
+  return d;
+}, 5: (d) => {
+  d.v = 6;
+  if (!d.style || d.style === "vintage") d.style = "natural";
   return d;
 } };
 function migrateSave(d) {
@@ -2031,6 +2035,17 @@ function update(dtReal) {
 const JOY = [{ x: 0, y: 0 }, { x: 0, y: 0 }];
 const KEYS = /* @__PURE__ */ new Set();
 addEventListener("keydown", (e) => {
+  {
+    const nav = { 37: "left", 38: "up", 39: "right", 40: "down" }[e.keyCode];
+    const ctx2 = navContext(S.active);
+    if (ctx2 && (nav || e.keyCode === 13)) {
+      e.preventDefault();
+      if (e.repeat && e.keyCode === 13) return;
+      if (nav) navMove(ctx2, nav);
+      else navPress(ctx2);
+      return;
+    }
+  }
   if (e.keyCode === 461 || e.key === "Escape" || e.key === "GoBack" || e.key === "BrowserBack") {
     e.preventDefault();
     const ctx2 = navContext(S.active);
@@ -2167,8 +2182,8 @@ function refreshControls() {
 }
 function updateControlVisibility() {
   const root = $("#controls");
-  const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-  root.style.display = S.phase === "play" && touch && !padsList().length ? "block" : "none";
+  const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+  root.style.display = S.phase === "play" && (TOUCH_MODE || touch && !padsList().length) ? "block" : "none";
   const bz = (m) => !!m && m.type !== "talk";
   if (S.mode === "solo") {
     const busy = bz(S.chars[S.active] && S.chars[S.active].modal);
@@ -3220,10 +3235,7 @@ function showStylePick(next) {
   });
 }
 function showIntro() {
-  if (!S.style) {
-    showStylePick(showIntro);
-    return;
-  }
+  if (!S.style || S.style === "vintage") S.style = "natural";
   S.phase = "intro";
   $("#hud").style.display = "none";
   updateControlVisibility();
@@ -3419,7 +3431,7 @@ function updateHUD() {
   $("#bClose").classList.toggle("hide", S.t < CLOSE_OK);
 }
 const SETTINGS_KEY = "ourflowershop_settings_v1";
-const SET = { music: 0.5, sfx: 0.7, pads: {}, assign: {} };
+const SET = { music: 0.5, sfx: 0.7, pads: {}, assign: {}, gfx: "auto" };
 function loadSettings() {
   try {
     Object.assign(SET, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
@@ -3578,31 +3590,73 @@ const GP = { pads: {}, calib: null, ctxFocus: {}, repeat: {} };
 function padKey(gp) {
   return gp.id + "#" + gp.index;
 }
-function defaultMap(gp) {
-  const joy = /joy-?con/i.test(gp.id);
-  if (joy && gp.axes.length >= 10) return { hat: 9, rot: /\(R\)|right/i.test(gp.id) ? 1 : -1, act: 0, back: 1, menu: 9, swap: 3 };
-  return { x: { a: 0, s: 1 }, y: { a: 1, s: 1 }, act: 0, back: 1, menu: 9, swap: 3 };
+function isJoy(id) {
+  return /joy-?con|057e.*200[67]/i.test(id);
+}
+function joySide(id) {
+  if (/\(L\)|left|2006/i.test(id) && !/\(R\)|right|2007/i.test(id)) return "L";
+  if (/\(R\)|right|2007/i.test(id) && !/\(L\)|left|2006/i.test(id)) return "R";
+  return null;
+}
+function autoMap(gp) {
+  if (gp.mapping === "standard") return { act: [1, 3], back: [0], menu: [9, 8, 16], swap: [2, 4, 5, 6, 7] };
+  return { act: [0, 1, 2, 3], back: [10, 11], menu: [8, 9, 12, 13, 16], swap: [4, 5, 6, 7, 14, 15] };
 }
 function mapOf(gp) {
-  return SET.pads[gp.id] || defaultMap(gp);
+  const m = SET.pads[gp.id];
+  if (m) return { cal: m, act: [m.act], back: [m.back], menu: [m.menu], swap: [m.swap] };
+  return autoMap(gp);
 }
-function hatVec(v, rot) {
+function hatVec(v) {
   if (v > 1.05 || v < -1.05) return [0, 0];
   const k = Math.round((v + 1) / (2 / 7)) % 8;
-  let ang = -Math.PI / 2 + k * Math.PI / 4;
-  ang += rot * Math.PI / 2 * (rot ? 1 : 0);
+  const ang = -Math.PI / 2 + k * Math.PI / 4;
   return [Math.round(Math.cos(ang) * 100) / 100, Math.round(Math.sin(ang) * 100) / 100];
 }
-function padVec(gp) {
-  const m = mapOf(gp);
-  if (m.hat != null) {
-    const [x2, y2] = hatVec(gp.axes[m.hat], 0);
-    if (!m.rot) return [x2, y2];
-    return m.rot > 0 ? [-y2, x2] : [y2, -x2];
+function rotSide(v, side) {
+  if (!side) return v;
+  const [x, y] = v;
+  return side === "L" ? [y, -x] : [-y, x];
+}
+function padVec(gp, st, sideways) {
+  const m = mapOf(gp), ax = gp.axes;
+  if (m.cal) {
+    const c = m.cal;
+    if (c.hat != null) {
+      const v2 = hatVec(ax[c.hat]);
+      return c.rot ? c.rot > 0 ? [-v2[1], v2[0]] : [v2[1], -v2[0]] : v2;
+    }
+    let x = (ax[c.x.a] || 0) * c.x.s, y = (ax[c.y.a] || 0) * c.y.s;
+    return Math.hypot(x, y) < 0.22 ? [0, 0] : [clamp(x, -1, 1), clamp(y, -1, 1)];
   }
-  let x = (gp.axes[m.x.a] || 0) * m.x.s, y = (gp.axes[m.y.a] || 0) * m.y.s;
-  if (Math.hypot(x, y) < 0.22) return [0, 0];
-  return [clamp(x, -1, 1), clamp(y, -1, 1)];
+  if (!st.base) {
+    st.base = ax.map((v2) => v2);
+  }
+  let best = [0, 0], bm = 0;
+  for (let a = 0; a + 1 < Math.min(ax.length, 4); a += 2) {
+    if (Math.abs(st.base[a]) > 0.6 || Math.abs(st.base[a + 1]) > 0.6) continue;
+    const x = ax[a], y = ax[a + 1], mg = Math.hypot(x, y);
+    if (mg > 0.28 && mg > bm) {
+      bm = mg;
+      best = [x, y];
+    }
+  }
+  for (let a = 0; a < ax.length; a++) {
+    if (Math.abs(st.base[a]) < 1.05) continue;
+    const h = hatVec(ax[a]);
+    if ((h[0] || h[1]) && bm < 1) {
+      bm = 1;
+      best = h;
+    }
+  }
+  const b = (k) => gp.buttons[k] && gp.buttons[k].pressed;
+  if (gp.mapping === "standard" && (b(12) || b(13) || b(14) || b(15))) {
+    best = [(b(15) ? 1 : 0) - (b(14) ? 1 : 0), (b(13) ? 1 : 0) - (b(12) ? 1 : 0)];
+    bm = 1;
+  }
+  let v = [clamp(best[0], -1, 1), clamp(best[1], -1, 1)];
+  if (sideways && gp.mapping !== "standard" && isJoy(gp.id)) v = rotSide(v, joySide(gp.id));
+  return v;
 }
 function padsList() {
   const out = [];
@@ -3615,31 +3669,34 @@ function padsList() {
 function slotOf(gp) {
   const k = gp.id;
   if (SET.assign[k] != null) return SET.assign[k];
-  if (/\(L\)|left/i.test(k)) return 0;
-  if (/\(R\)|right/i.test(k)) return 1;
+  const sd = joySide(k);
+  if (sd === "L") return 0;
+  if (sd === "R") return 1;
   const list = padsList();
   return list.indexOf(gp) > 0 ? 1 : 0;
 }
 const PADVEC = [[0, 0], [0, 0]];
+let TOUCH_MODE = false;
 function pollPads(dt) {
   const list = padsList();
   PADVEC[0] = [0, 0];
   PADVEC[1] = [0, 0];
-  if (list.length) {
-    audioInit();
-    if (S.phase === "play") $("#controls").classList.add("padmode");
-  }
+  if (list.length) audioInit();
   for (const gp of list) {
     const key = padKey(gp), st = GP.pads[key] || (GP.pads[key] = { prev: [], hold: 0, dir: null });
     const pressed = (k) => gp.buttons[k] && gp.buttons[k].pressed;
-    const down = (k) => pressed(k) && !st.prev[k];
+    const any = (arr) => arr.some((k) => pressed(k) && !st.prev[k]);
+    if (gp.buttons.some((b) => b.pressed) && TOUCH_MODE) {
+      TOUCH_MODE = false;
+      updateControlVisibility();
+    }
     if (GP.calib && GP.calib.id === gp.id) {
       calibStep(gp, st);
       st.prev = gp.buttons.map((b) => b.pressed);
       continue;
     }
-    const m = mapOf(gp), v = padVec(gp), slot = S.mode === "solo" ? S.active : slotOf(gp);
-    const ctx2 = navContext(S.mode === "solo" ? S.active : slotOf(gp));
+    const duo = S.mode === "duo", slot = duo ? slotOf(gp) : S.active, m = mapOf(gp), v = padVec(gp, st, duo);
+    const ctx2 = navContext(slot);
     if (ctx2) {
       const d = Math.hypot(v[0], v[1]) > 0.5 ? Math.abs(v[0]) > Math.abs(v[1]) ? v[0] > 0 ? "right" : "left" : v[1] > 0 ? "down" : "up" : null;
       if (d && d !== st.dir) {
@@ -3653,19 +3710,19 @@ function pollPads(dt) {
           navMove(ctx2, d);
         }
       } else st.dir = null;
-      if (down(m.act)) navPress(ctx2);
-      if (down(m.back)) navBack(ctx2);
-      if (down(m.menu)) navMenu();
+      if (any(m.act)) navPress(ctx2);
+      else if (any(m.back)) navBack(ctx2);
+      else if (any(m.menu)) navMenu();
     } else {
-      if (S.mode === "solo") PADVEC[0] = [PADVEC[0][0] + v[0], PADVEC[0][1] + v[1]];
-      else PADVEC[slot] = [PADVEC[slot][0] + v[0], PADVEC[slot][1] + v[1]];
-      if (down(m.act)) doAction(S.mode === "solo" ? S.active : slot);
-      if (down(m.menu)) togglePause();
-      if (down(m.swap) && S.mode === "solo") swapChar();
-      if (down(m.back) && S.mode === "solo" && S.chars[S.active] && S.chars[S.active].rest) doAction(S.active);
+      PADVEC[slot] = [PADVEC[slot][0] + v[0], PADVEC[slot][1] + v[1]];
+      if (any(m.act)) doAction(slot);
+      else if (any(m.menu)) togglePause();
+      else if (!duo && any(m.swap)) swapChar();
+      else if (any(m.back) && S.chars[slot] && S.chars[slot].rest) doAction(slot);
     }
     st.prev = gp.buttons.map((b) => b.pressed);
   }
+  if ($("#diagBox")) diagRender();
 }
 addEventListener("gamepadconnected", (e) => {
   audioInit();
@@ -3841,6 +3898,7 @@ function calibStep(gp, st) {
     return;
   }
   if (c.step <= 1) {
+    const st0 = st;
     let bi = -1, bd = 0;
     gp.axes.forEach((v, k2) => {
       const d = v - (c.rest[k2] || 0);
@@ -3892,6 +3950,35 @@ function calibStep(gp, st) {
   }
   renderCalib();
 }
+const KEYLOG = [];
+addEventListener("keydown", (e) => {
+  KEYLOG.unshift(`${e.key || "?"} (${e.keyCode})`);
+  if (KEYLOG.length > 8) KEYLOG.pop();
+}, true);
+let diagT = 0;
+function diagRender() {
+  const now = performance.now();
+  if (now - diagT < 120) return;
+  diagT = now;
+  const box = $("#diagBox");
+  if (!box) return;
+  const pads = padsList();
+  box.innerHTML = (pads.length ? pads.map((gp) => {
+    const st = GP.pads[padKey(gp)] || {};
+    const v = padVec(gp, st, S.mode === "duo");
+    return `<div class="diag"><b>${esc(gp.id)}</b><br>\uBC88\uD638 ${gp.index} \xB7 \uBC29\uC2DD ${gp.mapping || "(\uC5C6\uC74C)"} \xB7 \uC778\uC2DD ${esc(shortPad(gp.id))}<br>\uC2A4\uD2F1 \uAC12: ${gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join("  ")}<br>\uB20C\uB9B0 \uBC84\uD2BC: ${gp.buttons.map((b, i) => b.pressed ? i : null).filter((x) => x !== null).join(", ") || "\uC5C6\uC74C"}<br>\uAC8C\uC784\uC774 \uC77D\uC740 \uBC29\uD5A5: ${v.map((x) => x.toFixed(2)).join(", ")}</div>`;
+  }).join("") : '<p class="note" style="text-align:left">\uAC8C\uC784\uD328\uB4DC\uB85C \uC778\uC2DD\uB41C \uCEE8\uD2B8\uB864\uB7EC\uAC00 \uC5C6\uC5B4\uC694. \uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD55C \uBC88 \uB20C\uB7EC \uBCF4\uC138\uC694.</p>') + `<div class="diag"><b>\uB9AC\uBAA8\uCEE8\xB7\uD0A4 \uC785\uB825</b><br>${KEYLOG.join(" / ") || "\uC544\uC9C1 \uC5C6\uC74C"}</div><div class="diag"><small>${esc(navigator.userAgent)}</small></div>`;
+}
+function showDiag() {
+  showScreen(`<div class="sheet" style="width:min(760px,96vw)"><h1 style="font-size:22px">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</h1><p class="sub">\uC870\uC774\uCF58 \uBC84\uD2BC\uC744 \uD558\uB098\uC529 \uB204\uB974\uACE0 \uC2A4\uD2F1\uC744 \uC6C0\uC9C1\uC5EC \uBCF4\uC138\uC694. \uC774 \uD654\uBA74\uC744 \uC0AC\uC9C4\uC73C\uB85C \uCC0D\uC5B4 \uBCF4\uB0B4 \uC8FC\uC2DC\uBA74 \uB9DE\uCDB0 \uB4DC\uB9B4\uAC8C\uC694.</p><div id="diagBox"></div><div class="opts"><button class="btn primary" id="diagBack" data-back="1">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
+  $("#diagBack").onclick = () => showSettings();
+}
+addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "touch" && !TOUCH_MODE) {
+    TOUCH_MODE = true;
+    updateControlVisibility();
+  }
+}, { passive: true, capture: true });
 let SETTINGS_FROM = "title";
 function showSettings(from) {
   SETTINGS_FROM = from || SETTINGS_FROM;
@@ -3900,6 +3987,7 @@ function showSettings(from) {
   showScreen(`<div class="sheet" style="width:min(620px,96vw)"><h1 style="font-size:24px">\uC124\uC815</h1>
     <div class="setrow"><span class="grow">\uBC30\uACBD\uC74C\uC545</span><button class="btn small" data-set="music" data-d="-1" aria-label="\uBC30\uACBD\uC74C\uC545 \uC904\uC774\uAE30">\u2212</button>${bar(SET.music)}<button class="btn small" data-set="music" data-d="1" aria-label="\uBC30\uACBD\uC74C\uC545 \uD0A4\uC6B0\uAE30">+</button></div>
     <div class="setrow"><span class="grow">\uD6A8\uACFC\uC74C</span><button class="btn small" data-set="sfx" data-d="-1" aria-label="\uD6A8\uACFC\uC74C \uC904\uC774\uAE30">\u2212</button>${bar(SET.sfx)}<button class="btn small" data-set="sfx" data-d="1" aria-label="\uD6A8\uACFC\uC74C \uD0A4\uC6B0\uAE30">+</button></div>
+    <div class="setrow"><span class="grow">\uADF8\uB798\uD53D<br><small>${LITE ? "\uAC00\uBCCD\uAC8C (\uBE60\uB984)" : "\uBCF4\uD1B5"}${SET.gfx === "auto" ? " \xB7 \uC790\uB3D9" : ""}</small></span><button class="btn small ${SET.gfx === "auto" ? "primary" : ""}" data-gfx="auto">\uC790\uB3D9</button><button class="btn small ${SET.gfx === "high" ? "primary" : ""}" data-gfx="high">\uBCF4\uD1B5</button><button class="btn small ${SET.gfx === "lite" ? "primary" : ""}" data-gfx="lite">\uAC00\uBCCD\uAC8C</button></div>
     <div class="lbl" id="setPads">\uCEE8\uD2B8\uB864\uB7EC (${pads.length}\uAC1C \uC5F0\uACB0\uB428)</div>
     ${pads.length ? pads.map((gp) => {
     const sl = slotOf(gp);
@@ -3907,9 +3995,16 @@ function showSettings(from) {
       <button class="btn small ${sl === 0 ? "primary" : ""}" data-assign="${esc(gp.id)}" data-slot="0">SM</button><button class="btn small ${sl === 1 ? "primary" : ""}" data-assign="${esc(gp.id)}" data-slot="1">SK</button><button class="btn small soft" data-calib="${gp.index}">\uBC84\uD2BC \uC124\uC815</button></div>`;
   }).join("") : '<p class="note" style="text-align:left">\uC5F0\uACB0\uB41C \uCEE8\uD2B8\uB864\uB7EC\uAC00 \uC5C6\uC5B4\uC694. \uC870\uC774\uCF58\uC744 \uAE30\uAE30\uC5D0 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uC5F0\uACB0\uD55C \uB4A4 \uC544\uBB34 \uBC84\uD2BC\uC774\uB098 \uB20C\uB7EC \uC8FC\uC138\uC694.</p>'}
     <p class="req" id="calibMsg"></p>
-    <p class="hint">\uB458\uC774 \uD560 \uB54C SM\xB7SK \uBC84\uD2BC\uC73C\uB85C \uB204\uAC00 \uC5B4\uB290 \uCEE8\uD2B8\uB864\uB7EC\uB97C \uC4F8\uC9C0 \uC815\uD574\uC694. \uC870\uC774\uCF58\uC744 \uAC00\uB85C\uB85C \uC950\uC5C8\uC744 \uB54C \uBC29\uD5A5\uC774 \uC774\uC0C1\uD558\uBA74 "\uBC84\uD2BC \uC124\uC815"\uC744 \uB20C\uB7EC \uC548\uB0B4\uB300\uB85C \uB530\uB77C \uD574 \uC8FC\uC138\uC694.</p>
-    <div class="opts"><button class="btn primary" data-back="1" id="setBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
+    <p class="hint">\uD63C\uC790 \uD560 \uB54C\uB294 \uC870\uC774\uCF58 L\uC744 \uC67C\uC190, R\uC744 \uC624\uB978\uC190\uC5D0 \uC950\uACE0 L \uC2A4\uD2F1\uC73C\uB85C \uC774\uB3D9, R\uC758 A\uB85C \uD589\uB3D9, B\uB85C \uB2EB\uAE30, +\uB85C \uBA54\uB274\uC608\uC694. \uB458\uC774 \uD560 \uB54C\uB294 \uD55C \uC0AC\uB78C\uB2F9 \uC870\uC774\uCF58 1\uAC1C\uB97C \uAC00\uB85C\uB85C \uC950\uC5B4\uC694. \uB458\uC774 \uD560 \uB54C SM\xB7SK \uBC84\uD2BC\uC73C\uB85C \uB204\uAC00 \uC5B4\uB290 \uCEE8\uD2B8\uB864\uB7EC\uB97C \uC4F8\uC9C0 \uC815\uD574\uC694. \uC870\uC774\uCF58\uC744 \uAC00\uB85C\uB85C \uC950\uC5C8\uC744 \uB54C \uBC29\uD5A5\uC774 \uC774\uC0C1\uD558\uBA74 "\uBC84\uD2BC \uC124\uC815"\uC744 \uB20C\uB7EC \uC548\uB0B4\uB300\uB85C \uB530\uB77C \uD574 \uC8FC\uC138\uC694.</p>
+    <div class="opts"><button class="btn soft" id="goDiag">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</button><button class="btn primary" data-back="1" id="setBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
   const sc = $("#screen");
+  sc.querySelectorAll("[data-gfx]").forEach((b) => b.onclick = () => {
+    SET.gfx = b.dataset.gfx;
+    saveSettings();
+    applyGfx();
+    showSettings();
+  });
+  $("#goDiag").onclick = showDiag;
   sc.querySelectorAll("[data-set]").forEach((b) => b.onclick = () => {
     const k = b.dataset.set;
     SET[k] = clamp(Math.round((SET[k] + +b.dataset.d * 0.1) * 10) / 10, 0, 1);
@@ -5101,16 +5196,23 @@ const DARK = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { 
 const canvas = $("#game");
 const ctx = canvas.getContext("2d");
 let CW = 0, CH = 0, DPR = 1, BG_CACHE = {};
+let LITE = false, RENDER_SCALE = 1, VIEW = null, FRAME = 0;
+function applyGfx() {
+  const tv = /Web0S|webOS|SmartTV|SMART-TV|NetCast|HbbTV/i.test(navigator.userAgent);
+  LITE = SET.gfx === "lite" || SET.gfx === "auto" && tv;
+  resize();
+}
 function resize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
   CW = innerWidth;
   CH = innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  DPR = LITE ? Math.min(dpr, 1100 / Math.max(CW, 1)) : Math.min(2, dpr);
   canvas.width = Math.round(CW * DPR);
   canvas.height = Math.round(CH * DPR);
   BG_CACHE = {};
 }
 addEventListener("resize", resize);
-resize();
+applyGfx();
 try {
   document.fonts && document.fonts.ready.then(() => {
     BG_CACHE = {};
@@ -6002,7 +6104,7 @@ function drawDecor(g, d) {
       break;
     }
     case "tree":
-      drawTree(g, x + 8, y + 15, d.v || "round", d.x * 7 + d.y);
+      drawTreeCached(g, x + 8, y + 15, d.v || "round", d.x * 7 + d.y);
       break;
     case "rug_jute": {
       rr(g, x + 2, y + 2, w - 4, h - 4, 12, "#D8C29C");
@@ -6386,6 +6488,28 @@ function canopy(g, cx, cy, r, cols, seed) {
     el(g, cx + Math.cos(a) * d - r * 0.1, cy + Math.sin(a) * d * 0.8 - r * 0.15, r * (0.38 + q() * 0.2), r * (0.32 + q() * 0.18), cols[1 + k % (cols.length - 1)]);
   }
   el(g, cx - r * 0.35, cy - r * 0.45, r * 0.28, r * 0.2, "rgba(255,255,255,.16)");
+}
+const SPR = {};
+let SPRN = 0;
+function drawTreeCached(g, x, by, v, seed) {
+  const sc = Math.max(0.5, Math.round(RENDER_SCALE * 4) / 4);
+  const key = v + "|" + seed + "|" + sc;
+  let c = SPR[key];
+  if (!c) {
+    if (SPRN > 160) {
+      for (const k in SPR) delete SPR[k];
+      SPRN = 0;
+    }
+    c = document.createElement("canvas");
+    c.width = Math.ceil(48 * sc);
+    c.height = Math.ceil(66 * sc);
+    const gg = c.getContext("2d");
+    gg.setTransform(sc, 0, 0, sc, 0, 0);
+    drawTree(gg, 24, 60, v, seed);
+    SPR[key] = c;
+    SPRN++;
+  }
+  g.drawImage(c, x - 24, by - 60, 48, 66);
 }
 function drawTree(g, x, by, v, seed) {
   const q = seedRand(seed + 3);
@@ -7335,8 +7459,10 @@ function townDynamic(g) {
   });
 }
 function bgCanvas(area, s) {
-  const q = Math.min(DPR, 1.6);
-  const key = area + "|" + s.toFixed(3) + "|" + q + "|" + JSON.stringify(S.up);
+  let q = Math.min(DPR, 1.6);
+  const A0 = AREAS[area];
+  while (A0.w * TILE * s * q * A0.h * TILE * s * q > (LITE ? 35e5 : 9e6)) q *= 0.85;
+  const key = area + "|" + s.toFixed(3) + "|" + q.toFixed(3) + "|" + JSON.stringify(S.up) + "|" + S.style;
   if (BG_CACHE[key]) return BG_CACHE[key];
   const A = AREAS[area];
   const cv = document.createElement("canvas");
@@ -7347,6 +7473,11 @@ function bgCanvas(area, s) {
   ({ shop: shopStatic, market: marketStatic, supply: supplyStatic, town: townStatic, north: northStatic })[area](g);
   BG_CACHE[key] = cv;
   return cv;
+}
+function inView(x, y, m) {
+  if (!VIEW) return true;
+  m = m || 40;
+  return x > VIEW[0] - m && x < VIEW[2] + m && y > VIEW[1] - m && y < VIEW[3] + m * 1.8;
 }
 function drawWorldV(g, area) {
   ({ shop: shopDynamic, market: marketDynamic, supply: supplyDynamic, town: townDynamic, north: northDynamic })[area](g);
@@ -7392,14 +7523,17 @@ function drawWorldV(g, area) {
     g.globalAlpha = 1;
   });
   const ents = [];
-  sts.forEach((s) => ents.push({ y: (s.y + s.h) * TILE - (s.type === "bench" ? 6 : 2), draw: () => {
-    drawStationV(g, s);
-  } }));
-  DECOR[area].forEach((d) => {
-    if (d.flat && d.walk && !d.carried) drawDecor(g, d);
+  sts.forEach((s) => {
+    if (!inView((s.x + s.w / 2) * TILE, (s.y + s.h) * TILE, s.w * 8 + 30)) return;
+    ents.push({ y: (s.y + s.h) * TILE - (s.type === "bench" ? 6 : 2), draw: () => {
+      drawStationV(g, s);
+    } });
   });
   DECOR[area].forEach((d) => {
-    if (d.flat || d.carried) return;
+    if (d.flat && d.walk && !d.carried && inView((d.x + d.w / 2) * TILE, (d.y + d.h) * TILE, d.w * 8 + 20)) drawDecor(g, d);
+  });
+  DECOR[area].forEach((d) => {
+    if (d.flat || d.carried || !inView((d.x + d.w / 2) * TILE, (d.y + d.h) * TILE, d.w * 8 + (d.t === "school" ? 120 : 40))) return;
     ents.push({ y: (d.y + d.h) * TILE - 2, draw: () => drawDecor(g, d) });
   });
   S.chars.forEach((c) => {
@@ -7447,14 +7581,14 @@ function drawWorldV(g, area) {
     } });
   });
   S.customers.forEach((k) => {
-    if ((k.area || "shop") !== area) return;
+    if ((k.area || "shop") !== area || !inView(k.x, k.y)) return;
     ents.push({ y: k.y, draw: () => {
       drawChar(g, k.x, k.y, k.pal, k.dir, k.walk, k.state === "move" && !k.talking, false);
       if (k.bouquet) drawItemV(g, k.bouquet, k.x, k.y - 11);
     } });
   });
   S.walkers.forEach((w) => {
-    if (w.hidden || w.zone === "north" !== (area === "north") || area !== "town" && area !== "north") return;
+    if (w.hidden || w.zone === "north" !== (area === "north") || area !== "town" && area !== "north" || !inView(w.x, w.y)) return;
     ents.push({ y: w.y, draw: () => drawChar(g, w.x, w.y, w.pal, w.dir, w.walk, !!w.mv, false) });
     if (w.dog) {
       const d = w.dog;
@@ -7561,8 +7695,11 @@ function render() {
     roundRect(x0, y0, x1 - x0, y1 - y0, 14);
     ctx.clip();
     ctx.drawImage(bgCanvas(v.area, s), ox, oy, mw * s, mh * s);
+    RENDER_SCALE = DPR * s;
+    VIEW = [(v.x - ox) / s, (v.y - oy) / s, (v.x + v.w - ox) / s, (v.y + v.h - oy) / s];
     ctx.setTransform(DPR * s, 0, 0, DPR * s, DPR * ox, DPR * oy);
     drawWorldV(ctx, v.area);
+    VIEW = null;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     const [ac, aa] = ambientAt(S.t);
     const k = v.area === "town" ? 1 : 0.7;
@@ -7575,14 +7712,14 @@ function render() {
     const L = lampAt(S.t);
     if (L > 0) {
       ctx.globalCompositeOperation = "lighter";
+      const LS = lightSprite();
+      ctx.globalAlpha = 0.32 * L;
       lightsFor(v.area).forEach(([lx, ly]) => {
-        const X = ox + lx * s, Y = oy + ly * s, r = (v.area === "town" ? 55 : 80) * s;
-        const gr = ctx.createRadialGradient(X, Y, 0, X, Y, r);
-        gr.addColorStop(0, `rgba(255,214,150,${0.32 * L})`);
-        gr.addColorStop(1, "rgba(255,214,150,0)");
-        ctx.fillStyle = gr;
-        ctx.fillRect(X - r, Y - r, r * 2, r * 2);
+        const X = ox + lx * s, Y = oy + ly * s, r = (v.area === "town" || v.area === "north" ? 55 : 80) * s;
+        if (X < v.x - r || X > v.x + v.w + r || Y < v.y - r || Y > v.y + v.h + r) return;
+        ctx.drawImage(LS, X - r, Y - r, r * 2, r * 2);
       });
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
     }
     const fd = Math.max(...v.chars.map((i) => S.chars[i].fade));
@@ -7600,6 +7737,19 @@ function render() {
     ctx.stroke();
     overlays(v);
   });
+}
+let LSPR = null;
+function lightSprite() {
+  if (LSPR) return LSPR;
+  LSPR = document.createElement("canvas");
+  LSPR.width = LSPR.height = 64;
+  const g = LSPR.getContext("2d");
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, "rgba(255,214,150,1)");
+  gr.addColorStop(1, "rgba(255,214,150,0)");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 64, 64);
+  return LSPR;
 }
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
@@ -7684,7 +7834,8 @@ function loop(now) {
     updateHUD();
     refreshLiveModals(dt);
   }
-  render();
+  FRAME ^= 1;
+  if (!LITE || FRAME) render();
   requestAnimationFrame(loop);
 }
 showTitle();
