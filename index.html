@@ -237,7 +237,8 @@ h1{font-size:34px;font-weight:normal;margin:0 0 4px;letter-spacing:-.5px}
 <div id="screen"></div>
 <div id="rotate">휴대폰을 가로로 돌려 주세요<br><small>가로 화면에서 플레이할 수 있어요</small></div>
 
-<script>"use strict";
+<script>
+"use strict";
 const TILE = 16, VW = 288, VH = 176;
 const DAY_LEN = 600, REAL_PER_MIN = 1.5, MARKET_CLOSE = 180, CLOSE_OK = 540;
 const HYDRATE_MIN = 30, DRY_MIN = 60, WILT = 15, REST_MIN = 5, BOOST_MIN = 60;
@@ -4227,7 +4228,7 @@ function showSettings(from) {
     <div class="lbl" id="setPads">\uC870\uC774\uCF58</div>
     ${pads.length ? `<div class="setrow"><span class="grow">${padsList().some((g) => isCombo(g.id)) || padsList().some((g) => joySide(g.id) === "L") && padsList().some((g) => joySide(g.id) === "R") ? "\uC870\uC774\uCF58 \uB450 \uAC1C\uAC00 \uC5F0\uACB0\uB410\uC5B4\uC694" : "\uC870\uC774\uCF58(\uCEE8\uD2B8\uB864\uB7EC)\uC774 \uC5F0\uACB0\uB410\uC5B4\uC694"}<br><small>\uB458\uC774 \uD560 \uB54C: \uC67C\uCABD \uC870\uC774\uCF58 \u2192 <b style="font-weight:normal">${SET.swapSides ? "SK" : "SM"}</b>, \uC624\uB978\uCABD \uC870\uC774\uCF58 \u2192 <b style="font-weight:normal">${SET.swapSides ? "SM" : "SK"}</b></small></span><button class="btn small soft" id="swapSides">SM\xB7SK \uC790\uB9AC \uBC14\uAFB8\uAE30</button></div>` : '<p class="note" style="text-align:left">\uC5F0\uACB0\uB41C \uC870\uC774\uCF58\uC774 \uC5C6\uC5B4\uC694. \uC2A4\uD0E0\uBC14\uC774\uBBF8\uC5D0 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uC5F0\uACB0\uD55C \uB4A4 \uC544\uBB34 \uBC84\uD2BC\uC774\uB098 \uB20C\uB7EC \uC8FC\uC138\uC694.</p>'}
     <p class="hint">\uB458\uC774 \uD560 \uB54C\uB294 \uD55C \uC0AC\uB78C\uB2F9 \uC870\uC774\uCF58 1\uAC1C\uB97C \uAC00\uB85C\uB85C \uC950\uC5B4\uC694. \uC2A4\uD2F1\uC744 \uAE30\uC6B8\uC778 \uBC29\uD5A5 \uADF8\uB300\uB85C, \uB300\uAC01\uC120\uAE4C\uC9C0 \uC6C0\uC9C1\uC5EC\uC694. \uBC84\uD2BC \uC5ED\uD560\uC744 \uBC14\uAFB8\uACE0 \uC2F6\uC73C\uBA74 "\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815"\uC744 \uC368 \uC8FC\uC138\uC694.</p>
-    <div class="opts"><button class="btn primary" id="goKeys">\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815</button><button class="btn soft" id="goDiag">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</button><button class="btn primary" data-back="1" id="setBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
+    <div class="opts"><button class="btn primary" id="goKeys">\uC870\uC774\uCF58 \uD0A4 \uC9C0\uC815</button><button class="btn soft" id="goDiag">\uCEE8\uD2B8\uB864\uB7EC \uC9C4\uB2E8</button><button class="btn soft" id="goBeta">\uC0C8 \uBC84\uC804 \uBBF8\uB9AC \uD574\uBCF4\uAE30</button><button class="btn primary" data-back="1" id="setBack">\uB3CC\uC544\uAC00\uAE30</button></div></div>`);
   const sc = $("#screen");
   sc.querySelectorAll("[data-gfx]").forEach((b) => b.onclick = () => {
     SET.gfx = b.dataset.gfx;
@@ -4236,6 +4237,17 @@ function showSettings(from) {
     showSettings();
   });
   $("#goDiag").onclick = showDiag;
+  $("#goBeta").onclick = () => {
+    try {
+      saveMid();
+    } catch (e) {
+    }
+    try {
+      saveSettings();
+    } catch (e) {
+    }
+    location.href = "beta/?fromMain=1&v=" + Date.now();
+  };
   $("#goKeys").onclick = showKeys;
   const swb = $("#swapSides");
   if (swb) swb.onclick = () => {
