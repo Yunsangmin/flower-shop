@@ -93,7 +93,7 @@ function prDropTex(test){const T=PR.sc.textures;for(const [k,e] of PR.tex){if(te
 function prTex(key,w,h){
   const T=PR.sc.textures;let e=PR.tex.get(key);
   if(e&&(e.w!==w||e.h!==h)){if(T.exists(key))T.remove(key);PR.tex.delete(key);e=null}
-  if(!e){if(T.exists(key))T.remove(key);const t=T.createCanvas(key,w,h);e={key,w,h,t,g:t.getContext(),used:PR.frame};PR.tex.set(key,e)}
+  if(!e){if(T.exists(key))T.remove(key);const t=T.createCanvas(key,w,h);t.imageData=t.data=t.pixels=t.buffer=null;/* Phaser가 만들어 두는 픽셀 복사본은 안 써서 바로 버려요(메모리 절약) */e={key,w,h,t,g:t.getContext(),used:PR.frame};PR.tex.set(key,e)}
   e.used=PR.frame;return e;
 }
 function prTexLRU(){
@@ -106,6 +106,23 @@ function prTexLRU(){
   for(const e of arr){if(bytes<CAP*.75)break;if(e.used>=PR.frame-600)break;drop(e)}
   if(bytes>=CAP)for(const e of arr){if(bytes<CAP)break;if(e.dead||e.used>=PR.frame-60)continue;drop(e)}
 }
+/* 건물·가구 그림 보관: 한도 안이면 계속 보관(다시 가도 바로 보임), 넘으면 15초 넘게 안 본 것부터 정리 */
+function prStaticTrim(){
+  if(PR.frame%60)return;let bytes=0;
+  for(const e of PR.tex.values())if(!(e.key[0]==='c'||e.key[0]==='i'||e.key.startsWith('pill|')||e.key.startsWith('fx|cloud')))bytes+=e.w*e.h*4;
+  const CAP=(prIsTV()?64:160)*1048576;if(bytes<CAP)return;
+  const old=[...PR.recs.values()].filter(r=>PR.frame-r.seen>900).sort((a,b)=>a.seen-b.seen);
+  for(const r of old){if(bytes<CAP*.85)break;let b=0;(r.layers||[]).forEach(e=>{b+=e.w*e.h*4});prKillRec(r);PR.recs.delete(r.id);bytes-=b}
+}
+/* 맵 바닥 그림: 여러 맵을 다녀와 한도를 넘으면 30초 넘게 안 간 맵 바닥부터 비움(다시 가면 금방 새로 그림) */
+function prBgTrim(){
+  if(PR.frame%60!==30)return;let bytes=0;const list=[];
+  for(const [a,o] of Object.entries(PR.areaObj)){if(!o.bgKey||!o.bgCv)continue;const b=o.bgCv.width*o.bgCv.height*4;bytes+=b;if(PR.frame-(o.seenF||0)>1800)list.push([a,o,b])}
+  const CAP=(prIsTV()?48:120)*1048576;if(bytes<CAP)return;
+  list.sort((p,q)=>(p[1].seenF||0)-(q[1].seenF||0));
+  for(const [a,o,b] of list){if(bytes<CAP)break;o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);OIDS.delete(o.bgCv);
+    for(const k in BG_CACHE)if(k.startsWith(a+'|'))delete BG_CACHE[k];o.bgKey=null;o.bgCv=null;bytes-=b}
+}
 /* 그리기 중간에 캔버스를 바꿔 끼우는 대리 객체(점원을 따로 떼어 내기 위함) */
 function prProxy(){
   let tgt=null;
@@ -116,7 +133,7 @@ function prProxy(){
 /* ---------- 구울 때의 크기(측정값 + 여유) ---------- */
 const PR_STB={storage:[0,-36,0,4.5],wardrobe:[-2,-38.5,0,3.5],bucket:[0,-24,0,1],craft:[-.3,-26,.3,3.3],wrap:[-.3,-23,.3,3.3],dryer:[0,-27,0,2],trim:[0,-14,0,2.5],board:[0,-12,0,2],trash:[0,-4,0,1],counter:[0,-24,0,3.5],phone:[0,-8,0,1],pickup:[0,-24,0,2],display:[0,-24,0,3.5],stall:[-.8,-28,.3,5.3],seedstall:[-.3,-32,.3,5.3],keeper:[0,-29,0,3.5],bench:[0,-3,0,1],plot:[0,-20,0,1],sprspot:[-14,-14,14,8],shelf:[0,-14,0,2]};
 const PR_DEB={tree:[-4,-23,4.8,2],lamp:[0,-28,0,0],table:[-6.5,-12,6.5,1.5],waitbench:[0,-4,0,1],bigplant:[-4,-13,4,.8],easel:[0,-9,0,.5],crate:[0,-6,1.5,.8],planterTree:[0,-14,0,.8],bucketRow:[-.3,-10,0,1],boxes:[0,-7,0,1],tallshelf:[0,-26,0,3],tooltable:[-.3,-4,.3,3.3],pottable:[-.3,-3,.3,3.3],fridgeDemo:[0,-20,0,1.8],seedRack:[0,-14,0,.8],canRack:[0,-14,0,.8],clocktower:[0,-80,.8,2],fenceH:[-1,-2,2,2],fenceV:[0,0,0,0],shed:[0,-4,0,2.5],mailbox:[0,-3,0,0],planterBox:[0,-6,0,1],hoursSign:[-.5,-9,.5,.5],school:[-8,-92,32,8],schoolclock:[-4,-126,4,0],playmat:[0,-4,0,0],swing:[0,-16,0,2],slide:[0,-20,1,1],sandbox:[0,0,0,0]};
-function prBounds(tab,type,x,y,w,h){const b=tab[type]||[-12,-44,12,8];return [x+Math.min(0,b[0])-8,y+Math.min(0,b[1])-12,w+Math.max(0,b[2])-Math.min(0,b[0])+16,h+Math.max(0,b[3])-Math.min(0,b[1])+18]}
+function prBounds(tab,type,x,y,w,h,d){let b=tab[type];if(typeof b==='function')b=b(d||{});b=b||[-12,-44,12,8];return [x+Math.min(0,b[0])-8,y+Math.min(0,b[1])-12,w+Math.max(0,b[2])-Math.min(0,b[0])+16,h+Math.max(0,b[3])-Math.min(0,b[1])+18]}
 
 /* ---------- 가구·장식 굽기 ---------- */
 function prBakeStatic(rec,area,drawFn,B){
@@ -226,11 +243,11 @@ function prSyncArea(area){
   const S0=[];
   /* 바닥 러그 등(맨 아래) */
   DECOR[area].forEach((d,k)=>{if(d.flat&&d.walk&&!d.carried&&inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+20))
-    prSyncStatic('d'+prOid(d),area,-1.5e6+k,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE))});
+    prSyncStatic('d'+prOid(d),area,-1.5e6+k,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d))});
   stationsIn(area).forEach(s=>{if(!inView((s.x+s.w/2)*TILE,(s.y+s.h)*TILE,s.w*8+30))return;
     prSyncStatic('s'+s.id,area,(s.y+s.h)*TILE-(s.type==='bench'?6:2),()=>prStSig(s),g=>drawStationV(g,s),()=>prBounds(PR_STB,s.type,s.x*TILE,s.y*TILE,s.w*TILE,s.h*TILE))});
   DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.t==='school'?120:40)))return;
-    prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE))});
+    prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d))});
 }
 
 /* ---------- 배경·조명 ---------- */
@@ -241,8 +258,8 @@ function prArea(area){
   return a;
 }
 function prSyncBg(area){
-  const a=prArea(area);const s=prFullZoom(area);const cv=bgCanvas(area,s);
-  let key=OIDS.get(cv);if(key==null){key='bg|'+(++OIDN);OIDS.set(cv,key);PR.sc.textures.addCanvas(key,cv)}
+  const a=prArea(area);a.seenF=PR.frame;const s=prFullZoom(area);const cv=bgCanvas(area,s);
+  let key=OIDS.get(cv);if(key==null){key='bg|'+(++OIDN);OIDS.set(cv,key);PR.sc.textures.addImage(key,cv)} /* addCanvas는 큰 배경 전체를 한 번 읽어 복사본을 만들어서 느려요 → 그냥 그림으로 등록 */
   if(a.bgKey!==key){const old=a.bgKey,oc=a.bgCv;a.bg.setTexture(key);a.bgKey=key;a.bgCv=cv;if(old&&PR.sc.textures.exists(old))PR.sc.textures.remove(old);if(oc)OIDS.delete(oc)}
   a.bg.setScale(AREAS[area].w*TILE/cv.width,AREAS[area].h*TILE/cv.height).setVisible(true);
   const [ac,aa]=ambientAt(S.t);const k=area==='town'?1:.7;const [col]=prCol(ac);
@@ -313,7 +330,8 @@ function prRender(){
   Object.keys(PR.areaObj).forEach(a=>{if(!areas[a]){const o=PR.areaObj[a];o.bg.setVisible(false);o.amb.setVisible(false);o.lights.forEach(l=>l.setVisible(false))}});
   for(const a in areas){VIEW=areas[a];RENDER_SCALE=prBakeScale(a);prSyncBg(a);prSyncDyn(a);prSyncArea(a);prSyncChars(a);VIEW=null}
   Object.keys(PR.areaObj).forEach(a=>{if(areas[a])return;const o=PR.areaObj[a];if(o.gu)o.gu.setVisible(false);if(o.gd)o.gd.setVisible(false)});
-  for(const r of PR.recs.values()){if(r.seen!==PR.frame){prHideRec(r);if(PR.frame-r.seen>900){prKillRec(r);PR.recs.delete(r.id)}}}
+  for(const r of PR.recs.values()){if(r.seen!==PR.frame)prHideRec(r)}
+  prStaticTrim();prBgTrim();
   if(PR.sunWas&&!PR.sunKeep){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height)}PR.sunWas=PR.sunKeep;
   prFlushPills();prTexLRU();
 }
@@ -412,7 +430,7 @@ function prSyncChars(area){
   allCats().forEach((t,ci)=>{if(t.area!==area||!inView(t.x,t.y))return;const r=prRec('cat'+ci);prBegin(r);prLive(r,'cat',area,[t.x-16,t.y-24,32,32],t.y,g=>drawCat(g,t),null);prEnd(r)});
   /* 가구 옮기기 미리보기 */
   if(area==='shop'&&S.edit)S.chars.forEach(c=>{if(!c.carry||c.area!=='shop')return;const f=c.carry,[x,y]=placeSpot(c,f),ok=spotOK(f,x,y);
-    const r=prRec('e'+c.i);prBegin(r);const B=f.type?prBounds(PR_STB,f.type,x*TILE,y*TILE,f.w*TILE,f.h*TILE):prBounds(PR_DEB,f.t,x*TILE,y*TILE,f.w*TILE,f.h*TILE);
+    const r=prRec('e'+c.i);prBegin(r);const B=f.type?prBounds(PR_STB,f.type,x*TILE,y*TILE,f.w*TILE,f.h*TILE):prBounds(PR_DEB,f.t,x*TILE,y*TILE,f.w*TILE,f.h*TILE,f);
     prLive(r,'ghost',area,B,9999,g=>{const ox0=f.x,oy0=f.y;f.x=x;f.y=y;g.globalAlpha=.6;try{if(f.type)drawStationV(g,f);else drawDecor(g,f)}finally{g.globalAlpha=1;f.x=ox0;f.y=oy0}rr(g,x*TILE,y*TILE,f.w*TILE,f.h*TILE,2);g.strokeStyle=ok?'rgba(127,192,106,.95)':'rgba(224,112,140,.95)';g.lineWidth=1.4;g.setLineDash([3,2]);g.stroke();g.setLineDash([])},
       [prOid(f),x,y,ok,S.rev].join());prEnd(r)});
 }

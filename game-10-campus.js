@@ -55,7 +55,7 @@ DECOR_BASE.campus=[
 [[52,13,'big']].forEach(([x,y])=>DECOR_BASE.campus.push({t:'bigtree',x,y,w:2,h:1}));
 [[17,19],[33,20],[46,20],[31,26],[49,21],[41,31],[26,34],[10,20],[60,25]].forEach(([x,y])=>DECOR_BASE.campus.push({t:'lamp',x,y,w:1,h:1}));
 Object.defineProperty(DECOR,'campus',{get(){return DECOR_BASE.campus},configurable:true});
-Object.assign(PR_DEB,{samsunglib:[-18,-150,18,22],zigzag:[-6,-60,6,6],cblock:[-6,-172,10,10],curvedglass:[-6,-70,6,6],cgate:[-6,-40,6,4],bigtree:[-14,-46,14,4]});
+Object.assign(PR_DEB,{samsunglib:[-18,-150,18,22],zigzag:[-6,-60,6,6],cblock:d=>[-6,-((d.H||40)+(d.wing?20:0)+14),10,10],curvedglass:[-6,-70,6,6],cgate:[-6,-40,6,4],bigtree:[-14,-46,14,4]});
 STATION_DEFS.push(['cb1','bench','campus',38,21,2,1],['cb2','bench','campus',41,21,2,1],['cb3','bench','campus',12,16,2,1],['cb4','bench','campus',48,13,2,1],['cb5','bench','campus',35,35,2,1]);
 
 /* ---------- 배경 ---------- */
