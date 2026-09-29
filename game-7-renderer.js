@@ -165,8 +165,8 @@ function prPlaceStatic(rec,area,depth){
   for(let i=rec.vchars.length;i<rec.cimgs.length;i++)rec.cimgs[i].setVisible(false);
   prPlaceFx(rec,area,0,0,depth+.0005);
 }
-function prHideRec(rec){['imgs','cimgs','fimgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.setVisible(false)));if(rec.sub)rec.sub.forEach(prHideRec)}
-function prKillRec(rec){for(const k of [...PR.tex.keys()])if(k.startsWith('L|'+rec.id+'|')){PR.sc.textures.remove(k);PR.tex.delete(k)}['imgs','cimgs','fimgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.destroy()));for(let i=0;i<(rec.nl||0);i++){const k=rec.id+'|'+i;if(PR.sc.textures.exists(k))PR.sc.textures.remove(k);PR.tex.delete(k)}if(rec.sub)rec.sub.forEach(prKillRec)}
+function prHideRec(rec){['imgs','cimgs','fimgs','himgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.setVisible(false)));if(rec.sub)rec.sub.forEach(prHideRec)}
+function prKillRec(rec){for(const k of [...PR.tex.keys()])if(k.startsWith('L|'+rec.id+'|')){PR.sc.textures.remove(k);PR.tex.delete(k)}['imgs','cimgs','fimgs','himgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.destroy()));for(let i=0;i<(rec.nl||0);i++){const k=rec.id+'|'+i;if(PR.sc.textures.exists(k))PR.sc.textures.remove(k);PR.tex.delete(k)}if(rec.sub)rec.sub.forEach(prKillRec)}
 
 /* ---------- 물방울 반짝임·냉장고 물결(따로 움직이는 작은 효과) ---------- */
 function prFxTex(kind,s,sc){
@@ -247,18 +247,51 @@ function prSyncArea(area){
   stationsIn(area).forEach(s=>{if(!inView((s.x+s.w/2)*TILE,(s.y+s.h)*TILE,s.w*8+30))return;
     prSyncStatic('s'+s.id,area,(s.y+s.h)*TILE-(s.type==='bench'?6:2),()=>prStSig(s),g=>drawStationV(g,s),()=>prBounds(PR_STB,s.type,s.x*TILE,s.y*TILE,s.w*TILE,s.h*TILE))});
   DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.vm||(d.t==='school'?120:40))))return;
-    const r=prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d));prFade(r,d,area)});
+    const r=d.share?prSyncShared(d,area):prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d));prFade(r,d,area)});
 }
-/* 건물·나무가 캐릭터를 가리면 반투명하게(캐릭터와 그 주변이 보이도록). 새 장소는 d.coverFn(캐릭터들)으로 더 정확한 판정을 줄 수 있어요 */
+/* 똑같이 생긴 장식(캠퍼스 나무 등)은 그림 하나를 같이 써요(d.share = 모양 이름) → 수백 그루여도 굽는 양·메모리가 적음 */
+function prSyncShared(d,area){
+  const sc=prBakeScale(area),tr=prRec('S|'+d.share);
+  if(tr.sig!==d.share+'|'+sc||!tr.layers||!tr.layers.length||!PR.sc.textures.exists(tr.layers[0].key)){tr.sig=d.share+'|'+sc;const t={...d,x:0,y:0};prBakeStatic(tr,area,g=>drawDecor(g,t),prBounds(PR_DEB,d.t,0,0,d.w*TILE,d.h*TILE,d))}
+  const r=prRec('d'+prOid(d));r.imgs=r.imgs||[];const e=tr.layers[0];let im=r.imgs[0];if(!im)im=r.imgs[0]=prImg(e.key);else prSetTex(im,e.key);
+  im.setPosition(AOFF[area]+d.x*TILE+tr.B[0]-1/tr.sc,d.y*TILE+tr.B[1]-1/tr.sc).setScale(1/tr.sc).setDepth((d.y+d.h)*TILE-2-.009).setVisible(true);
+  return r}
+/* 건물·나무가 캐릭터를 가리면 캐릭터 둘레만 반투명하게(가운데일수록 투명, 바깥으로 갈수록 원래대로)
+   · 같은 그림을 잘라(crop) 여러 조각으로 나눠 조각마다 투명도를 다르게 → 새 그림을 굽지 않아 가벼움
+   · 새 장소는 d.coverFn(캐릭터들)이 가려진 캐릭터 목록을 돌려주면 더 정확해요 */
 function prCover(d,area){
-  if(d.nofade)return false;const cs=S.chars.filter(c=>c.area===area&&!c.hidden);if(!cs.length)return false;
-  if(d.coverFn)return d.coverFn(cs);
+  if(d.nofade)return null;const cs=S.chars.filter(c=>c.area===area&&!c.hidden);if(!cs.length)return null;
+  if(d.coverFn){const r=d.coverFn(cs);return r&&r.length?r:null}
   let b=PR_DEB[d.t];if(typeof b==='function')b=b(d);const x0=d.x*TILE,x1=(d.x+d.w)*TILE,y1=(d.y+d.h)*TILE,top=d.y*TILE+(b?Math.min(0,b[1]):-40);
-  if(y1-top<26)return false;
-  for(const c of cs){if(c.y>=y1-1)continue;if(c.x+12<x0||c.x-12>x1)continue;if(c.y+2<top)continue;return true}
-  return false}
-function prFade(r,d,area){if(!r)return;const tgt=prCover(d,area)?.38:1;const a0=r.fa==null?1:r.fa;let a=a0+(tgt-a0)*.2;if(Math.abs(a-tgt)<.02)a=tgt;
-  if(a!==r.fa||r.faN!==(r.imgs||[]).length){r.fa=a;r.faN=(r.imgs||[]).length;(r.imgs||[]).forEach(im=>im.setAlpha(a));(r.cimgs||[]).forEach(im=>im.setAlpha(a))}}
+  if(y1-top<26)return null;const out=[];
+  for(const c of cs){if(c.y>=y1-1)continue;if(c.x+12<x0||c.x-12>x1)continue;if(c.y+2<top)continue;out.push(c)}
+  return out.length?out:null}
+const PR_HOLE=[[16,26,.22],[25,36,.5],[34,46,.78]]; // [가로 반폭, 세로 반높이, 투명도] 캐릭터 몸 가운데 기준(세계 좌표)
+function prFade(r,d,area){if(!r||PR.noFade)return;const cs=prCover(d,area);
+  const k0=r.hk||0;let k=k0+((cs?1:0)-k0)*.22;if(Math.abs(k-(cs?1:0))<.03)k=cs?1:0;r.hk=k;
+  if(cs){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;cs.forEach(c=>{x0=Math.min(x0,c.x);x1=Math.max(x1,c.x);y0=Math.min(y0,c.y-20);y1=Math.max(y1,c.y-20)});r.hc=[x0,y0,x1,y1]}
+  prHole(r,k>0?r.hc:null,k)}
+function prHole(r,hc,k){
+  r.himgs=r.himgs||[];let used=0;
+  (r.imgs||[]).forEach((im,li)=>{
+    if(!hc||!im.visible){if(im.isCropped)im.setCrop();if(im.alpha!==1)im.setAlpha(1);return}
+    const fr=im.frame,W=fr.width,H=fr.height,sx=im.scaleX,X=im.x,Y=im.y;
+    const T=(wx,wy)=>[(wx-X)/sx,(wy-Y)/sx];
+    const rects=PR_HOLE.map(([hw,hh])=>{const a=T(hc[0]-hw,hc[1]-hh),b=T(hc[2]+hw,hc[3]+hh);return [Math.max(0,Math.min(W,a[0])),Math.max(0,Math.min(H,a[1])),Math.max(0,Math.min(W,b[0])),Math.max(0,Math.min(H,b[1]))]});
+    const al=PR_HOLE.map(h=>1-(1-h[2])*k);
+    if(rects[2][2]-rects[2][0]<1||rects[2][3]-rects[2][1]<1){if(im.isCropped)im.setCrop();im.setAlpha(1);return}
+    const pieces=[[rects[0],al[0]]];
+    const ring=(o,n,a)=>{pieces.push([[o[0],o[1],o[2],n[1]],a],[[o[0],n[3],o[2],o[3]],a],[[o[0],n[1],n[0],n[3]],a],[[n[2],n[1],o[2],n[3]],a])};
+    ring(rects[1],rects[0],al[1]);ring(rects[2],rects[1],al[2]);ring([0,0,W,H],rects[2],1);
+    let first=true;
+    for(const [q,a] of pieces){const w=q[2]-q[0],h=q[3]-q[1];if(w<.5||h<.5)continue;
+      let o;if(first){o=im;first=false}else{o=r.himgs[used];if(!o){o=r.himgs[used]=prW(PR.sc.add.image(0,0,im.texture.key).setOrigin(0,0))}else if(o.texture!==im.texture)o.setTexture(im.texture.key);used++;
+        o.setPosition(X,Y).setScale(sx).setDepth(im.depth).setVisible(true)}
+      o.setCrop(q[0],q[1],w,h);o.setAlpha(a)}
+  });
+  for(let i=used;i<r.himgs.length;i++)r.himgs[i].setVisible(false);
+  (r.cimgs||[]).forEach(im=>im.setAlpha(hc?1-(1-PR_HOLE[1][2])*k:1));
+}
 
 /* ---------- 배경·조명 ---------- */
 function prArea(area){
