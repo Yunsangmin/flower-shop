@@ -36,6 +36,11 @@ const PAPERS={
   coral:{name:'코랄',c:'#F6B7A0',d:'#E3927A',l:'#FBDCD0',extra:true},
   kraft:{name:'크라프트',c:'#D8B994',d:'#B8956C',l:'#EBD8C0',extra:true}
 };
+/* 포장지 무늬: 색과 어울리면 손님이 기뻐하고 팁을 조금 더 줘요 */
+const PATTERNS={plain:{name:'민무늬'},dot:{name:'물방울'},stripe:{name:'줄무늬'},check:{name:'체크'},lace:{name:'레이스',extra:true},news:{name:'영자신문',extra:true},sheer:{name:'투명 비닐',extra:true}};
+const PAT_GOOD={dot:['pink','yellow','mint','sky'],stripe:['sky','cream','mint','lilac'],check:['cream','coral','kraft','yellow'],lace:['pink','lilac','cream','sky'],news:['kraft','cream'],sheer:['sky','lilac','mint','pink','cream']};
+const PAT_LINE={dot:['물방울 무늬 너무 귀여워요! 받는 사람도 웃을 것 같아요.','동글동글 무늬가 꽃이랑 잘 어울려요!'],stripe:['줄무늬 포장이 깔끔하고 세련됐네요!','단정한 줄무늬라 선물하기 딱 좋아요.'],check:['체크무늬라 소풍 가는 기분이에요!','포근한 체크 포장, 감각 있으시네요.'],lace:['레이스라니… 너무 로맨틱해요!','레이스 테두리가 꽃을 더 우아하게 만들어 줘요.'],news:['영자신문 포장! 유럽 꽃집 같아요.','빈티지한 느낌이 너무 멋져요.'],sheer:['투명 포장이라 꽃이 반짝반짝 빛나 보여요!','비닐 한 겹이 이렇게 고급스러울 줄이야!']};
+function styleScore(b){if(!b||!b.pat||b.pat==='plain')return 0;return (PAT_GOOD[b.pat]||[]).includes(b.paper)?2:1}
 const RIBBONS={
   white:{name:'흰색',c:'#FFFFFF',d:'#D6D0C6'},
   pink:{name:'분홍',c:'#EE7F9C',d:'#C65C79'},
@@ -80,6 +85,7 @@ const SHOP_ITEMS=[
   {id:'scissors',cat:'tool',name:'좋은 가위',desc:'사선 자르기 성공 구간이 넓어져요.',price:40000},
   {id:'papers2',cat:'wrap',name:'새 포장지 세트',desc:'민트, 코랄, 크라프트 포장지가 생겨요.',price:25000},
   {id:'ribbons2',cat:'wrap',name:'새 리본 세트',desc:'라벤더, 초록 리본이 생겨요.',price:15000},
+  {id:'patterns2',cat:'wrap',name:'고급 포장 무늬',desc:'레이스, 영자신문, 투명 비닐 포장이 생겨요.',price:18000},
   {id:'d_jute',cat:'deco',part:'바닥',name:'주트 러그',desc:'',price:28000,repeat:true,floor:{t:'rug_jute',w:4,h:2,flat:true,walk:true}},
   {id:'d_pendant',cat:'deco',part:'천장',name:'펜던트 조명',desc:'',price:35000},
   {id:'d_curtain',cat:'deco',part:'창문',name:'린넨 커튼',desc:'',price:22000},
@@ -251,8 +257,11 @@ const DIRV={down:[0,1],up:[0,-1],left:[-1,0],right:[1,0],dr:[Q,Q],dl:[-Q,Q],ur:[
 const OCT=['right','dr','down','dl','left','ul','up','ur'];
 function targetOf(c){
   const [dx,dy]=DIRV[c.dir];const fx=c.x+dx*12,fy=c.y-3+dy*12;
-  if(!S.edit)for(const k of allCats())if(k.area===c.area&&Math.hypot(k.x-fx,k.y-2-fy)<12)return {type:'npc',walker:k};
-  if(!S.edit){const pool=c.area==='town'?S.walkers.filter(w=>!w.hidden&&wArea(w)==='town').concat(S.customers.filter(k=>k.area==='town')):WIDE_AREAS[c.area]?S.walkers.filter(w=>!w.hidden&&wArea(w)===c.area):c.area==='shop'?S.customers.filter(k=>k.area==='shop'&&k.goal!=='out'):[];for(const w of pool){if(Math.hypot(w.x-fx,w.y-3-fy)<12)return {type:'npc',walker:w}}}
+  /* 말 걸기: 바라보는 방향이 아니어도 가까이(약 2칸) 있으면 대화. 여럿이면 가깝고 바라보는 쪽 사람 우선 */
+  if(!S.edit){const pool=(c.area==='town'?S.walkers.filter(w=>!w.hidden&&wArea(w)==='town').concat(S.customers.filter(k=>k.area==='town')):WIDE_AREAS[c.area]?S.walkers.filter(w=>!w.hidden&&wArea(w)===c.area):c.area==='shop'?S.customers.filter(k=>k.area==='shop'&&k.goal!=='out'):[]).concat(allCats().filter(k=>k.area===c.area));
+    const R=c.area==='shop'?16:c.area==='campus'?34:28;let best=null,bs=1e9;
+    for(const w of pool){const ex=w.x-c.x,ey=(w.y+(w.yo||0)*.5)-c.y,d=Math.hypot(ex,ey);if(d>R)continue;const dot=d>0?(ex*dx+ey*dy)/d:1;const sc=d-dot*10;if(sc<bs){bs=sc;best=w}}
+    if(best){const front=Math.hypot(best.x-fx,best.y-3-fy)<14;if(!front){if(c.area==='shop'&&Math.hypot(best.x-c.x,best.y-c.y)>14)best=null;else if(stationsIn(c.area).some(s=>fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3))best=null}if(best)return {type:'npc',walker:best}}}
   const hasSpr=c.bag.some(it=>it&&it.kind==='sprinkler');const list=stationsIn(c.area).filter(s=>s.type!=='sprspot'||s.on||hasSpr);
   for(const s of list){if(fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3)return s}
   let best=null,bd=18;
@@ -292,7 +301,11 @@ function newPal(kind,fem){
     sc:kind==='kid'?.72:1,pack:kind==='student'||(kind==='kid'&&Math.random()<.5)};
 }
 const DOG_NAMES=['뭉치','초코','보리','콩이','두부','망고','설기'];
-function park(zone){if(zone==='north')return [pick([rnd(3,23),rnd(37,56)])*TILE,rnd(8.4,20.5)*TILE];if(zone==='yard')return [rnd(3.4,16.4)*TILE,rnd(29,31.8)*TILE];if(zone==='lake')return Math.random()<.25?[rnd(40.3,42.7)*TILE,rnd(26.5,30.6)*TILE]:[rnd(18.5,56)*TILE,rnd(24.3,25.8)*TILE];return zone==='park'?[rnd(10.5,23.4)*TILE,rnd(13.8,22.5)*TILE]:[rnd(34.4,37.8)*TILE,rnd(17.8,22.5)*TILE]}
+function park(zone){if(zone==='north')return [pick([rnd(3,23),rnd(37,56)])*TILE,rnd(8.4,20.5)*TILE];if(zone==='yard')return [rnd(3.4,16.4)*TILE,rnd(29,31.8)*TILE];if(zone==='lake')return Math.random()<.25?[rnd(40.3,42.7)*TILE,rnd(26.5,30.6)*TILE]:[rnd(18.5,56)*TILE,rnd(24.3,25.8)*TILE];const R=zone==='park'?TOWN_SPOTS:TOWN_SPOTS_E;for(let n=0;n<20;n++){const r=pickW(R);const p=[rnd(r[0],r[2])*TILE,rnd(r[1],r[3])*TILE];if(typeof blocked!=='function'||!blocked('town',p[0],p[1]))return p}return [rnd(10.5,23.4)*TILE,rnd(13.8,22.5)*TILE]}
+/* 주민이 한곳(꽃집~학교 사이 공원)에 몰리지 않게 마을 곳곳으로 나눠 산책 [x0,y0,x1,y1,가중치] */
+const TOWN_SPOTS=[[3,13.8,23.4,22.5,3],[2,8.6,23,11,1.5],[37.5,8.6,56,11,1.5],[34.4,17.8,37.8,22.5,1],[38,21.4,56,23.6,2],[18.5,24.3,56,25.8,1]];
+const TOWN_SPOTS_E=[[34.4,17.8,37.8,22.5,1],[38,21.4,56,23.6,2],[37.5,8.6,56,11,1.5]];
+function pickW(L){let s=0;for(const r of L)s+=r[4];let x=Math.random()*s;for(const r of L){x-=r[4];if(x<=0)return r}return L[0]}
 function mkWalker(kind,zone,extra){const [x,y]=zone==='lane'?[rnd(3,54)*TILE,pick([9.4,10.2,11.1])*TILE]:park(zone);
   const pal=newPal(kind==='dog'||kind==='couple'?'adult':kind,extra&&extra.fem);const w={kind,zone,x,y,tx:x,ty:y,wait:rnd(0,2),pal,offer:null,walk:0,dir:'down',name:nameFor(pal),...extra};
   if(zone==='lane')w.tx=Math.random()<.5?2*TILE:55*TILE;

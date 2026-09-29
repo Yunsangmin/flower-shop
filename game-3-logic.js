@@ -63,7 +63,7 @@ function heldItem(c){return c.bag.find(Boolean)||null}
 function wiltedB(b){return b.kind==='bouquet'&&avg(b.stems.map(s=>s.f))<25}
 function freePrice(b){
   const base=b.stems.reduce((a,s)=>a+FL[s.t].price/5,0),f=avg(b.stems.map(s=>s.f)),types=new Set(b.stems.map(s=>s.t)).size;
-  const p=base*2.8*(.35+.65*clamp((f-25)/65,0,1))*(b.wrapped?1.15:1)*(1+.06*(types-1))*(b.card?1.05:1);
+  const p=base*2.8*(.35+.65*clamp((f-25)/65,0,1))*(b.wrapped?1.15:1)*(1+.06*(types-1))*(b.card?1.05:1)*(1+.05*styleScore(b));
   return Math.max(0,Math.round(p/100)*100);
 }
 function itemName(it){
@@ -215,7 +215,7 @@ function waterAll(c){
   c.waterT=Math.min(3,1.2+list.length*.14);c.vx=c.vy=0;toast(c.i,`텃밭 ${list.length}칸에 물을 줬어요`);
 }
 function trimModal(c,k){const t=c.bag[k].t;return {type:'trim',step:'leaf',slot:k,leaves:LEAVES[t]||3,removed:[],angle:10,adir:1}}
-function wrapModal(c,k){const b=c.bag[k],o=orderById(b.orderId);return {type:'wrap',step:'edit',slot:k,paper:o?o.paper:'pink',ribbon:'white',card:false}}
+function wrapModal(c,k){const b=c.bag[k],o=orderById(b.orderId);return {type:'wrap',step:'edit',slot:k,paper:o?o.paper:'pink',ribbon:'white',pat:'plain',card:false}}
 function standUp(c){
   const r=c.rest;if(!r)return;const b=r.bench;const mins=S.t-r.start;
   c.rest=null;{const bx=(b.x+.5+r.seat)*TILE,cand=b.up?[[bx,(b.y+1)*TILE+10],[bx,b.y*TILE-4],[bx-18,(b.y+.5)*TILE],[bx+18,(b.y+.5)*TILE]]:[[bx,(b.y+1)*TILE+10],[bx,(b.y+1)*TILE+16],[bx-20,(b.y+.8)*TILE],[bx+20,(b.y+.8)*TILE],[bx,b.y*TILE-4]];
@@ -237,11 +237,11 @@ function evaluate(b,o){
 function settleOrder(cu,o,b,how){
   const ev=evaluate(b,o);
   const late=Math.max(0,S.t-o.time),disc=o.urgent?0:Math.min(.5,.1*Math.floor(late/30));bump();
-  const tip=b.card?Math.round(o.price*.05):0;
+  const sty=styleScore(b),tip=(b.card?Math.round(o.price*.05):0)+Math.round(o.price*.04*sty);
   const price=Math.round((o.price*ev.q*(1-disc)+tip)/100)*100;
   S.money+=price;o.status='delivered';sfx('coin');
   const lines=['정말 예뻐요! 꼭 다시 올게요.','마음에 들어요, 고마워요.','음… 생각했던 거랑은 조금 달라요.'];
-  const rec={o,price,disc,ev,b,tip,how,line:lines[3-ev.stars]};
+  const rec={o,price,disc,ev,b,tip,how,sty,line:sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
   S.stats.rev.push(rec);
   cu.bouquet=b;leave(cu);
   return rec;
@@ -499,7 +499,7 @@ function update(dtReal){
     if(c.waterT>0){c.waterT-=dtReal;ix=0;iy=0}
     if(c.rest){c.moving=false;if(Math.hypot(ix,iy)>.4)standUp(c);else return}
     const mag=Math.min(1,Math.hypot(ix,iy));
-    const sp=99*(S.t<c.boostUntil?1.3:1);
+    const sp=99*(S.t<c.boostUntil?1.3:1)*(c.area==='campus'?2:1); // 넓은 캠퍼스에서는 2배로 빠르게
     c.vx=mag>.12?ix/Math.max(mag,1e-6)*mag*sp:0;c.vy=mag>.12?iy/Math.max(mag,1e-6)*mag*sp:0;
     c.moving=Math.hypot(c.vx,c.vy)>6;
     if(mag>.12){c.dir=OCT[((Math.round(Math.atan2(iy,ix)/(Math.PI/4))%8)+8)%8];c.face=Math.atan2(ix,iy)}

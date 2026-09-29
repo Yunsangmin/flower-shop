@@ -19,7 +19,7 @@ function audioInit(){
   const comp=c.createDynamicsCompressor();AU.music.connect(comp);AU.sfx.connect(comp);comp.connect(c.destination);
   // 음악 버스: 부드럽게 깎고(로우패스) 방 울림을 섞음
   const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5200;BGM.bus=c.createGain();BGM.bus.gain.value=1;BGM.bus.connect(lp);lp.connect(AU.music);
-  const conv=c.createConvolver();conv.buffer=bgmImpulse(c,2.6);BGM.wet=c.createGain();BGM.wet.gain.value=.32;BGM.bus.connect(conv);conv.connect(BGM.wet);BGM.wet.connect(AU.music);
+  const conv=c.createConvolver();conv.buffer=bgmImpulse(c,2.6);BGM.wet=c.createGain();BGM.wet.gain.value=.24;BGM.bus.connect(conv);conv.connect(BGM.wet);BGM.wet.connect(AU.music);
   // 자연 소리 버스
   BGM.amb=c.createGain();BGM.amb.gain.value=1;BGM.amb.connect(AU.music);
   BGM.noise=bgmNoise(c,4);
@@ -36,51 +36,85 @@ function tone(f,t,d,type,vol,dest,att){
 function bgmImpulse(c,sec){const n=Math.floor(c.sampleRate*sec),b=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<n;i++){const t=i/n;d[i]=(Math.random()*2-1)*Math.pow(1-t,2.6)*(t<.01?t*100:1)}}return b}
 function bgmNoise(c,sec){const n=Math.floor(c.sampleRate*sec),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=last*3.5}return b}
 function bgmLoop(c,type,f,q){const s=c.createBufferSource();s.buffer=BGM.noise;s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(BGM.amb);s.start();return {g,fl}}
-/* 악기 */
-function pianoNote(n,t,vel,len){const c=AU.ctx,f=MF(n),g=c.createGain(),lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(Math.min(6000,f*6),t);lp.frequency.exponentialRampToValueAtTime(Math.max(400,f*1.6),t+len);
-  const o1=c.createOscillator(),o2=c.createOscillator(),o3=c.createOscillator();o1.type='triangle';o2.type='sine';o3.type='sine';o1.frequency.value=f;o2.frequency.value=f*2.001;o3.frequency.value=f*.999;
-  const g2=c.createGain();g2.gain.value=.25;o2.connect(g2);g2.connect(lp);o1.connect(lp);o3.connect(lp);lp.connect(g);g.connect(BGM.bus);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel,t+.008);g.gain.exponentialRampToValueAtTime(vel*.35,t+.35);g.gain.exponentialRampToValueAtTime(.0004,t+len);
-  [o1,o2,o3].forEach(o=>{o.start(t);o.stop(t+len+.05)})}
-function padChord(ns,t,len,vol){const c=AU.ctx,lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;lp.Q.value=.3;const g=c.createGain();lp.connect(g);g.connect(BGM.bus);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+len*.35);g.gain.linearRampToValueAtTime(vol*.8,t+len*.75);g.gain.linearRampToValueAtTime(0,t+len+.6);
-  ns.forEach((n,k)=>[-6,6].forEach(dt=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=MF(n);o.detune.value=dt;const og=c.createGain();og.gain.value=.12/ns.length;o.connect(og);og.connect(lp);o.start(t);o.stop(t+len+.7)}))}
-function pluck(n,t,vel){const c=AU.ctx,f=MF(n),o=c.createOscillator(),bp=c.createBiquadFilter(),g=c.createGain();o.type='triangle';o.frequency.value=f;bp.type='lowpass';bp.frequency.setValueAtTime(f*5,t);bp.frequency.exponentialRampToValueAtTime(f*1.2,t+.4);
-  o.connect(bp);bp.connect(g);g.connect(BGM.bus);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel,t+.004);g.gain.exponentialRampToValueAtTime(.0004,t+1.2);o.start(t);o.stop(t+1.3)}
-/* 곡 재료: 7화음·9화음 위주의 포근한 진행 */
-const PROGS=[
-  [[48,55,59,64,67],[45,52,55,60,64],[41,48,52,57,64],[43,50,55,57,62]],   // Cmaj7 Am7 Fmaj7 G6
-  [[41,48,52,57,60],[40,47,50,55,59],[38,45,48,53,57],[43,50,53,55,60]],   // Fmaj7 Em7 Dm7 G7sus
-  [[48,55,57,62,64],[43,50,55,59,62],[45,52,55,60,64],[41,48,53,57,60]],   // C6/9 G Am7 F
-  [[45,52,55,60,64],[41,48,52,57,60],[48,55,59,62,64],[43,50,55,59,62]]    // Am7 Fmaj7 Cmaj9 G
-];
-const SCALE=[60,62,64,67,69,72,74,76,79,81];
-function bgmMood(){ // 장소·시간 분위기
-  const area=S.chars&&S.chars[0]?S.chars.map(c=>c.area):['shop'];const t=S.phase==='play'?S.t:120;
-  const out=area.some(a=>a!=='shop'&&a!=='supply'),eve=t>=450,morn=t<150,north=area.includes('north'),market=area.includes('market');
-  return {out,eve,morn,north,market,tempo:eve?60:morn?72:68}}
+/* 악기 — 재즈 트리오(코드로 만든 소리)
+   · 멜로디: 일렉트릭 피아노(로즈 느낌, FM 합성) / 반주: 같은 피아노로 부드러운 7화음
+   · 콘트라베이스: 워킹 베이스 / 드럼: 브러시·라이드(재즈), 림·셰이커(보사노바)
+   · 곡은 미리 작곡한 멜로디를 연주(무작위 음 X) → 한 번 들으면 흥얼거릴 수 있게 */
+function epiano(n,t,vel,len,bright){const c=AU.ctx,f=MF(n),car=c.createOscillator(),mod=c.createOscillator(),mg=c.createGain(),g=c.createGain(),lp=c.createBiquadFilter();
+  car.type='sine';mod.type='sine';car.frequency.value=f;mod.frequency.value=f;const idx=f*(bright||1.4);
+  mg.gain.setValueAtTime(idx,t);mg.gain.exponentialRampToValueAtTime(idx*.18,t+.5);mod.connect(mg);mg.connect(car.frequency);
+  const o2=c.createOscillator(),g2=c.createGain();o2.type='sine';o2.frequency.value=f*2;g2.gain.setValueAtTime(vel*.22,t);g2.gain.exponentialRampToValueAtTime(.0003,t+.35);o2.connect(g2);g2.connect(lp);
+  lp.type='lowpass';lp.frequency.value=Math.min(4200,f*7);car.connect(g);g.connect(lp);lp.connect(BGM.bus);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel,t+.006);g.gain.exponentialRampToValueAtTime(vel*.42,t+.45);g.gain.exponentialRampToValueAtTime(.0003,t+len+.35);
+  [car,mod,o2].forEach(o=>{o.start(t);o.stop(t+len+.4)})}
+function bassNote(n,t,len,vel){const c=AU.ctx,f=MF(n),o=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain(),lp=c.createBiquadFilter();
+  o.type='sine';o2.type='triangle';o.frequency.value=f;o2.frequency.value=f*2;g2.gain.value=.18;lp.type='lowpass';lp.frequency.setValueAtTime(1100,t);lp.frequency.exponentialRampToValueAtTime(420,t+.25);
+  o.connect(g);o2.connect(g2);g2.connect(g);g.connect(lp);lp.connect(BGM.bus);vel=vel||.3;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel,t+.012);g.gain.exponentialRampToValueAtTime(vel*.45,t+.18);g.gain.exponentialRampToValueAtTime(.0004,t+len+.08);
+  [o,o2].forEach(x=>{x.start(t);x.stop(t+len+.1)})}
+function noiseHit(t,type,f,q,att,dec,vol){const c=AU.ctx,s=c.createBufferSource();s.buffer=BGM.noise2;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();
+  s.connect(fl);fl.connect(g);g.connect(BGM.bus);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0003,t+att+dec);s.start(t,Math.random()*1.5);s.stop(t+att+dec+.05)}
+const DRUM={ride:(t,v)=>{noiseHit(t,'bandpass',7800,.9,.002,.34,.026*v);tone(3150,t,.3,'triangle',.006*v,BGM.bus,.002)},
+  brush:(t,d,v)=>noiseHit(t,'bandpass',2200,.6,d*.45,d*.6,.014*v),hat:(t,v)=>noiseHit(t,'highpass',7200,.7,.002,.05,.018*v),
+  rim:(t,v)=>{noiseHit(t,'bandpass',2600,2,.001,.03,.05*v);tone(1650,t,.05,'triangle',.02*v,BGM.bus,.001)},shaker:(t,v)=>noiseHit(t,'highpass',5200,.8,.01,.05,.014*v),
+  kick:(t,v)=>{const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(48,t+.12);g.gain.setValueAtTime(.18*v,t);g.gain.exponentialRampToValueAtTime(.0004,t+.2);o.connect(g);g.connect(BGM.bus);o.start(t);o.stop(t+.22)}};
+/* 화음 이름 → 음 */
+const NOTE_I={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function chordOf(sym){const m=/^([A-G])([b#]?)(.*)$/.exec(sym);let r=NOTE_I[m[1]]+(m[2]==='b'?-1:m[2]==='#'?1:0);const q=m[3];
+  const iv={'maj7':[0,4,7,11,14],'m7':[0,3,7,10,14],'7':[0,4,7,10,9+12],'m6':[0,3,7,9,14],'6':[0,4,7,9,14],'m7b5':[0,3,6,10,12],'':[0,4,7,12,14]}[q]||[0,4,7,10];return {r:(r+12)%12,iv}}
+/* 곡: [템포, 스타일, [마디별 화음(한 마디 2개면 반씩)], 멜로디 [음, 시작박, 길이](마디 단위로)] — 모두 새로 작곡한 곡 */
+const SONGS={
+  morning:{bpm:118,style:'swing',key:'F',bars:[['Fmaj7'],['Dm7'],['Gm7'],['C7'],['Am7'],['D7'],['Gm7','C7'],['Fmaj7'],['Cm7','F7'],['Bbmaj7'],['Bbm6'],['Am7','D7'],['Gm7'],['C7'],['F6'],['Gm7','C7']],
+    mel:[[[72,0,1.5],[69,1.5,.5],[72,2,1],[74,3,1]],[[77,0,2],[76,2,1],[74,3,1]],[[74,0,1.5],[70,1.5,.5],[74,2,1],[77,3,1]],[[76,0,3]],
+         [[76,0,1.5],[72,1.5,.5],[76,2,1],[79,3,1]],[[78,0,2],[76,2,1],[74,3,1]],[[74,0,1],[77,1,1],[76,2,1],[70,3,1]],[[69,0,3]],
+         [[75,0,1.5],[72,1.5,.5],[75,2,1],[79,3,1]],[[77,0,2],[74,2,2]],[[73,0,1.5],[77,1.5,.5],[79,2,1],[77,3,1]],[[76,0,1],[72,1,1],[74,2,1],[78,3,1]],
+         [[79,0,2],[77,2,1],[74,3,1]],[[76,0,1.5],[74,1.5,.5],[72,2,1],[70,3,1]],[[69,0,2],[72,2,1],[74,3,1]],[[67,0,1],[69,1,1],[72,2,2]]]},
+  bossa:{bpm:128,style:'bossa',key:'C',bars:[['Cmaj7'],['Cmaj7'],['D7'],['D7'],['Dm7'],['G7'],['Em7','A7'],['Dm7','G7'],['Cmaj7'],['Cmaj7'],['Fmaj7'],['Fm6'],['Em7'],['A7'],['Dm7','G7'],['C6']],
+    mel:[[[79,0,2],[76,2,1],[74,3,1]],[[76,0,3],[72,3,1]],[[78,0,2],[76,2,1],[74,3,1]],[[72,0,3],[69,3,1]],
+         [[72,0,1.5],[74,1.5,.5],[77,2,1],[81,3,1]],[[79,0,3],[77,3,1]],[[76,0,1],[74,1,1],[73,2,1],[76,3,1]],[[74,0,3],[71,3,1]],
+         [[79,0,2],[76,2,1],[74,3,1]],[[76,0,3],[79,3,1]],[[81,0,2],[79,2,1],[76,3,1]],[[80,0,2],[79,2,1],[77,3,1]],
+         [[76,0,1.5],[74,1.5,.5],[76,2,1],[79,3,1]],[[76,0,2],[73,2,2]],[[74,0,1],[77,1,1],[71,2,1],[74,3,1]],[[72,0,4]]]},
+  evening:{bpm:66,style:'ballad',key:'Eb',bars:[['Ebmaj7'],['Cm7'],['Fm7'],['Bb7'],['Gm7','C7'],['Fm7','Bb7'],['Ebmaj7','Ab7'],['Ebmaj7'],['Abmaj7'],['Abm6'],['Gm7','C7'],['Fm7','Bb7'],['Gm7'],['C7'],['Fm7','Bb7'],['Eb6']],
+    mel:[[[79,0,2],[77,2,1],[75,3,1]],[[75,0,3],[72,3,1]],[[77,0,2],[75,2,1],[72,3,1]],[[74,0,3],[70,3,1]],
+         [[74,0,1.5],[75,1.5,.5],[77,2,1],[79,3,1]],[[80,0,2],[77,2,2]],[[79,0,1],[77,1,1],[75,2,1],[72,3,1]],[[75,0,4]],
+         [[80,0,2],[79,2,1],[77,3,1]],[[80,0,2],[78,2,2]],[[77,0,1.5],[74,1.5,.5],[76,2,2]],[[77,0,2],[74,2,2]],
+         [[79,0,2],[77,2,1],[74,3,1]],[[76,0,3],[79,3,1]],[[80,0,1],[79,1,1],[77,2,1],[74,3,1]],[[75,0,4]]]}};
+function bgmMood(){const area=S.chars&&S.chars[0]?S.chars.map(c=>c.area):['shop'];const t=S.phase==='play'?S.t:120;
+  const out=area.some(a=>a!=='shop'&&a!=='supply'),eve=t>=450,morn=t<150,north=area.includes('north'),market=area.includes('market'),campus=area.includes('campus')||area.includes('farm');
+  return {out,eve,morn,north,market,campus,song:eve?'evening':(campus||market)?'bossa':'morning'}}
+/* 한 곡 = 멜로디(1회) → 즉흥(멜로디 없이 반주+짧은 프레이즈) → 멜로디(1회) → 쉼 → 다음 곡 */
 function schedMusic(){
-  if(!AU.ctx||SET.music<=0)return;const c=AU.ctx;const M=bgmMood();const spb=60/M.tempo/2; // 8분음표
-  while(BGM.next<c.currentTime+.5){
-    const t=BGM.next,e=BGM.beat%8;
-    if(e===0){ // 새 마디
-      if(BGM.bar%4===0){BGM.prog=Math.floor(Math.random()*PROGS.length);if(Math.random()<.5||!BGM.motif)BGM.motif=Array.from({length:4},()=>Math.floor(Math.random()*6))}
-      const ch=PROGS[BGM.prog][BGM.bar%4],low=M.eve?-12:0;
-      pianoNote(ch[0]-12+low,t,.16,3.4);                                 // 베이스
-      padChord(ch.slice(1).map(n=>n+(M.eve?-12:0)),t,spb*8,M.eve?.09:M.north?.08:.05);
-      if(!M.eve||Math.random()<.5)[1,2,3].forEach((k,j)=>pianoNote(ch[k]+low+12,t+.03+j*.012,.05,2.6)); // 부드러운 화음
-    }
-    const ch=PROGS[BGM.prog][BGM.bar%4];
-    // 아르페지오(아침·시장은 기타, 저녁엔 드물게)
-    if(!M.eve&&(M.morn||M.market?true:e%2===0)&&Math.random()<(M.market?.8:.55)){const pat=[1,2,3,4,3,2,3,4][e];pluck(ch[Math.min(pat,ch.length-1)]+12,t,.06)}
-    else if(M.eve&&e%4===2&&Math.random()<.5)pianoNote(ch[3]+12,t,.05,2.8);
-    // 멜로디: 동기(motif)를 조금씩 바꿔 반복, 쉼표를 넉넉히
-    const play=(e===0||e===3||e===4||(e===6&&Math.random()<.5))&&Math.random()<(M.eve?.45:.7);
-    if(play){const idx=(BGM.motif[(e>>1)%4]+(BGM.bar%2?Math.floor(Math.random()*2):0))%SCALE.length;let n=SCALE[idx]+(M.eve?-12:0);
-      if(Math.random()<.18)n+=2;pianoNote(n,t+(Math.random()*.02),M.eve?.08:.1,M.eve?3.2:2.2)}
-    BGM.next+=spb*(1+(e%2?-.04:.04));BGM.beat++;if(BGM.beat%8===0)BGM.bar++;
+  if(!AU.ctx||SET.music<=0)return;const c=AU.ctx;if(!BGM.noise2)BGM.noise2=bgmWhite(c,2);
+  while(BGM.next<c.currentTime+.6){
+    if(!BGM.song||BGM.beat>=BGM.song.bars.length*4){ // 곡/코러스 넘김
+      const M=bgmMood();if(!BGM.song||BGM.chorus>=2||(BGM.want&&BGM.want!==M.song&&BGM.chorus>=1)){BGM.want=M.song;BGM.song=SONGS[M.song];BGM.chorus=0;if(BGM.started){BGM.next+=60/BGM.song.bpm*4}BGM.started=1}else BGM.chorus++;
+      BGM.beat=0;BGM.want=M.song;}
+    const SG=BGM.song,spb=60/SG.bpm,t=BGM.next,bar=Math.floor(BGM.beat/4),b=BGM.beat%4,chs=SG.bars[bar],half=chs.length>1&&b>=2,sym=chs[half?1:0],C0=chordOf(sym);
+    const nxt=SG.bars[(bar+(b===3||(chs.length>1&&b===1)?1:0))%SG.bars.length],nsym=(chs.length>1&&b===1)?chs[1]:nxt[0],N0=chordOf(nsym);
+    const sw=SG.style==='swing'?spb*.66:spb*.5,hum=()=>Math.random()*.012,head=BGM.chorus!==1;
+    const root=36+C0.r,v=SG.style==='ballad'?.9:1;
+    // 베이스
+    if(SG.style==='swing'){let n;if(b===0||(chs.length>1&&b===2))n=root;else if(b===3||(chs.length>1&&b===1)){const nr=36+N0.r;n=nr+(Math.random()<.5?1:-1)}else n=root+pick([C0.iv[1],C0.iv[2],C0.iv[2],12]);if(n<35)n+=12;bassNote(n,t+hum(),spb*.9,.32)}
+    else if(SG.style==='bossa'){if(b===0||b===2)bassNote(b===0?root:root+7,t,spb*1.4,.3);if(b===1||b===3)bassNote(b===1?root+7:root,t+spb*.5,spb*.45,.22)}
+    else{if(b===0)bassNote(root,t,spb*1.8,.28);if(b===2)bassNote(root+7,t,spb*1.8,.22)}
+    // 반주(부드러운 화음: 3·7·9음 중심)
+    const vo=C0.iv.slice(1).map(x=>{let n=48+C0.r+x;while(n<52)n+=12;while(n>67)n-=12;return n}).sort((a,b)=>a-b);
+    const comp=(tt,vel,len)=>vo.forEach((n,k)=>epiano(n,tt+k*.008,vel,len,.7));
+    if(SG.style==='swing'){if(b===0&&Math.random()<.8)comp(t+hum(),.05,spb*1.2);if(b===1&&Math.random()<.55)comp(t+sw,.045,spb*.6);if(b===2&&chs.length>1)comp(t,.05,spb);if(b===3&&Math.random()<.35)comp(t+sw,.04,spb*.5)}
+    else if(SG.style==='bossa'){if(b===0)comp(t,.045,spb*.7);if(b===1)comp(t+spb*.5,.04,spb*.6);if(b===2&&Math.random()<.7)comp(t+spb*.5,.04,spb*.6);if(b===3)comp(t,.035,spb*.5)}
+    else{if(b===0||(b===2&&chs.length>1))vo.forEach((n,k)=>epiano(n,t+k*.07,.06,spb*3,.6))}
+    // 드럼
+    if(SG.style==='swing'){DRUM.ride(t,b%2?.8:1);if(b===1||b===3){DRUM.ride(t+sw,.55);DRUM.hat(t,.9)}DRUM.brush(t,spb,.7)}
+    else if(SG.style==='bossa'){DRUM.shaker(t,1);DRUM.shaker(t+spb*.5,.6);if([0,3].includes(BGM.beat%8)||BGM.beat%8===6)DRUM.rim(t+(BGM.beat%8===3?spb*.5:0),.8);if(b===0)DRUM.kick(t,.6);if(b===2)DRUM.kick(t+spb*.5,.4)}
+    else DRUM.brush(t,spb*2,.45);
+    // 멜로디(주제) / 즉흥 코러스는 짧은 화음 프레이즈만
+    if(head){for(const [n,st,d] of SG.mel[bar])if(st>=b&&st<b+1){const tt=t+(st-b)*spb+(SG.style==='swing'&&(st%1)>.4?sw-spb*.5:0);epiano(n,tt+hum(),.13*v,d*spb*.95,1.6)}}
+    else if(b%2===0&&Math.random()<.55){const sc=C0.iv.map(x=>60+C0.r+x).concat(C0.iv.map(x=>72+C0.r+x)).filter(n=>n>=64&&n<=81);const n0=pick(sc);epiano(n0,t+hum(),.08*v,spb*.8,1.3);if(Math.random()<.6)epiano(pick(sc),t+sw,.07*v,spb*.7,1.3)}
+    BGM.next+=spb;BGM.beat++;
   }
 }
+function bgmWhite(c,sec){const n=Math.floor(c.sampleRate*sec),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b}
+
 /* 자연 소리 */
 function schedAmbience(){
   if(!AU.ctx)return;const c=AU.ctx,now=c.currentTime,M=bgmMood(),on=SET.music>0&&S.phase==='play';

@@ -100,7 +100,7 @@ function prTexLRU(){
   /* 사람·물건 그림은 쓰는 만큼만 보관(약 40MB 넘으면 오래 안 쓴 것부터 정리) */
   if(PR.frame%60)return;let bytes=0;const arr=[];
   for(const e of PR.tex.values())if(e.key[0]==='c'||e.key[0]==='i'||e.key.startsWith('pill|')||e.key.startsWith('fx|cloud')){bytes+=e.w*e.h*4;arr.push(e)}
-  const CAP=(prIsTV()?56:80)*1048576;if(bytes<CAP)return;
+  const CAP=(prIsTV()?44:80)*1048576;if(bytes<CAP)return;
   // 1차: 10초 넘게 안 쓴 것부터 75%까지 / 2차(그래도 넘치면): 1초 넘게 안 쓴 것만 한도 아래까지 → 걷기 동작처럼 곧 다시 쓸 그림을 지웠다 다시 굽는 일을 줄임
   arr.sort((a,b)=>a.used-b.used);const drop=e=>{PR.sc.textures.remove(e.key);PR.tex.delete(e.key);bytes-=e.w*e.h*4;e.dead=1};
   for(const e of arr){if(bytes<CAP*.75)break;if(e.used>=PR.frame-600)break;drop(e)}
@@ -110,7 +110,7 @@ function prTexLRU(){
 function prStaticTrim(){
   if(PR.frame%60)return;let bytes=0;
   for(const e of PR.tex.values())if(!(e.key[0]==='c'||e.key[0]==='i'||e.key.startsWith('pill|')||e.key.startsWith('fx|cloud')))bytes+=e.w*e.h*4;
-  const CAP=(prIsTV()?64:160)*1048576;if(bytes<CAP)return;
+  const CAP=(prIsTV()?52:160)*1048576;if(bytes<CAP)return;
   const old=[...PR.recs.values()].filter(r=>PR.frame-r.seen>900).sort((a,b)=>a.seen-b.seen);
   for(const r of old){if(bytes<CAP*.85)break;let b=0;(r.layers||[]).forEach(e=>{b+=e.w*e.h*4});prKillRec(r);PR.recs.delete(r.id);bytes-=b}
 }
@@ -118,7 +118,7 @@ function prStaticTrim(){
 function prBgTrim(){
   if(PR.frame%60!==30)return;let bytes=0;const list=[];
   for(const [a,o] of Object.entries(PR.areaObj)){if(!o.bgKey||!o.bgCv)continue;const b=o.bgCv.width*o.bgCv.height*4;bytes+=b;if(PR.frame-(o.seenF||0)>1800)list.push([a,o,b])}
-  const CAP=(prIsTV()?48:120)*1048576;if(bytes<CAP)return;
+  const CAP=(prIsTV()?40:120)*1048576;if(bytes<CAP)return;
   list.sort((p,q)=>(p[1].seenF||0)-(q[1].seenF||0));
   for(const [a,o,b] of list){if(bytes<CAP)break;o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);OIDS.delete(o.bgCv);
     for(const k in BG_CACHE)if(k.startsWith(a+'|'))delete BG_CACHE[k];o.bgKey=null;o.bgCv=null;bytes-=b}
@@ -193,11 +193,12 @@ const PR_CB=[-16,-46,32,52];
 function prCharTex(area,x,p,dir,phase,moving,glasses,work,sit){
   const sc=PR.npc?Math.max(1,Math.round(prBakeScale(area)*.8*4)/4):prBakeScale(area); // 주민·손님은 도장을 조금 작게(메모리 절약)
   const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=Math.round(an/(Math.PI/8));if(q<=-8)q=8;if(q>8)q-=16;
+  if(PR.npc){q=Math.round(q/2)*2;if(q<=-8)q=8} // 주민·손님은 8방향만(그림 수 절반 → 메모리·첫 굽기 부담 감소)
   let fk,ph=0,bob=0,wk=0;
   /* 주민·손님(PR.npc)은 걷기 8단계·서 있을 때 숨쉬기 없음 → 도장 수를 크게 줄여 메모리·첫 굽기 부담을 낮춤. SM·SK는 그대로 부드럽게 */
   if(moving){let f=Math.round((((phase%TAU)+TAU)%TAU)/(TAU/16))%16;if(PR.npc)f=(f>>1)<<1;fk='m'+f;ph=f*TAU/16}
   else{const b=PR.npc?0:Math.round(Math.sin(PR.now/600+(sit?0:(x%7)))*4);fk='i'+b;bob=b/4*1.1}
-  if(work){const w=Math.round(Math.sin(PR.now/90)*4);fk+='w'+w;wk=w/4*.18}
+  if(work){const w=PR.npc?Math.round(Math.sin(PR.now/120))*4:Math.round(Math.sin(PR.now/90)*4);fk+='w'+w;wk=w/4*.18}
   const key='c|'+prPalKey(p)+'|'+q+'|'+fk+'|'+(glasses?1:0)+(sit?1:0)+'|'+sc;
   let e=PR.tex.get(key);if(e){e.used=PR.frame;return e}
   const W=Math.ceil(PR_CB[2]*sc)+2,H=Math.ceil(PR_CB[3]*sc)+2;e=prTex(key,W,H);const g=e.g;
@@ -266,31 +267,36 @@ function prCover(d,area){
   if(y1-top<26)return null;const out=[];
   for(const c of cs){if(c.y>=y1-1)continue;if(c.x+12<x0||c.x-12>x1)continue;if(c.y+2<top)continue;out.push(c)}
   return out.length?out:null}
-const PR_HOLE=[[20,30,.14],[30,42,.38],[42,56,.7]]; // [가로 반폭, 세로 반높이, 투명도] 캐릭터 몸 가운데 기준(세계 좌표)
+const PR_HOLE={rx:30,ry:44,lv:[[1,.82],[.8,.6],[.6,.38],[.4,.18]],ns:12}; // 타원 모양으로 가운데일수록 투명(바깥→안쪽)
 function prFade(r,d,area){if(!r||PR.noFade)return;const cs=prCover(d,area);
   const k0=r.hk||0;let k=k0+((cs?1:0)-k0)*.22;if(Math.abs(k-(cs?1:0))<.03)k=cs?1:0;r.hk=k;
   if(cs){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const ox=AOFF[area]||0;cs.forEach(c=>{x0=Math.min(x0,c.x+ox);x1=Math.max(x1,c.x+ox);y0=Math.min(y0,c.y-20);y1=Math.max(y1,c.y-20)});r.hc=[x0,y0,x1,y1]}
   prHole(r,k>0?r.hc:null,k)}
 function prHole(r,hc,k){
-  r.himgs=r.himgs||[];let used=0;
-  (r.imgs||[]).forEach((im,li)=>{
+  r.himgs=r.himgs||[];let used=0;const H0=PR_HOLE;
+  (r.imgs||[]).forEach(im=>{
     if(!hc||!im.visible){if(im.isCropped)im.setCrop();if(im.alpha!==1)im.setAlpha(1);return}
     const fr=im.frame,W=fr.width,H=fr.height,sx=im.scaleX,X=im.x,Y=im.y;
-    const T=(wx,wy)=>[(wx-X)/sx,(wy-Y)/sx];
-    const rects=PR_HOLE.map(([hw,hh])=>{const a=T(hc[0]-hw,hc[1]-hh),b=T(hc[2]+hw,hc[3]+hh);return [Math.max(0,Math.min(W,a[0])),Math.max(0,Math.min(H,a[1])),Math.max(0,Math.min(W,b[0])),Math.max(0,Math.min(H,b[1]))]});
-    const al=PR_HOLE.map(h=>1-(1-h[2])*k);
-    if(rects[2][2]-rects[2][0]<1||rects[2][3]-rects[2][1]<1){if(im.isCropped)im.setCrop();im.setAlpha(1);return}
-    const pieces=[[rects[0],al[0]]];
-    const ring=(o,n,a)=>{pieces.push([[o[0],o[1],o[2],n[1]],a],[[o[0],n[3],o[2],o[3]],a],[[o[0],n[1],n[0],n[3]],a],[[n[2],n[1],o[2],n[3]],a])};
-    ring(rects[1],rects[0],al[1]);ring(rects[2],rects[1],al[2]);ring([0,0,W,H],rects[2],1);
+    const cx=(hc[0]+hc[2])/2,cy=(hc[1]+hc[3])/2,rx=Math.max(H0.rx,(hc[2]-hc[0])/2+H0.rx*.8),ry=H0.ry;
+    const tx=v=>(v-X)/sx,ty=v=>(v-Y)/sx;
+    if(tx(cx+rx)<0||tx(cx-rx)>W||ty(cy+ry)<0||ty(cy-ry)>H){if(im.isCropped)im.setCrop();im.setAlpha(1);return}
+    const pieces=[];const al=H0.lv.map(l=>1-(1-l[1])*k);
+    const Y0=ty(cy-ry),Y1=ty(cy+ry);
+    pieces.push([0,0,W,Y0,1],[0,Y1,W,H,1]);
+    for(let j=0;j<H0.ns;j++){const ya=cy-ry+2*ry*j/H0.ns,yb=cy-ry+2*ry*(j+1)/H0.ns,ym=(ya+yb)/2,e=(ym-cy);
+      const hw=H0.lv.map(([s])=>{const q=1-(e/(s*ry))**2;return q>0?s*rx*Math.sqrt(q):0});
+      const y0=ty(ya),y1=ty(yb);let xl=tx(cx-hw[0]),xr=tx(cx+hw[0]);pieces.push([0,y0,xl,y1,1],[xr,y0,W,y1,1]);
+      for(let L=0;L<hw.length;L++){const o=hw[L],i=L+1<hw.length?hw[L+1]:0;if(o<=0)continue;
+        if(i>0){pieces.push([tx(cx-o),y0,tx(cx-i),y1,al[L]],[tx(cx+i),y0,tx(cx+o),y1,al[L]])}else pieces.push([tx(cx-o),y0,tx(cx+o),y1,al[L]])}}
     let first=true;
-    for(const [q,a] of pieces){const w=q[2]-q[0],h=q[3]-q[1];if(w<.5||h<.5)continue;
+    for(let [a0,b0,a1,b1,a] of pieces){a0=Math.max(0,a0);b0=Math.max(0,b0);a1=Math.min(W,a1);b1=Math.min(H,b1);const w=a1-a0,h=b1-b0;if(w<.5||h<.5)continue;
       let o;if(first){o=im;first=false}else{o=r.himgs[used];if(!o){o=r.himgs[used]=prW(PR.sc.add.image(0,0,im.texture.key).setOrigin(0,0))}else if(o.texture!==im.texture)o.setTexture(im.texture.key);used++;
         o.setPosition(X,Y).setScale(sx).setDepth(im.depth).setVisible(true)}
-      o.setCrop(q[0],q[1],w,h);o.setAlpha(a)}
+      o.setCrop(a0,b0,w,h);o.setAlpha(a)}
+    if(first){im.setCrop(0,0,1,1);im.setAlpha(0)}
   });
   for(let i=used;i<r.himgs.length;i++)r.himgs[i].setVisible(false);
-  (r.cimgs||[]).forEach(im=>im.setAlpha(hc?1-(1-PR_HOLE[1][2])*k:1));
+  (r.cimgs||[]).forEach(im=>im.setAlpha(hc?1-.5*k:1));
 }
 
 /* ---------- 배경·조명 ---------- */
@@ -318,7 +324,7 @@ function prSyncChunks(area,a){
       c={key,q,img:prW(PR.sc.add.image(AOFF[area]+cx*CS,cy*CS,key).setOrigin(0,0).setDepth(-3e6).setScale(CS/cv.width+.0005))};a.ch.set(k,c);made++}
     c.used=PR.frame;c.img.setVisible(true)}
   for(const c of a.ch.values())if(c.used!==PR.frame)c.img.setVisible(false);
-  const LIM=prIsTV()?16:24;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
+  const LIM=prIsTV()?12:24;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
     for(const [k,c] of old){if(a.ch.size<=LIM)break;if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy();a.ch.delete(k)}}
 }
 function prSyncBg(area){

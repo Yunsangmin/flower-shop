@@ -14,7 +14,7 @@ const MAIN={
    · 조건이 되면 머리 위에 "!" 가 뜨고, 가까이 있으면 먼저 다가와 말을 걸어요
    · {me}=말 거는 사람(생민/수갱), {other}=다른 한 사람, {shop}=가게 이름
    ========================================================= */
-const BOND_MAX=10;
+const BOND_MAX=60; // 긴 이야기(24막)를 위해 넉넉히. 화면에는 표시하지 않아요
 function josa(w,a,b){const c=w.charCodeAt(w.length-1)-44032;return w+(c>=0&&c<11172&&c%28?a:b)}
 function bondOf(k){S.bonds=S.bonds||{};let b=S.bonds[k];if(!b)b=S.bonds[k]={h:0,day:0,ch:0,chDay:0,mem:{}};if(!b.mem)b.mem={};return b}
 function heartsTxt(h){return '♥'.repeat(Math.min(5,Math.ceil(h/2)))+'♡'.repeat(5-Math.min(5,Math.ceil(h/2)))}
