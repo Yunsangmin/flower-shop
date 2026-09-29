@@ -4,6 +4,6 @@ showTitle();
 prBoot();
 requestAnimationFrame(loop);
 window.__audioInit=()=>audioInit();window.__schedMusic=()=>schedMusic();window.__schedAmb=()=>schedAmbience();
-window.__game={MAIN,PAL,PR,S,update,render,doAction,onModalClick,closeModal,endDay,newGame,continueGame,bouquetSVG,targetOf,actionLabel,saveGame,loadSave,spawnUrgent,findGift,bestOrderFor,updateHUD,openModal,renderModal,SET,showSettings,perfShow,drawChar,drawCat,drawDog,flowerHead,bgCanvas,solid,AREAS,TILE,DECOR};
+window.__game={wArea,MAIN,PAL,PR,S,update,render,doAction,onModalClick,closeModal,endDay,newGame,continueGame,bouquetSVG,targetOf,actionLabel,saveGame,loadSave,spawnUrgent,findGift,bestOrderFor,updateHUD,openModal,renderModal,SET,showSettings,perfShow,drawChar,drawCat,drawDog,flowerHead,drawDecor,drawStationV,bgCanvas,solid,AREAS,TILE,DECOR};
 
 

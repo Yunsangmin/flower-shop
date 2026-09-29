@@ -99,8 +99,8 @@ const SHOP_ITEMS=[
   {id:'exp2',cat:'expand',name:'가게 넓히기 2단계',desc:'가게가 한 번 더 넓어져요.',price:1200000,need:'exp1'},
   {id:'exp3',cat:'expand',name:'가게 넓히기 3단계',desc:'가게가 가장 넓어져요.',price:2500000,need:'exp2'}
 ];
-const NAMES_F=['서연','지우','수아','은비','하린','예린','나연','유진','소윤','다은','채원','지아'];
-const NAMES_M=['하준','민재','시우','태오','지호','준서','건우','현우','서진','우진','지훈','은호'];
+const NAMES_F=['서연','지우','수아','은비','하린','예린','나연','유진','소윤','다은','채원','지아','윤서','하은','서아','민서','지유','예은','수빈','가윤','소희','연우'];
+const NAMES_M=['하준','민재','시우','태오','지호','준서','건우','현우','서진','우진','지훈','은호','도현','주원','민준','이준','승우','유찬','준혁','시현','동건','태민'];
 const NAMES=NAMES_F.concat(NAMES_M); // 메인 주민 이름(민지·순이·도윤·하루)은 엑스트라에 쓰지 않음
 function nameFor(pal){return pick(pal&&pal.style==='f'?NAMES_F:NAMES_M)}
 function isFemName(n){return NAMES_F.includes(n)}

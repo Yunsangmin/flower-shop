@@ -314,7 +314,7 @@ function navRoute(area,sx,sy,tx,ty){
   if(navSight(N,sx,sy,end[0],end[1]))return {pts:[],end};
   const W=N.w,si=s[1]*W+s[0],ei=e[1]*W+e[0],gs=new Float32Array(W*N.h).fill(1e9),from=new Int32Array(W*N.h).fill(-1),open=[si],inO=new Uint8Array(W*N.h);gs[si]=0;inO[si]=1;
   const hh=i=>{const x=i%W,y=(i/W)|0,dx=Math.abs(x-e[0]),dy=Math.abs(y-e[1]);return Math.max(dx,dy)+.41*Math.min(dx,dy)};let it=0;
-  while(open.length&&it++<4000){let bi=0,bf=1e9;for(let j=0;j<open.length;j++){const f=gs[open[j]]+hh(open[j]);if(f<bf){bf=f;bi=j}}const cur=open[bi];open.splice(bi,1);inO[cur]=0;if(cur===ei)break;
+  while(open.length&&it++<8000){let bi=0,bf=1e9;for(let j=0;j<open.length;j++){const f=gs[open[j]]+hh(open[j]);if(f<bf){bf=f;bi=j}}const cur=open[bi];open.splice(bi,1);inO[cur]=0;if(cur===ei)break;
     const cx=cur%W,cy=(cur/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;if(!navFree(N,nx,ny))continue;if(dx&&dy&&(!navFree(N,cx+dx,cy)||!navFree(N,cx,cy+dy)))continue;
       const ni=ny*W+nx,ng=gs[cur]+(dx&&dy?1.414:1);if(ng<gs[ni]){gs[ni]=ng;from[ni]=cur;if(!inO[ni]){open.push(ni);inO[ni]=1}}}}
   if(from[ei]<0&&ei!==si)return null;
