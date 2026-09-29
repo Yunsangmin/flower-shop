@@ -267,7 +267,7 @@ function renderModal(i){
     const w=m.walker;if(w.kind==='cat'){w.hearts=performance.now()}const who=w.kind==='cat'?(w.who||'마을 고양이'):w.kind==='kid'?'어린이':w.kind==='elder'?'어르신':w.kind==='couple'?'산책 나온 부부':w.kind==='dog'?'강아지와 산책 중':w.kind==='student'?'학생':'';
     const NC={kid:['#F5C451','#D9A631'],student:['#8DBBE8','#6C9CCB'],elder:['#B7A2DA','#9681BE'],cat:['#A9A7B0','#86848D'],dog:['#E5A77A','#C98A5D'],couple:['#F4A6B8','#D8849A']}[w.kind]||['#F4A6B8','#D8849A'];
     talkPrep(i,m);if(m.shown==null)m.shown=0;const L=m.line||'';const M=w.main?MAIN[w.main]:null;const NC2=M?M.nc:NC;const who2=M?M.who:who;
-    const hearts=M?`<small class="thearts">${heartsTxt(bondOf(w.main).h)}</small>`:'';
+    const hearts=''; // 친밀도는 안에서만 쌓이고 화면에는 보이지 않아요
     const pg=m.pages&&m.pages.length>1?`<span class="tpage">${Math.min(m.page+1,m.pages.length)}/${m.pages.length}</span>`:'';
     const ch=m.choose&&m.shown>=L.length?`<div class="tchoices">${m.choose.opts.map((o,k)=>`<button class="btn ${k?'soft':'primary'}" data-a="tchoice" data-v="${k}">${esc(o[0])}</button>`).join('')}</div>`:'';
     h=`<div class="talkbox" data-a="close" role="button" tabindex="0" aria-label="${esc(w.name)}: ${esc(L)}"><span class="talkwho who p${i}">${PAL[i].name}</span><span class="talkname" style="--nc:${NC2[0]};--ncd:${NC2[1]}">${esc(w.name)}${who2?`<small>${who2}</small>`:''}${hearts}</span><div class="talkface"><canvas id="tface${i}" width="160" height="160"></canvas></div><div class="talktext"><span class="tshown">${esc(L.slice(0,m.shown))}</span><span class="ghost">${esc(L.slice(m.shown))}</span>${ch}</div>${pg}<span class="talkhint">${m.choose?'골라 주세요':'행동 버튼'}</span><i class="talknext"${m.shown<L.length||m.choose?' style="opacity:0"':''}></i></div>`;
@@ -369,8 +369,7 @@ function talkPrep(i,m){if(!m.pages)m.pages=[m.line||''];if(m.page==null)m.page=0
 function talkNext(i){const c=S.chars[i],m=c.modal;if(!m||m.type!=='talk')return;if(m.choose)return;
   m.page++;m.shown=0;talkPrep(i,m);if(m.page>=m.pages.length){talkEnd(i);return}renderModal(i)}
 function talkEnd(i){const m=S.chars[i].modal;if(!m)return;const w=m.walker;
-  if(m.story&&m.key&&!m._fin){m._fin=1;storyDone(i,m.key);toastAll(`${josa(MAIN[m.key].name,'과','와')} 한층 가까워졌어요 ♥`)}
-  else if(m.gained&&m.key)toast(i,`${josa(MAIN[m.key].name,'과','와')} 조금 더 친해졌어요 ♥`);
+  if(m.story&&m.key&&!m._fin){m._fin=1;storyDone(i,m.key)}
   closeModal(i);sfx('close')}
 function talkChoose(i,k){const m=S.chars[i].modal;if(!m||!m.choose)return;const P=m.choose,o=P.opts[+k];if(!o)return;
   if(P.key&&m.key)bondOf(m.key).mem[P.key]=o[0];m.pages.splice(m.page+1,0,...o[1]);m.choose=null;m.page++;m.shown=0;talkPrep(i,m);sfx('tap');renderModal(i)}

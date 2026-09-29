@@ -266,10 +266,10 @@ function prCover(d,area){
   if(y1-top<26)return null;const out=[];
   for(const c of cs){if(c.y>=y1-1)continue;if(c.x+12<x0||c.x-12>x1)continue;if(c.y+2<top)continue;out.push(c)}
   return out.length?out:null}
-const PR_HOLE=[[16,26,.22],[25,36,.5],[34,46,.78]]; // [가로 반폭, 세로 반높이, 투명도] 캐릭터 몸 가운데 기준(세계 좌표)
+const PR_HOLE=[[20,30,.14],[30,42,.38],[42,56,.7]]; // [가로 반폭, 세로 반높이, 투명도] 캐릭터 몸 가운데 기준(세계 좌표)
 function prFade(r,d,area){if(!r||PR.noFade)return;const cs=prCover(d,area);
   const k0=r.hk||0;let k=k0+((cs?1:0)-k0)*.22;if(Math.abs(k-(cs?1:0))<.03)k=cs?1:0;r.hk=k;
-  if(cs){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;cs.forEach(c=>{x0=Math.min(x0,c.x);x1=Math.max(x1,c.x);y0=Math.min(y0,c.y-20);y1=Math.max(y1,c.y-20)});r.hc=[x0,y0,x1,y1]}
+  if(cs){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const ox=AOFF[area]||0;cs.forEach(c=>{x0=Math.min(x0,c.x+ox);x1=Math.max(x1,c.x+ox);y0=Math.min(y0,c.y-20);y1=Math.max(y1,c.y-20)});r.hc=[x0,y0,x1,y1]}
   prHole(r,k>0?r.hc:null,k)}
 function prHole(r,hc,k){
   r.himgs=r.himgs||[];let used=0;

@@ -146,7 +146,7 @@ function doAction(i){
     case 'npc':{const w=s.walker;w.talking=true;w.dir=faceTo(w,c);
       if(w.offer)openModal(i,{type:'booking',walker:w});
       else if(w.kind==='reserve'&&w.state==='wait'){w.offer=reserveOffer(w);openModal(i,{type:'booking',walker:w})}
-      else if(w.main){const T=mainTalk(i,w);w.calling=0;openModal(i,{type:'talk',walker:w,pages:T.pages,page:0,story:T.story,key:T.k,gained:T.gained})}
+      else if(w.main){const T=mainTalk(i,w);if(w.calling)S.callNext=S.t+rnd(60,140);w.calling=0;openModal(i,{type:'talk',walker:w,pages:T.pages,page:0,story:T.story,key:T.k,gained:T.gained})}
       else openModal(i,{type:'talk',walker:w,pages:[talkLine(w)],page:0});return}
     case 'seedstall':
       if(S.t>=MARKET_CLOSE){toast(i,'꽃시장은 정오에 문을 닫았어요');return}
@@ -384,7 +384,7 @@ function updateWalkers(dt){
   if(!inRec&&yard.length)yard.forEach(w=>{if(!w.goIn){w.goIn=true;w.sit=false;w.dz=0;w.yo=0;w.path=[[8.5*TILE,28.6*TILE]]}});
   if(!inRec&&yard.length){S.swingOcc=[false,false];S.ball=null}
   if(yard.length)updateBall(dt,yard);
-  S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main);if(w)w.offer={tpl:pick(TEMPLATES),time:pick(SLOTS),name:w.name,until:S.t+70}}});
+  S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main&&!w.cRole);if(w)w.offer={tpl:pick(TEMPLATES),time:pick(SLOTS),name:w.name,until:S.t+70}}});
   S.walkers.forEach(w=>{
     w._nav=w.follow||w.zone==='yard'?null:wArea(w);
     if(w._nav&&!w._chk&&!w.hidden){w._chk=1;const N=navGrid(w._nav),tx=Math.floor(w.x/TILE),ty=Math.floor(w.y/TILE);if(!navFree(N,tx,ty)){const q=navNear(N,tx,ty);if(q){w.x=(q[0]+.5)*TILE;w.y=(q[1]+.5)*TILE;w.tx=w.x;w.ty=w.y;if(w.dog){w.dog.x=w.x-8;w.dog.y=w.y}}}}

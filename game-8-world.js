@@ -690,7 +690,7 @@ function overlays(v){
   if(v.area==='shop'){S.customers.forEach(k=>{if(k.area!=='shop'||k.kind!=='reserve'||k.state!=='wait'||k.talking)return;const [x,y]=S2(k.x,k.y-32);pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)});
     S.customers.forEach(k=>{if(k.area==='shop'&&k.say&&k.state==='move'){const [x,y]=S2(k.x,k.y-32);pillText(k.say,x,y,'rgba(255,253,249,.9)','#7A6E86',9)}})}
   if(WIDE_AREAS[v.area]){S.walkers.forEach(w=>{if(!w.main||w.hidden||w.talking||wArea(w)!==v.area)return;const hy=w.pal&&w.pal.sc?33*w.pal.sc+4:37;const [x,y]=S2(w.x,w.y-hy);if(!inV(x,y))return;
-      if(w.calling)pillText(w.callLine,x,y,'#FFF1C4','#6A4A3A',11);else if(storyReady(w.main))pillText('!',x,y,'#F5CF4E','#6A4A3A',12)});
+      if(w.calling)pillText(w.callLine,x,y,'#FFF1C4','#6A4A3A',11)});
     S.walkers.forEach(w=>{if(!w.offer||wArea(w)!==v.area)return;const [x,y]=S2(w.x,w.y-33);if(inV(x,y))pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)})}
   if(v.area==='market'){
     if(S.t>=MARKET_CLOSE){const [x,y]=S2(144,70);pillText('오늘 꽃시장은 문을 닫았어요',x,y,'rgba(255,253,249,.95)','#4A3F5C',12)}

@@ -179,7 +179,7 @@ function mainTalk(i,w){
   let gained=false;if(b.day!==S.day){b.day=S.day;if(b.h<BOND_MAX){b.h++;gained=true}}
   return {pages,story,k,gained}
 }
-function storyDone(i,k){S.callQuiet=S.t+45;const b=bondOf(k);b.ch++;b.chDay=S.day;if(b.h<BOND_MAX)b.h++;bump();saveMid()}
+function storyDone(i,k){S.callQuiet=S.t+45;S.callNext=S.t+rnd(60,140);const b=bondOf(k);b.ch++;b.chDay=S.day;if(b.h<BOND_MAX)b.h++;bump();saveMid()}
 function storyEffect(i,k,e){
   if(e.gift){toastAll(e.gift+' ♥');sfx('buy');return}
   if(e.order){const T=STORY_ORDERS[e.order];if(!T)return;const o=genOrder({title:T.title,text:T.text,req:{...T.req},paper:T.paper,price:T.price},T.time,S.day+1);o.name=T.name;o.story=e.order;S.tomorrow.push(o);toastAll(`${T.name}의 특별 예약이 내일 ${clock(T.time)}에 잡혔어요`);sfx('ring')}
@@ -192,8 +192,9 @@ function mainCall(w,dt){
   if(!best||bd>110){w.calling=0;return false}
   if((w.callCool||0)>S.t||(S.callQuiet||0)>S.t)return false;
   if(!w.calling&&S.walkers.some(o=>o!==w&&o.calling))return false; // 한 번에 한 명만 다가와요
+  if(!w.calling){if(S.callNext==null)S.callNext=S.t+rnd(20,70);if(S.t<S.callNext||Math.random()>.02)return false} // 가끔, 랜덤한 때에만
   if(!w.calling){w.calling=1;w.callT=0;w.callLine=fillTxt(pick(CALL_LINES[w.main]),best.i,w.main);sfx('bell')}
-  w.callT+=dt;if(w.callT>22){w.calling=0;w.callCool=S.t+40;return false}
+  w.callT+=dt;if(w.callT>22){w.calling=0;w.callCool=S.t+90;S.callNext=S.t+rnd(60,140);return false}
   if(bd>24){w.path=[[best.x+(w.x<best.x?-16:16),best.y+2]];stepToward(w,dt,26)}else{w.walk=0;w.dir=faceTo(w,best)}
   return true;
 }
