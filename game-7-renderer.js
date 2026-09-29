@@ -237,7 +237,7 @@ function prSyncStatic(id,area,depth,sigFn,drawFn,boundsFn){
   const check=r.sig===null||S.rev!==r.rev||((PR.frame+(r.h||(r.h=(id.length*7)%6)))%6===0);
   if(check){r.rev=S.rev;const sg=sigFn();if(sg!==r.sig){r.sig=sg;prBakeStatic(r,area,drawFn,boundsFn())}}
   if(r.timed&&PR.now-r.bt>83)prBakeStatic(r,area,drawFn,boundsFn());
-  prPlaceStatic(r,area,depth);
+  prPlaceStatic(r,area,depth);return r;
 }
 function prSyncArea(area){
   const S0=[];
@@ -246,9 +246,19 @@ function prSyncArea(area){
     prSyncStatic('d'+prOid(d),area,-1.5e6+k,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d))});
   stationsIn(area).forEach(s=>{if(!inView((s.x+s.w/2)*TILE,(s.y+s.h)*TILE,s.w*8+30))return;
     prSyncStatic('s'+s.id,area,(s.y+s.h)*TILE-(s.type==='bench'?6:2),()=>prStSig(s),g=>drawStationV(g,s),()=>prBounds(PR_STB,s.type,s.x*TILE,s.y*TILE,s.w*TILE,s.h*TILE))});
-  DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.t==='school'?120:40)))return;
-    prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d))});
+  DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.vm||(d.t==='school'?120:40))))return;
+    const r=prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d));prFade(r,d,area)});
 }
+/* 건물·나무가 캐릭터를 가리면 반투명하게(캐릭터와 그 주변이 보이도록). 새 장소는 d.coverFn(캐릭터들)으로 더 정확한 판정을 줄 수 있어요 */
+function prCover(d,area){
+  if(d.nofade)return false;const cs=S.chars.filter(c=>c.area===area&&!c.hidden);if(!cs.length)return false;
+  if(d.coverFn)return d.coverFn(cs);
+  let b=PR_DEB[d.t];if(typeof b==='function')b=b(d);const x0=d.x*TILE,x1=(d.x+d.w)*TILE,y1=(d.y+d.h)*TILE,top=d.y*TILE+(b?Math.min(0,b[1]):-40);
+  if(y1-top<26)return false;
+  for(const c of cs){if(c.y>=y1-1)continue;if(c.x+12<x0||c.x-12>x1)continue;if(c.y+2<top)continue;return true}
+  return false}
+function prFade(r,d,area){if(!r)return;const tgt=prCover(d,area)?.38:1;const a0=r.fa==null?1:r.fa;let a=a0+(tgt-a0)*.2;if(Math.abs(a-tgt)<.02)a=tgt;
+  if(a!==r.fa||r.faN!==(r.imgs||[]).length){r.fa=a;r.faN=(r.imgs||[]).length;(r.imgs||[]).forEach(im=>im.setAlpha(a));(r.cimgs||[]).forEach(im=>im.setAlpha(a))}}
 
 /* ---------- 배경·조명 ---------- */
 function prArea(area){
@@ -257,11 +267,36 @@ function prArea(area){
     amb:prW(PR.sc.add.rectangle(AOFF[area],0,AREAS[area].w*TILE,AREAS[area].h*TILE,0xffffff,0).setOrigin(0,0).setDepth(5e6)),lights:[]};
   return a;
 }
+/* 아주 큰 장소(캠퍼스)는 바닥을 여러 조각으로 나눠 화면 근처만 그려요(한 장으로 그리면 흐릿해지거나 메모리를 많이 써서) */
+const AREA_CHUNK={};
+function prSyncChunks(area,a){
+  const A=AREAS[area],CS=A.chunk*TILE,V=VIEW||[0,0,A.w*TILE,A.h*TILE],q=Math.min(2.5,Math.max(1,prBakeScale(area)*.65));
+  a.ch=a.ch||new Map();a.bg.setVisible(false);
+  const nx=Math.ceil(A.w*TILE/CS),ny=Math.ceil(A.h*TILE/CS),m=CS*.35;
+  const cx0=Math.max(0,Math.floor((V[0]-m)/CS)),cx1=Math.min(nx-1,Math.floor((V[2]+m)/CS)),cy0=Math.max(0,Math.floor((V[1]-m)/CS)),cy1=Math.min(ny-1,Math.floor((V[3]+m)/CS));
+  let made=0;
+  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){
+    const k=cx+','+cy;let c=a.ch.get(k);const vis=!(cx*CS>V[2]||(cx+1)*CS<V[0]||cy*CS>V[3]||(cy+1)*CS<V[1]);
+    if(!c||c.q!==q){if(!vis&&made>=1)continue;
+      if(c){if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}
+      const cv=document.createElement('canvas');cv.width=Math.ceil(CS*q);cv.height=Math.ceil(CS*q);const g=cv.getContext('2d');g.setTransform(q,0,0,q,-cx*CS*q,-cy*CS*q);
+      try{AREA_CHUNK[area](g,cx*CS,cy*CS,CS,CS)}catch(e){console.error(e)}
+      const key='bgc|'+(++OIDN);PR.sc.textures.addImage(key,cv);
+      c={key,q,img:prW(PR.sc.add.image(AOFF[area]+cx*CS,cy*CS,key).setOrigin(0,0).setDepth(-3e6).setScale(CS/cv.width+.0005))};a.ch.set(k,c);made++}
+    c.used=PR.frame;c.img.setVisible(true)}
+  for(const c of a.ch.values())if(c.used!==PR.frame)c.img.setVisible(false);
+  const LIM=prIsTV()?16:24;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
+    for(const [k,c] of old){if(a.ch.size<=LIM)break;if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy();a.ch.delete(k)}}
+}
 function prSyncBg(area){
-  const a=prArea(area);a.seenF=PR.frame;const s=prFullZoom(area);const cv=bgCanvas(area,s);
+  const a=prArea(area);a.seenF=PR.frame;
+  if(AREAS[area].chunk&&AREA_CHUNK[area]){prSyncChunks(area,a);prSyncAmb(area,a);return}
+  const s=prFullZoom(area);const cv=bgCanvas(area,s);
   let key=OIDS.get(cv);if(key==null){key='bg|'+(++OIDN);OIDS.set(cv,key);PR.sc.textures.addImage(key,cv)} /* addCanvas는 큰 배경 전체를 한 번 읽어 복사본을 만들어서 느려요 → 그냥 그림으로 등록 */
   if(a.bgKey!==key){const old=a.bgKey,oc=a.bgCv;a.bg.setTexture(key);a.bgKey=key;a.bgCv=cv;if(old&&PR.sc.textures.exists(old))PR.sc.textures.remove(old);if(oc)OIDS.delete(oc)}
-  a.bg.setScale(AREAS[area].w*TILE/cv.width,AREAS[area].h*TILE/cv.height).setVisible(true);
+  a.bg.setScale(AREAS[area].w*TILE/cv.width,AREAS[area].h*TILE/cv.height).setVisible(true);prSyncAmb(area,a);
+}
+function prSyncAmb(area,a){
   const [ac,aa]=ambientAt(S.t);const k=area==='town'?1:.7;const [col]=prCol(ac);
   a.amb.width=AREAS[area].w*TILE;a.amb.setFillStyle(col,1).setAlpha(aa*k).setVisible(aa>0);
   const L=lampAt(S.t);const ls=L>0?lightsFor(area):[];const r=(WIDE_AREAS[area]?55:80);
@@ -327,7 +362,7 @@ function prRender(){
     prFrame(g2,x0,y0,x1-x0,y1-y0,14,prBgColor(),(v.split&&S.mode==='solo'&&v.chars[0]===S.active)?PAL[S.active].tag:'rgba(74,63,92,.3)');
     PR.curV=[x0,y0,x1,y1];overlays(v);PR.curV=null;
   });
-  Object.keys(PR.areaObj).forEach(a=>{if(!areas[a]){const o=PR.areaObj[a];o.bg.setVisible(false);o.amb.setVisible(false);o.lights.forEach(l=>l.setVisible(false))}});
+  Object.keys(PR.areaObj).forEach(a=>{if(!areas[a]){const o=PR.areaObj[a];o.bg.setVisible(false);if(o.ch)o.ch.forEach(c=>c.img.setVisible(false));o.amb.setVisible(false);o.lights.forEach(l=>l.setVisible(false))}});
   for(const a in areas){VIEW=areas[a];RENDER_SCALE=prBakeScale(a);prSyncBg(a);prSyncDyn(a);prSyncArea(a);prSyncChars(a);VIEW=null}
   Object.keys(PR.areaObj).forEach(a=>{if(areas[a])return;const o=PR.areaObj[a];if(o.gu)o.gu.setVisible(false);if(o.gd)o.gd.setVisible(false)});
   for(const r of PR.recs.values()){if(r.seen!==PR.frame)prHideRec(r)}
