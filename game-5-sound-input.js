@@ -171,18 +171,25 @@ function applyPadBinds(gp,u){
 }
 /* ---------- 토토 (마을 고양이) ---------- */
 const CAT_LINES=['냐아~ (꼬리를 살랑살랑 흔들어요)','미야옹? (노란 눈을 동그랗게 떠요)','골골골… (다리에 몸을 비벼요)','냥! (앞발로 신발을 톡톡 건드려요)','먀아아~ (배를 보이며 뒹굴어요)','냥냥. (햇볕 좋은 자리를 알려주려는 것 같아요)','…냐. (하품을 크게 하고 눈을 깜빡여요)','미야~ 냐냐! (오늘 누가 간식을 줬나 봐요. 기분이 아주 좋아요)'];
-function makeCat(){if(S.cat&&S.cat.day===S.day)return;S.cat={kind:'cat',name:'토토',x:8.5*TILE,y:7.2*TILE,tx:8.5*TILE,ty:7.2*TILE,dir:'down',walk:0,state:'sit',timer:3,day:S.day,talking:false,hearts:0}}
-function catSpot(){for(let n=0;n<30;n++){const x=rnd(2,56)*TILE,y=rnd(6.4,26)*TILE;if(!blocked('town',x,y))return [x,y]}return [8*TILE,7*TILE]}
-function updateCat(dt){
-  const c=S.cat;if(!c)return;c.mv=false;
+function makeCat(){if(S.cat&&S.cat.day===S.day)return;S.cat={kind:'cat',area:'town',name:'토토',x:8.5*TILE,y:7.2*TILE,tx:8.5*TILE,ty:7.2*TILE,dir:'down',walk:0,state:'sit',timer:3,day:S.day,talking:false,hearts:0}}
+/* 고양이들: 토토(마을) + 다른 장소의 고양이(S.fcats, 농막 길냥이 등) — 같은 움직임 규칙 */
+function allCats(){const a=[];if(S.cat)a.push(S.cat);(S.fcats||[]).forEach(k=>a.push(k));return a}
+const CAT_SPOTS={town:[2,56,6.4,26]};
+function catSpot(area){area=area||'town';const R=CAT_SPOTS[area]||[2,AREAS[area].w-2,2,AREAS[area].h-2];for(let n=0;n<30;n++){const x=rnd(R[0],R[1])*TILE,y=rnd(R[2],R[3])*TILE;if(!blocked(area,x,y))return [x,y]}return [AREAS[area].w*8,AREAS[area].h*8]}
+function updateCat(dt){allCats().forEach(c=>updateOneCat(c,dt))}
+function updateOneCat(c,dt){
+  const area=c.area||'town';if(!c.area)c.area='town';c.mv=false;
   if(c.talking){c.state='sit';return}
   c.timer-=dt;
   if(c.state==='walk'){const dx=c.tx-c.x,dy=c.ty-c.y,d=Math.hypot(dx,dy);if(d<3||c.timer<=0){c.state=pick(['sit','sit','groom','sleep','sit']);c.timer=c.state==='sleep'?rnd(12,25):rnd(4,9);return}
-    if(!c.route){const r=navRoute('town',c.x,c.y,c.tx,c.ty);if(!r){c.timer=0;return}c.route=r.pts.concat([r.end]);[c.tx,c.ty]=r.end}
-    const [wx,wy]=c.route[0]||[c.tx,c.ty];const ex=wx-c.x,ey=wy-c.y,ed=Math.hypot(ex,ey)||1,sp=22*dt;
+    if(!c.route){const r=navRoute(area,c.x,c.y,c.tx,c.ty);if(!r){c.timer=0;return}c.route=r.pts.concat([r.end]);[c.tx,c.ty]=r.end}
+    const [wx,wy]=c.route[0]||[c.tx,c.ty];const ex=wx-c.x,ey=wy-c.y,ed=Math.hypot(ex,ey)||1,sp=(c.speed||22)*dt;
     if(ed<=sp){c.x=wx;c.y=wy;c.route.shift();if(!c.route.length){c.route=null;c.tx=c.x;c.ty=c.y}}else{c.x+=ex/ed*sp;c.y+=ey/ed*sp}
     c.mv=true;c.walk+=dt*10;c.dir=Math.abs(ex)>Math.abs(ey)?(ex>0?'right':'left'):(ey>0?'down':'up')}
-  else if(c.timer<=0){c.state='walk';const near=S.walkers.filter(w=>!w.hidden&&w.zone!=='north'&&w.zone!=='yard'&&Math.random()<.35);const t=near.length&&Math.random()<.4?pick(near):null;[c.tx,c.ty]=t?[t.x+8,t.y+4]:catSpot();c.route=null;c.timer=rnd(10,20)}
+  else if(c.timer<=0){c.state='walk';let t=null;
+    if(area==='town'){const near=S.walkers.filter(w=>!w.hidden&&wArea(w)==='town'&&w.zone!=='yard'&&Math.random()<.35);t=near.length&&Math.random()<.4?pick(near):null}
+    else if(c.spots&&Math.random()<.5){const q=pick(c.spots);[c.tx,c.ty]=[q[0]*TILE,q[1]*TILE];c.route=null;c.timer=rnd(10,20);return}
+    [c.tx,c.ty]=t?[t.x+8,t.y+4]:catSpot(area);c.route=null;c.timer=rnd(10,20)}
 }
 function pollPads(dt){
   let list=padsList();PADVEC[0]=[0,0];PADVEC[1]=[0,0];

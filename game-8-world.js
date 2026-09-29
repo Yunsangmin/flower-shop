@@ -199,6 +199,7 @@ function visRect(s){
 /* ---------- decor ---------- */
 function drawDecor(g,d){
   const x=d.x*TILE,y=d.y*TILE,w=d.w*TILE,h=d.h*TILE;
+  if(DECOR_DRAW[d.t]){DECOR_DRAW[d.t](g,d,x,y,w,h);return}
   switch(d.t){
     case 'planter':{
       const r=seedRand(21);shadow(g,x+w/2,y+16,w/2,2.4);
@@ -575,19 +576,21 @@ function townDynamic(g){
   g.fillStyle=`rgba(255,214,150,${.45*L})`;
   FACADES.forEach(f=>{const x=f.x*TILE,w=f.w*TILE;if(f.t==='shopFront'){const dx=f.door*TILE;g.fillRect(x+8,50,dx-x-16,34);g.fillRect(dx+40,50,x+w-dx-48,34)}else if(f.t==='supplyFront'){const dx=f.door*TILE;g.fillRect(x+8,50,dx-x-14,32);g.fillRect(dx+38,50,x+w-dx-44,32)}else if(f.t==='house'&&w>=48){g.fillRect(x+8,30,14,16);g.fillRect(x+w-22,30,14,16)}});
 }
+/* 새 장소가 자기 그림 함수를 등록하는 곳 */
+const AREA_STATIC={},AREA_DYNAMIC={},DECOR_DRAW={},AREA_LIGHTS={};
 function bgCanvas(area,s){
   let q=Math.min(DPR,1.6);const A0=AREAS[area];const BUD=PR.on?8.5e6:(LITE?3.5e6:9e6);while(A0.w*TILE*s*q*A0.h*TILE*s*q>BUD||(PR.on&&Math.max(A0.w,A0.h)*TILE*s*q>PR.maxTex))q*=.85;const key=area+'|'+s.toFixed(3)+'|'+q.toFixed(3)+'|'+JSON.stringify(S.up)+'|'+S.style;
   if(BG_CACHE[key])return BG_CACHE[key];
   const A=AREAS[area];const cv=document.createElement('canvas');cv.width=Math.ceil(A.w*TILE*s*q);cv.height=Math.ceil(A.h*TILE*s*q);
   const g=cv.getContext('2d');g.setTransform(s*q,0,0,s*q,0,0);
-  ({shop:shopStatic,market:marketStatic,supply:supplyStatic,town:townStatic,north:northStatic})[area](g);
+  (AREA_STATIC[area]||{shop:shopStatic,market:marketStatic,supply:supplyStatic,town:townStatic,north:northStatic}[area])(g);
   BG_CACHE[key]=cv;return cv;
 }
 
 /* ---------- world ---------- */
 function inView(x,y,m){if(!VIEW)return true;m=m||40;return x>VIEW[0]-m&&x<VIEW[2]+m&&y>VIEW[1]-m&&y<VIEW[3]+m*1.8}
 function drawWorldV(g,area){
-  ({shop:shopDynamic,market:marketDynamic,supply:supplyDynamic,town:townDynamic,north:northDynamic})[area](g);
+  const dyn=AREA_DYNAMIC[area]||{shop:shopDynamic,market:marketDynamic,supply:supplyDynamic,town:townDynamic,north:northDynamic}[area];if(dyn)dyn(g);
   const sts=stationsIn(area);
   S.chars.forEach(c=>{
     if(c.area!==area||c.modal||c.rest||c.waterT>0)return;if(S.mode==='solo'&&c.i!==S.active)return;
@@ -613,15 +616,16 @@ function drawWorldV(g,area){
     if(c.bag.filter(Boolean).length>1){rr(g,c.x+(behind?-7:5),c.y-15,4.5,5,1.2,'#D6B27A');ln(g,c.x+(behind?-6.5:5.5),c.y-15,c.x+(behind?-4.2:8.3),c.y-17,'#B58E57',.5)}
   }})});
   S.customers.forEach(k=>{if((k.area||'shop')!==area||!inView(k.x,k.y))return;ents.push({y:k.y,draw:()=>{drawChar(g,k.x,k.y,k.pal,k.dir,k.walk,k.state==='move'&&!k.talking,false);if(k.bouquet)drawItemV(g,k.bouquet,k.x,k.y-11)}})});
-  S.walkers.forEach(w=>{if(w.hidden||(w.zone==='north')!==(area==='north')||(area!=='town'&&area!=='north')||!inView(w.x,w.y))return;ents.push({y:w.y+(w.dz||0),draw:()=>drawChar(g,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit)});
+  S.walkers.forEach(w=>{if(w.hidden||wArea(w)!==area||!inView(w.x,w.y))return;ents.push({y:w.y+(w.dz||0),draw:()=>drawChar(g,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit)});
     if(w.dog){const d=w.dog;ents.push({y:d.y,draw:()=>{const [hx,hy]=[w.x+(DIRV[w.dir][0]>=0?5:-5),w.y-12];g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d)}})}});
-  if(area==='town'&&S.cat&&inView(S.cat.x,S.cat.y))ents.push({y:S.cat.y,draw:()=>drawCat(g,S.cat)});
+  allCats().forEach(k=>{if(k.area===area&&inView(k.x,k.y))ents.push({y:k.y,draw:()=>drawCat(g,k)})});
   if(area==='shop'&&S.edit)S.chars.forEach(c=>{if(!c.carry||c.area!=='shop')return;const f=c.carry,[x,y]=placeSpot(c,f),ok=spotOK(f,x,y);ents.push({y:9999,draw:()=>{const ox=f.x,oy=f.y;f.x=x;f.y=y;g.globalAlpha=.6;if(f.type)drawStationV(g,f);else drawDecor(g,f);g.globalAlpha=1;f.x=ox;f.y=oy;rr(g,x*TILE,y*TILE,f.w*TILE,f.h*TILE,2);g.strokeStyle=ok?'rgba(127,192,106,.95)':'rgba(224,112,140,.95)';g.lineWidth=1.4;g.setLineDash([3,2]);g.stroke();g.setLineDash([])}})});
   ents.sort((a,b)=>a.y-b.y).forEach(e=>e.draw());
 }
 
 /* ---------- time of day (lights) ---------- */
 function lightsFor(area){
+  if(AREA_LIGHTS[area])return AREA_LIGHTS[area]();
   if(area==='shop'){const W=AREAS.shop.w*TILE;const a=[[112,10],[208,10]];for(let x=320;x<W-16;x+=96)a.push([x,10]);if(S.up.lights)for(let x=40;x<W-16;x+=48)a.push([x,7]);return a}
   if(area==='town'||area==='north')return DECOR[area].filter(d=>d.t==='lamp').map(d=>[d.x*TILE+8,d.y*TILE-24]);
   if(area==='market')return [[80,10],[208,10]];
@@ -632,14 +636,14 @@ function lightsFor(area){
 function viewports(){
   const hud=$('#hud');const top=hud&&hud.style.display!=='none'?Math.max(48,Math.round(hud.getBoundingClientRect().bottom)+4):48,H=CH-top;const [a,b]=S.chars;const full={x:0,y:top,w:CW,h:H};
   if(a.area===b.area){
-    const s=Math.min(CW/VW,H/VH)*(a.area==='town'||a.area==='north'?.85:1);const mw=AREAS[a.area].w*TILE;
+    const s=Math.min(CW/VW,H/VH)*wideZ(a.area);const mw=AREAS[a.area].w*TILE;
     if(mw<=CW/s)return [{...full,area:a.area,chars:[0,1]}];
     if(Math.abs(a.x-b.x)<CW/s-70&&Math.abs(a.y-b.y)<H/s-60)return [{...full,area:a.area,chars:[0,1]}];
   }
   return [{area:a.area,x:0,y:top,w:CW/2-2,h:H,chars:[0],split:true},{area:b.area,x:CW/2+2,y:top,w:CW/2-2,h:H,chars:[1],split:true}];
 }
 function camera(v){
-  const A=AREAS[v.area],mw=A.w*TILE,mh=A.h*TILE;const s=Math.min(v.w/VW,v.h/VH)*(v.area==='town'||v.area==='north'?.85:1);const vw=v.w/s,vh=v.h/s;const lead=S.chars[v.chars[0]];const up=v.area==='town'?(lead&&lead.y>22.5*TILE?-26:30):v.area==='north'?36:8;
+  const A=AREAS[v.area],mw=A.w*TILE,mh=A.h*TILE;const s=Math.min(v.w/VW,v.h/VH)*wideZ(v.area);const vw=v.w/s,vh=v.h/s;const lead=S.chars[v.chars[0]];const up=v.area==='town'?(lead&&lead.y>22.5*TILE?-26:30):v.area==='north'?36:8;
   let tx,ty;if(v.chars.length===2){tx=(S.chars[0].x+S.chars[1].x)/2;ty=(S.chars[0].y+S.chars[1].y)/2-up}else{const c=S.chars[v.chars[0]];tx=c.x;ty=c.y-up}
   const cx=mw<=vw?mw/2:clamp(tx,vw/2,mw-vw/2),cy=mh<=vh?mh/2:clamp(ty,vh/2,mh-vh/2);
   return {s,mw,mh,ox:v.x+v.w/2-cx*s,oy:v.y+v.h/2-cy*s-(mh<=vh?4:0)};
@@ -685,9 +689,9 @@ function overlays(v){
   }
   if(v.area==='shop'){S.customers.forEach(k=>{if(k.area!=='shop'||k.kind!=='reserve'||k.state!=='wait'||k.talking)return;const [x,y]=S2(k.x,k.y-32);pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)});
     S.customers.forEach(k=>{if(k.area==='shop'&&k.say&&k.state==='move'){const [x,y]=S2(k.x,k.y-32);pillText(k.say,x,y,'rgba(255,253,249,.9)','#7A6E86',9)}})}
-  if(v.area==='town'||v.area==='north'){S.walkers.forEach(w=>{if(!w.main||w.hidden||w.talking||(w.zone==='north')!==(v.area==='north'))return;const hy=w.pal&&w.pal.sc?33*w.pal.sc+4:37;const [x,y]=S2(w.x,w.y-hy);if(!inV(x,y))return;
+  if(WIDE_AREAS[v.area]){S.walkers.forEach(w=>{if(!w.main||w.hidden||w.talking||wArea(w)!==v.area)return;const hy=w.pal&&w.pal.sc?33*w.pal.sc+4:37;const [x,y]=S2(w.x,w.y-hy);if(!inV(x,y))return;
       if(w.calling)pillText(w.callLine,x,y,'#FFF1C4','#6A4A3A',11);else if(storyReady(w.main))pillText('!',x,y,'#F5CF4E','#6A4A3A',12)});
-    S.walkers.forEach(w=>{if(!w.offer||(w.zone==='north')!==(v.area==='north'))return;const [x,y]=S2(w.x,w.y-33);if(inV(x,y))pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)})}
+    S.walkers.forEach(w=>{if(!w.offer||wArea(w)!==v.area)return;const [x,y]=S2(w.x,w.y-33);if(inV(x,y))pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)})}
   if(v.area==='market'){
     if(S.t>=MARKET_CLOSE){const [x,y]=S2(144,70);pillText('오늘 꽃시장은 문을 닫았어요',x,y,'rgba(255,253,249,.95)','#4A3F5C',12)}
     else stationsIn('market').forEach(s=>{if(s.type!=='stall')return;const [x,y]=S2((s.x+s.w/2)*TILE,(s.y+s.h)*TILE+12);pillText(won(S.prices[s.flower]),x,y,'rgba(255,253,249,.92)','#4A3F5C',10)});
@@ -698,7 +702,7 @@ function overlays(v){
 let last=performance.now();
 /* 게임 계산은 1/60초 간격으로 일정하게, 화면은 그 사이를 부드럽게 이어서 그림 */
 const STEP=1/60;let ACC=0;
-function prMovers(){const a=S.chars.concat(S.customers||[],S.walkers||[]);(S.walkers||[]).forEach(w=>{if(w.dog)a.push(w.dog)});if(S.cat)a.push(S.cat);return a}
+function prMovers(){const a=S.chars.concat(S.customers||[],S.walkers||[]);(S.walkers||[]).forEach(w=>{if(w.dog)a.push(w.dog)});allCats().forEach(k=>a.push(k));return a}
 function prSnap(){prMovers().forEach(o=>{o._px=o.x;o._py=o.y;o._pa=o.area})}
 function prTick(now){
   const _t0=performance.now();
@@ -732,9 +736,3 @@ function loop(now){
   if(S.phase==='play'&&!S.paused&&innerWidth>=innerHeight){update(dt);updateActionButtons();updateHUD();refreshLiveModals(dt)}
   FRAME^=1;if(!LITE||FRAME)render();requestAnimationFrame(loop);
 }
-showTitle();
-prBoot();
-requestAnimationFrame(loop);
-window.__audioInit=()=>audioInit();window.__schedMusic=()=>schedMusic();window.__schedAmb=()=>schedAmbience();
-window.__game={MAIN,PAL,PR,S,update,render,doAction,onModalClick,closeModal,endDay,newGame,continueGame,bouquetSVG,targetOf,actionLabel,saveGame,loadSave,spawnUrgent,findGift,bestOrderFor,updateHUD,openModal,renderModal,SET,showSettings,perfShow,drawChar,drawCat,drawDog,flowerHead,bgCanvas,solid,AREAS,TILE,DECOR};
-

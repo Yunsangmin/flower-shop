@@ -264,7 +264,7 @@ function renderModal(i){
     h=head(i,'모종 심기')+two(i,bagGrid(i,'pl',it=>it.kind!=='seed'),`<p class="req">왼쪽 가방에서 심을 모종을 골라 주세요.</p>`);
   }
   else if(m.type==='talk'){
-    const w=m.walker;if(w.kind==='cat'){w.hearts=performance.now()}const who=w.kind==='cat'?'마을 고양이':w.kind==='kid'?'어린이':w.kind==='elder'?'어르신':w.kind==='couple'?'산책 나온 부부':w.kind==='dog'?'강아지와 산책 중':w.kind==='student'?'학생':'';
+    const w=m.walker;if(w.kind==='cat'){w.hearts=performance.now()}const who=w.kind==='cat'?(w.who||'마을 고양이'):w.kind==='kid'?'어린이':w.kind==='elder'?'어르신':w.kind==='couple'?'산책 나온 부부':w.kind==='dog'?'강아지와 산책 중':w.kind==='student'?'학생':'';
     const NC={kid:['#F5C451','#D9A631'],student:['#8DBBE8','#6C9CCB'],elder:['#B7A2DA','#9681BE'],cat:['#A9A7B0','#86848D'],dog:['#E5A77A','#C98A5D'],couple:['#F4A6B8','#D8849A']}[w.kind]||['#F4A6B8','#D8849A'];
     talkPrep(i,m);if(m.shown==null)m.shown=0;const L=m.line||'';const M=w.main?MAIN[w.main]:null;const NC2=M?M.nc:NC;const who2=M?M.who:who;
     const hearts=M?`<small class="thearts">${heartsTxt(bondOf(w.main).h)}</small>`:'';
@@ -356,7 +356,7 @@ function renderModal(i){
 }
 /* 대화창: 얼굴 그림 + 한 글자씩 나오기 + 작은 말소리 */
 function drawTalkFace(i,w){const cv=$('#tface'+i);if(!cv)return;const g=cv.getContext('2d');g.clearRect(0,0,160,160);g.save();
-  try{if(w.kind==='cat'){g.translate(76,128);g.scale(12,12);drawCat(g,{x:0,y:0,dir:'down',state:'sit',walk:0,mv:false})}
+  try{if(w.kind==='cat'){g.translate(76,128);g.scale(12,12);drawCat(g,{x:0,y:0,dir:'down',state:'sit',walk:0,mv:false,pal:w.pal})}
     else if(w.kind==='dog'&&!w.pal){g.translate(80,112);g.scale(8,8);drawDog(g,{x:0,y:0,dir:'down',walk:0,col:w.col||'#E8D2B4'})}
     else if(w.pal){let top=-31;try{const t=document.createElement('canvas');t.width=t.height=80;const q=t.getContext('2d');q.translate(40,70);drawChar(q,0,0,w.pal,0,0,false,false);const d=q.getImageData(0,0,80,80).data;search:for(let y=0;y<80;y++)for(let x=0;x<80;x++)if(d[(y*80+x)*4+3]>60){top=y-70;break search}}catch(e){}
       g.translate(80,22-top*7.6);g.scale(7.6,7.6);drawChar(g,0,0,w.pal,0,0,false,false)}}catch(e){}

@@ -630,7 +630,8 @@ function drawChar(g,x,y,p,dir,phase,moving,glasses,work,sit){
 function lgr(g,x0,y0,x1,y1,a,b){const q=g.createLinearGradient(x0,y0,x1,y1);q.addColorStop(0,a);q.addColorStop(1,b);return q}
 function drawCat(g,c){
   const flip=c.dir==='left'||c.dir==='ul'||c.dir==='dl',side=c.dir==='left'||c.dir==='right'||c.dir==='ul'||c.dir==='ur'||c.dir==='dl'||c.dir==='dr',back=c.dir==='up',t=performance.now()/1000;
-  const G1='#9A98A2',G2='#B9B7C0',GD='#6F6D77',W='#FAF8F4',PK='#F2B8C2';
+  const CP=c.pal||{},G1=CP.G1||'#9A98A2',G2=CP.G2||'#B9B7C0',GD=CP.GD||'#6F6D77',W=CP.W||'#FAF8F4',PK='#F2B8C2',NS=CP.stripes===false,PAT=CP.patch||null,COL=CP.collar;
+  const patch=(pts)=>{if(!PAT)return;pts.forEach(([x,y,rx,ry],k)=>el(g,x,y,rx,ry,PAT[k%PAT.length]))};
   g.save();g.translate(c.x,c.y);if(flip)g.scale(-1,1);g.scale(.22,.22);
   el(g,0,1,17,4.5,'rgba(80,55,50,.18)');
   const eyes=(ex,ey,happy)=>{if(happy){g.strokeStyle='#3E3A44';g.lineWidth=1.3;g.beginPath();g.arc(ex,ey+.8,2.6,Math.PI*1.1,Math.PI*1.9);g.stroke();return}
@@ -651,8 +652,8 @@ function drawCat(g,c){
     if(!sit){for(const [lx,s] of [[-9,sw],[7,-sw]])rr(g,lx-2.2+s*2,-12,4.4,12,2.2,GD)}
     // 몸
     if(sit){g.beginPath();g.moveTo(-10,0);g.bezierCurveTo(-13,-16,-6,-26,4,-24);g.bezierCurveTo(10,-22,11,-10,9,0);g.closePath();g.fillStyle=lgr(g,0,-26,0,0,G2,G1);g.fill();
-      for(const k of [-6,-2])ln(g,k,-22,k-2,-13,GD,1.2);el(g,6,-9,4,8,W);rr(g,3,-7,5,7,2.5,W);el(g,-4,-1,5,2.5,G1)}
-    else{el(g,0,-16,15,8,lgr(g,0,-24,0,-8,G2,G1));for(const k of [-8,-3,2])ln(g,k,-23,k+2,-15,GD,1.2);el(g,4,-11,8,3.5,W);
+      if(!NS)for(const k of [-6,-2])ln(g,k,-22,k-2,-13,GD,1.2);patch([[-5,-16,4,5],[2,-22,3,3]]);el(g,6,-9,4,8,W);rr(g,3,-7,5,7,2.5,W);el(g,-4,-1,5,2.5,G1)}
+    else{el(g,0,-16,15,8,lgr(g,0,-24,0,-8,G2,G1));if(!NS)for(const k of [-8,-3,2])ln(g,k,-23,k+2,-15,GD,1.2);patch([[-6,-18,5,4],[5,-20,4,3]]);el(g,4,-11,8,3.5,W);
       for(const [lx,s] of [[-7,-sw],[9,sw]]){rr(g,lx-2.2+s*2,-12,4.4,12,2.2,G1);el(g,lx+s*2,-.6,2.6,1.5,W)}}
     // 머리
     const hx=sit?8:15,hy=sit?-30:-24;
@@ -661,33 +662,34 @@ function drawCat(g,c){
     for(const k of [-2,1])ln(g,hx+k,hy-8,hx+k*.6,hy-4,GD,1);
     el(g,hx+5,hy+3,5,3.4,W);eyes(hx+3.5,hy-1.5,c.state==='groom');P2(g,[hx+8.4,hy+.6,hx+10,hy+.6,hx+9.4,hy+2],'#E88A9A');
     for(let k=0;k<2;k++)ln(g,hx+7,hy+3+k,hx+15,hy+1+k*2.4,'rgba(255,255,255,.95)',.45);
-    rr(g,hx-6,hy+5,9,2.2,1.1,'#7FB7D6');el(g,hx-1.5,hy+8,1.7,1.7,'#F2C94C');
+    if(COL!==null){rr(g,hx-6,hy+5,9,2.2,1.1,COL||'#7FB7D6');el(g,hx-1.5,hy+8,1.7,1.7,'#F2C94C')}
   }else if(back){
     g.strokeStyle=G1;g.lineWidth=5;g.lineCap='round';g.beginPath();g.moveTo(0,-8);g.bezierCurveTo(6,-14,10,-22,6+tail*2,-30);g.stroke();
     g.beginPath();g.moveTo(-12,0);g.bezierCurveTo(-15,-18,-10,-28,0,-28);g.bezierCurveTo(10,-28,15,-18,12,0);g.closePath();g.fillStyle=lgr(g,0,-28,0,0,G2,G1);g.fill();
     for(const k of [-6,-1,4])ln(g,k-1,-24,k+1,-10,GD,1.4);
     el(g,0,-34,11.5,10,lgr(g,0,-44,0,-24,G2,G1));P2(g,[-11,-38,-9,-49,-3,-42],G1);P2(g,[11,-38,9,-49,3,-42],G1);for(const k of [-4,0,4])ln(g,k,-43,k,-36,GD,1.2);
-    rr(g,-6,-26,12,2.4,1.2,'#7FB7D6');
+    if(COL!==null)rr(g,-6,-26,12,2.4,1.2,COL||'#7FB7D6');
     if(!sit){rr(g,-7+sw*1.5,-4,5,6,2.5,G1);rr(g,2-sw*1.5,-4,5,6,2.5,G1)}
   }else{
     // 정면(앉기·걷기·그루밍)
     g.strokeStyle=G1;g.lineWidth=5;g.lineCap='round';g.beginPath();g.moveTo(10,-6);g.bezierCurveTo(22,-6,24,-18,20+tail*2,-28);g.stroke();
     for(let k=0;k<3;k++){g.beginPath();g.arc(19+k*.8,-12-k*5.5,2.8,-.3,1.2);g.strokeStyle=GD;g.lineWidth=1.2;g.stroke()}
     g.beginPath();g.moveTo(-12,-2);g.bezierCurveTo(-15,-18,-10,-30,0,-30);g.bezierCurveTo(10,-30,15,-18,12,-2);g.closePath();g.fillStyle=lgr(g,0,-30,0,0,G2,G1);g.fill();
-    for(const k of [-7,-2,3]){g.beginPath();g.moveTo(k-3,-24);g.quadraticCurveTo(k,-20,k-2,-15);g.strokeStyle=GD;g.lineWidth=1.3;g.stroke()}
+    if(!NS)for(const k of [-7,-2,3]){g.beginPath();g.moveTo(k-3,-24);g.quadraticCurveTo(k,-20,k-2,-15);g.strokeStyle=GD;g.lineWidth=1.3;g.stroke()}
     g.beginPath();g.moveTo(-6,-2);g.bezierCurveTo(-8,-14,-5,-22,0,-23);g.bezierCurveTo(5,-22,8,-14,6,-2);g.closePath();g.fillStyle=W;g.fill();
+    patch([[-8,-18,4,5],[8,-12,3.5,4.5],[5,-24,3,2.5]]);
     const lift=c.state==='groom'?Math.max(0,Math.sin(t*5))*6:0;
     if(sit){rr(g,-7,-8-lift,5,8,2.5,W);rr(g,2,-8,5,8,2.5,W)}else{rr(g,-7,-8+sw*2,5,8,2.5,W);rr(g,2,-8-sw*2,5,8,2.5,W)}
     el(g,0,-36,12,10.5,lgr(g,0,-46,0,-26,G2,G1));
     P2(g,[-11,-40,-9,-51,-3,-44],G1);P2(g,[-9.6,-42,-8.6,-48.5,-5,-44],PK);P2(g,[11,-40,9,-51,3,-44],G1);P2(g,[9.6,-42,8.6,-48.5,5,-44],PK);
-    for(const k of [-3,0,3])ln(g,k,-45,k*.6,-40.5,GD,1.1);
+    if(!NS)for(const k of [-3,0,3])ln(g,k,-45,k*.6,-40.5,GD,1.1);if(PAT){el(g,-6,-41,4,3.2,PAT[0]);el(g,6.5,-40,3.4,3,PAT[1%PAT.length])}
     el(g,-3.4,-31.5,4.6,3.6,W);el(g,3.4,-31.5,4.6,3.6,W);el(g,0,-29,4,2.6,W);
     for(const ex of [-5.6,5.6])eyes(ex,-37,c.state==='groom');
     P2(g,[-1.4,-33.6,1.4,-33.6,0,-32],'#E88A9A');
     g.beginPath();g.moveTo(0,-32);g.quadraticCurveTo(-1.6,-30.4,-3,-31.2);g.moveTo(0,-32);g.quadraticCurveTo(1.6,-30.4,3,-31.2);g.strokeStyle='#6E5A5E';g.lineWidth=.7;g.stroke();
     for(const d of [-1,1])for(let k=0;k<3;k++)ln(g,d*5,-31.5+k,d*(13+k),-33+k*2,'rgba(255,255,255,.95)',.45);
     el(g,-8.5,-33,2,1.1,'rgba(240,130,150,.3)');el(g,8.5,-33,2,1.1,'rgba(240,130,150,.3)');
-    rr(g,-6,-27,12,2.4,1.2,'#7FB7D6');el(g,0,-24.3,1.8,1.8,'#F2C94C');
+    if(COL!==null){rr(g,-6,-27,12,2.4,1.2,COL||'#7FB7D6');el(g,0,-24.3,1.8,1.8,'#F2C94C')}
   }
   g.restore();catHearts(g,c);
 }

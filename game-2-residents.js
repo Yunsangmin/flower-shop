@@ -187,7 +187,7 @@ function storyEffect(i,k,e){
 /* 메인 주민이 먼저 다가와 말 걸기 */
 function mainCall(w,dt){
   if(!w.main||w.talking||w.hidden)return false;const ch=storyReady(w.main);if(!ch){w.calling=0;return false}
-  const area=w.zone==='north'?'north':'town';let best=null,bd=1e9;
+  const area=wArea(w);let best=null,bd=1e9;
   S.chars.forEach((c,i)=>{if(c.area!==area||c.modal||c.rest)return;const d=Math.hypot(c.x-w.x,c.y-w.y);if(d<bd){bd=d;best=c}});
   if(!best||bd>110){w.calling=0;return false}
   if((w.callCool||0)>S.t||(S.callQuiet||0)>S.t)return false;

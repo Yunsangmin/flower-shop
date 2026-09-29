@@ -214,12 +214,23 @@ function doorGap(area,tx,ty){
 }
 // 공원 꽃 화단(배경 그림과 같은 자리) — 사람·동물이 밟고 지나가지 않게
 const TOWN_BEDS=[[40,214,48],[150,214,52],[300,300,70],[190,346,80],[240,214,60],[40,330,50],[320,230,40],[250,262,36],[160,300,40]];
+/* 옆 가장자리로 이어지는 길(마을→농막·캠퍼스 등): SIDE_GAPS[area]=[[tx,ty0,ty1],...] */
+const SIDE_GAPS={};
+const AREA_SOLID={}; // 새 장소는 자기 충돌 규칙을 여기에 등록(undefined를 돌려주면 공통 규칙 계속)
+function sideGap(area,tx,ty){const L=SIDE_GAPS[area];return !!L&&L.some(([x,a,b])=>(x<0?tx<1:tx>AREAS[area].w-2)&&ty>=a&&ty<=b)}
+/* 넓은 바깥 장소(카메라 0.85배) */
+const WIDE_AREAS={town:1,north:1};
+function wideZ(a){return WIDE_AREAS[a]?.85:1}
+/* 주민이 있는 장소 */
+const ZONE_AREA={north:'north'};
+function wArea(w){return ZONE_AREA[w.zone]||'town'}
 function solid(area,px,py){
   const A=AREAS[area];const tx=Math.floor(px/TILE),ty=Math.floor(py/TILE);
-  if(tx<1||tx>A.w-2||py<0)return true;
+  if((tx<1||tx>A.w-2)&&!sideGap(area,tx,ty))return true;if(py<0||px<0||px>=A.w*TILE)return true;
+  if(AREA_SOLID[area]){const r=AREA_SOLID[area](px,py,tx,ty);if(r!==undefined)return r}
   if(area==='town'){if(ty<6&&!doorGap(area,tx,ty)&&!walkCol(tx))return true;if(ty>=A.h-1)return true;if(tx>=RIVER[0]&&tx<=RIVER[1]&&!bridgeRow(ty)&&ty<27)return true;if(ty>=27&&tx>=20&&!(tx>=40&&tx<=42&&ty<=30))return true}
   else if(area==='north'){if(ty<7)return true;if(ty>=A.h-1&&!walkCol(tx))return true;if(py>=A.h*TILE)return true;if(tx>=RIVER[0]&&tx<=RIVER[1]&&!(ty>=13&&ty<=14))return true}
-  else if(area!=='north'){if(ty<2)return true;if(ty>=A.h-1&&!doorGap(area,tx,ty))return true;if(ty>=A.h)return true}
+  else if(area!=='north'&&!AREA_SOLID[area]){if(ty<2)return true;if(ty>=A.h-1&&!doorGap(area,tx,ty))return true;if(ty>=A.h)return true}
   if(area==='town'&&py>=440&&py<=536&&px>=26&&px<=278){if(px<=34&&py>=448)return true;if(px>=269&&py>=448)return true;if(py<=451&&px>=238)return true}
   if(area==='town')for(const [bx,by,bw] of TOWN_BEDS)if(px>=bx-1&&px<bx+bw+1&&py>=by-2&&py<by+10)return true;
   for(const s of S.stList){if(s.area!==area||!owned(s)||s.carried||(s.type==='sprspot'&&!s.on))continue;if(px>=s.x*TILE&&px<(s.x+s.w)*TILE&&py>=s.y*TILE&&py<(s.y+s.h)*TILE)return true}
@@ -240,8 +251,8 @@ const DIRV={down:[0,1],up:[0,-1],left:[-1,0],right:[1,0],dr:[Q,Q],dl:[-Q,Q],ur:[
 const OCT=['right','dr','down','dl','left','ul','up','ur'];
 function targetOf(c){
   const [dx,dy]=DIRV[c.dir];const fx=c.x+dx*12,fy=c.y-3+dy*12;
-  if(!S.edit&&c.area==='town'&&S.cat&&Math.hypot(S.cat.x-fx,S.cat.y-2-fy)<12)return {type:'npc',walker:S.cat};
-  if(!S.edit){const pool=c.area==='north'?S.walkers.filter(w=>!w.hidden&&w.zone==='north'):c.area==='town'?S.walkers.filter(w=>!w.hidden&&w.zone!=='north').concat(S.customers.filter(k=>k.area==='town')):c.area==='shop'?S.customers.filter(k=>k.area==='shop'&&k.goal!=='out'):[];for(const w of pool){if(Math.hypot(w.x-fx,w.y-3-fy)<12)return {type:'npc',walker:w}}}
+  if(!S.edit)for(const k of allCats())if(k.area===c.area&&Math.hypot(k.x-fx,k.y-2-fy)<12)return {type:'npc',walker:k};
+  if(!S.edit){const pool=c.area==='town'?S.walkers.filter(w=>!w.hidden&&wArea(w)==='town').concat(S.customers.filter(k=>k.area==='town')):WIDE_AREAS[c.area]?S.walkers.filter(w=>!w.hidden&&wArea(w)===c.area):c.area==='shop'?S.customers.filter(k=>k.area==='shop'&&k.goal!=='out'):[];for(const w of pool){if(Math.hypot(w.x-fx,w.y-3-fy)<12)return {type:'npc',walker:w}}}
   const hasSpr=c.bag.some(it=>it&&it.kind==='sprinkler');const list=stationsIn(c.area).filter(s=>s.type!=='sprspot'||s.on||hasSpr);
   for(const s of list){if(fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3)return s}
   let best=null,bd=18;

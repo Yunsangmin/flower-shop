@@ -386,7 +386,7 @@ function updateWalkers(dt){
   if(yard.length)updateBall(dt,yard);
   S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main);if(w)w.offer={tpl:pick(TEMPLATES),time:pick(SLOTS),name:w.name,until:S.t+70}}});
   S.walkers.forEach(w=>{
-    w._nav=w.follow||w.zone==='yard'?null:(w.zone==='north'?'north':'town');
+    w._nav=w.follow||w.zone==='yard'?null:wArea(w);
     if(w._nav&&!w._chk&&!w.hidden){w._chk=1;const N=navGrid(w._nav),tx=Math.floor(w.x/TILE),ty=Math.floor(w.y/TILE);if(!navFree(N,tx,ty)){const q=navNear(N,tx,ty);if(q){w.x=(q[0]+.5)*TILE;w.y=(q[1]+.5)*TILE;w.tx=w.x;w.ty=w.y;if(w.dog){w.dog.x=w.x-8;w.dog.y=w.y}}}}
     const px=w.x,py=w.y,dpx=w.dog?w.dog.x:0,dpy=w.dog?w.dog.y:0;
     walkerStep(w,dt);
@@ -465,7 +465,7 @@ const TALK={
   reserve:['예약하고 싶은데 잠깐 시간 되세요?']
 };
 function talkLine(w){
-  if(w.kind==='cat')return pick(CAT_LINES);
+  if(w.kind==='cat')return pick(w.lines||CAT_LINES);
   if(w.kkami)return pick(['우리 까미 새까맣죠? 밤에는 눈만 반짝여요.','까미야, 인사해야지! 꼬리 흔드는 거 보여요?','까미는 토토랑 친해요. 가끔 같이 낮잠 자요.','까미는 이 동네 산책 대장이에요.']);
   const tb=S.t<180?'좋은 아침이에요! ':S.t>480?'벌써 해가 지네요. ':'';
   const o0=S.outfit[0]||{},o1=S.outfit[1]||{},extra=[];
@@ -508,8 +508,9 @@ function update(dtReal){
     if(c.moving){c.anim+=dtReal*9;c.stepT=(c.stepT||0)+dtReal;if(c.stepT>.24){c.stepT=0;S.puffs.push({area:c.area,x:c.x+rnd(-2,2),y:c.y,t:0})}}
     for(const d of DOORS){
       if(d.area!==c.area)continue;
-      if(c.x>=d.x0&&c.x<=d.x1&&(d.edge==='bottom'?c.y>=d.y:c.y<=d.y)){
-        if(c.carry){c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
+      const hit=d.edge==='right'?(c.x>=d.x&&c.y>=d.y0&&c.y<=d.y1):d.edge==='left'?(c.x<=d.x&&c.y>=d.y0&&c.y<=d.y1):(c.x>=d.x0&&c.x<=d.x1&&(d.edge==='bottom'?c.y>=d.y:c.y<=d.y));
+      if(hit){
+        if(c.carry){if(d.edge==='right')c.x-=4;else if(d.edge==='left')c.x+=4;else c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
         const o=S.chars[1-c.i];
         c.area=d.to;sfx('door');c.x=d.sx+(o.area===d.to&&Math.abs(o.x-d.sx)<10&&Math.abs(o.y-d.sy)<10?12:0);c.y=d.sy;c.dir=d.dir;c.face=c.ang=DIR_ANG[d.dir];c.fade=1;c.vx=c.vy=0;break;
       }

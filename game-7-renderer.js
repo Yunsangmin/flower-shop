@@ -33,7 +33,7 @@ function prResolution(){
   if(SET.gfx==='high')return Math.min(2,dpr);
   return prIsTV()?Math.min(dpr,.8):Math.min(2,dpr);
 }
-function prFullZoom(area){const H=Math.max(1,CH-48);return Math.min(CW/VW,H/VH)*(area==='town'||area==='north'?.85:1)}
+function prFullZoom(area){const H=Math.max(1,CH-48);return Math.min(CW/VW,H/VH)*wideZ(area)}
 function prBakeScale(area){return Math.max(1,Math.min(7,Math.round(prFullZoom(area)*PR.R*4)/4))}
 
 /* ---------- 시작 ---------- */
@@ -247,7 +247,7 @@ function prSyncBg(area){
   a.bg.setScale(AREAS[area].w*TILE/cv.width,AREAS[area].h*TILE/cv.height).setVisible(true);
   const [ac,aa]=ambientAt(S.t);const k=area==='town'?1:.7;const [col]=prCol(ac);
   a.amb.width=AREAS[area].w*TILE;a.amb.setFillStyle(col,1).setAlpha(aa*k).setVisible(aa>0);
-  const L=lampAt(S.t);const ls=L>0?lightsFor(area):[];const r=(area==='town'||area==='north'?55:80);
+  const L=lampAt(S.t);const ls=L>0?lightsFor(area):[];const r=(WIDE_AREAS[area]?55:80);
   ls.forEach(([lx,ly],i)=>{let im=a.lights[i];if(!im){im=a.lights[i]=prW(PR.sc.add.image(0,0,'prLight').setBlendMode(Phaser.BlendModes.ADD).setDepth(5e6+1))}
     im.setPosition(AOFF[area]+lx,ly).setDisplaySize(r*2,r*2).setAlpha(.32*L).setVisible(true)});
   for(let i=ls.length;i<a.lights.length;i++)a.lights[i].setVisible(false);
@@ -399,7 +399,7 @@ function prSyncChars(area){
     prBody(r,area,k.x,k.y,k.pal,k.dir,k.walk,k.state==='move'&&!k.talking,false,false,false,k.y);
     if(k.bouquet)prItem(r,area,k.bouquet,k.x,k.y-11,k.y+.001);prEnd(r)});
   /* 주민·강아지 */
-  S.walkers.forEach(w=>{if(w.hidden||(w.zone==='north')!==(area==='north')||(area!=='town'&&area!=='north')||!inView(w.x,w.y))return;
+  S.walkers.forEach(w=>{if(w.hidden||wArea(w)!==area||!inView(w.x,w.y))return;
     const r=prRec('w'+prOid(w));prBegin(r);prBody(r,area,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit,w.y+(w.dz||0));prEnd(r);
     if(w.dog){const d=w.dog,rd=prRec('g'+prOid(d));prBegin(rd);const hx=w.x+(DIRV[w.dir][0]>=0?5:-5),hy=w.y-12;
       const x0=Math.min(hx,d.x-12)-4,y0=Math.min(hy,d.y-16)-4,x1=Math.max(hx,d.x+12)+4,y1=Math.max(hy,d.y+4)+4;
@@ -409,7 +409,7 @@ function prSyncChars(area){
     prLive(r,'ball',area,[bx-5,by-34,10,38],by+2,g=>{el(g,bx,by+1,2.6*(1-bh/40),1,'rgba(80,55,50,.18)');const yy=by-10-bh;el(g,bx,yy,2.3,2.3,'#F08D8D');g.strokeStyle='#FFFFFF';g.lineWidth=.5;g.beginPath();g.arc(bx,yy,2.3,-.6,1.2);g.stroke();el(g,bx-.8,yy-.8,.6,.6,'rgba(255,255,255,.8)')},null);prEnd(r)}
   PR.npc=false;
   /* 토토 */
-  if(area==='town'&&S.cat&&inView(S.cat.x,S.cat.y)){const r=prRec('cat');prBegin(r);const t=S.cat;prLive(r,'cat',area,[t.x-16,t.y-24,32,32],t.y,g=>drawCat(g,t),null);prEnd(r)}
+  allCats().forEach((t,ci)=>{if(t.area!==area||!inView(t.x,t.y))return;const r=prRec('cat'+ci);prBegin(r);prLive(r,'cat',area,[t.x-16,t.y-24,32,32],t.y,g=>drawCat(g,t),null);prEnd(r)});
   /* 가구 옮기기 미리보기 */
   if(area==='shop'&&S.edit)S.chars.forEach(c=>{if(!c.carry||c.area!=='shop')return;const f=c.carry,[x,y]=placeSpot(c,f),ok=spotOK(f,x,y);
     const r=prRec('e'+c.i);prBegin(r);const B=f.type?prBounds(PR_STB,f.type,x*TILE,y*TILE,f.w*TILE,f.h*TILE):prBounds(PR_DEB,f.t,x*TILE,y*TILE,f.w*TILE,f.h*TILE);
