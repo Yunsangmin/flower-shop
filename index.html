@@ -47,7 +47,7 @@ button{font:inherit;color:inherit;font-family:inherit}
   display:none;align-items:stretch;gap:.55rem;z-index:20;pointer-events:none}
 #hud > *{pointer-events:auto}
 .pill{background:var(--paper);border-radius:999px;padding:.3rem .8rem;font-size:1rem;white-space:nowrap;box-shadow:0 0 0 .12rem var(--edge) inset,0 .2rem 0 var(--shade)}
-#hClock{display:flex;align-items:center;gap:.45rem;background:var(--paper);border-radius:1rem;padding:.35rem .9rem .35rem .45rem;box-shadow:0 0 0 .14rem var(--edge) inset,0 .22rem 0 var(--shade);flex:none}
+#hClock{display:flex;align-items:center;gap:.45rem;background:var(--paper);border-radius:1rem;padding:.35rem 1rem;box-shadow:0 0 0 .14rem var(--edge) inset,0 .22rem 0 var(--shade);flex:none}
 #hClock svg{width:3rem;height:3rem;display:block}
 #hClock .hct{display:flex;flex-direction:column;line-height:1.1}
 #hClock b{font-size:1.6rem;color:var(--ink);white-space:nowrap}
@@ -216,6 +216,10 @@ button{font:inherit;color:inherit;font-family:inherit}
 .talkhint{position:absolute;right:3.2rem;bottom:.7rem;font-size:.85rem;color:#B09A84;z-index:2}
 .talkwho{position:absolute;left:1rem;top:-1.25rem;z-index:3}
 @keyframes bob{50%{transform:translateY(.3rem)}}
+.talkname .thearts{font-size:.8rem;margin-left:.45rem;letter-spacing:.05rem;color:#FFF6F8}
+.tpage{position:absolute;left:8.4rem;bottom:.7rem;font-size:.8rem;color:#B09A84;z-index:2}
+.tchoices{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem}
+.tchoices .btn{font-size:1.15rem}
 .talkline{display:flex;align-items:center;gap:.6rem;font-size:1.4rem;line-height:1.5}
 
 /* ---------- 예약 팝업 · 토스트 · 도움말 ---------- */
@@ -264,7 +268,7 @@ h1{font-size:2.3rem;font-weight:normal;margin:0 0 .25rem;letter-spacing:-.02em}
 <canvas id="game"></canvas>
 
 <div id="hud">
-  <div id="hClock" aria-live="off"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#FFFDF6" stroke="#8C6E57" stroke-width="2.4"/><g stroke="#C9B8A6" stroke-width="1.6" stroke-linecap="round"><path d="M20 4.5v3M20 32.5v3M4.5 20h3M32.5 20h3"/></g><path id="hHandH" d="M20 20V11" stroke="#5B4636" stroke-width="3" stroke-linecap="round"/><path id="hHandM" d="M20 20V7" stroke="#5B4636" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.2" fill="#E0708C"/></svg><div class="hct"><b id="hTime">오전 9:00</b><small id="hDay">1일차</small></div></div>
+  <div id="hClock" aria-live="off"><div class="hct"><b id="hTime">오전 9:00</b><small id="hDay">1일차</small></div></div>
   <span class="pill hide" id="hMoney">0원</span>
   <div id="hOrders"></div>
   <div id="hRight">
@@ -286,6 +290,13 @@ h1{font-size:2.3rem;font-weight:normal;margin:0 0 .25rem;letter-spacing:-.02em}
 <div id="rotate">휴대폰을 가로로 돌려 주세요<br><small>가로 화면에서 플레이할 수 있어요</small></div>
 
 <script src="phaser-4.2.1.min.js"></script>
-<script src="game.js"></script>
+<script src="game-1-core.js"></script>
+<script src="game-2-residents.js"></script>
+<script src="game-3-logic.js"></script>
+<script src="game-4-ui.js"></script>
+<script src="game-5-sound-input.js"></script>
+<script src="game-6-art.js"></script>
+<script src="game-7-renderer.js"></script>
+<script src="game-8-world.js"></script>
 </body>
 </html>
