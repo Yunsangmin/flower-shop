@@ -698,9 +698,9 @@ Object.assign(DECOR_DRAW,{
   [[x+4.5,'#F5CF4E'],[x+11,'#B9A2E0']].forEach(([mx,c])=>{rr(g,mx-2,y-7,4,5,1,c);g.strokeStyle=c;g.lineWidth=.6;g.beginPath();g.arc(mx+2.3,y-4.6,1.3,-1.4,1.4);g.stroke();el(g,mx,y-7,1.9,.6,mix(c,'#000',.25))});el(g,x+8,y-9.5,1.2,1,'#F29AB0');el(g,x+7.2,y-10,.7,.6,'#F29AB0');el(g,x+8.8,y-10,.7,.6,'#F29AB0')}
 });
 /* 장소 바닥 그림의 크기(q)와 이름표(key). Phaser로 그릴 때는 화면이 실제로 쓰는 해상도(PR.R)만큼만 그려요
-   (TV는 그보다 조금 작게 ×0.85 → 메모리 절약, 바닥은 부드러운 색이라 차이가 거의 없어요) */
+   (TV는 그보다 작게 ×0.7 → 메모리 절약, 바닥은 부드러운 색이라 차이가 적어요) */
 function bgSpec(area,s){
-  let q=PR.on?PR.R*(prIsTV()?.85:1):Math.min(DPR,1.6);const A0=AREAS[area];const BUD=PR.on?(prIsTV()?6e6:8.5e6):(LITE?3.5e6:9e6);
+  let q=PR.on?PR.R*(prIsTV()?.7:1):Math.min(DPR,1.6);const A0=AREAS[area];const BUD=PR.on?(prIsTV()?4.5e6:8.5e6):(LITE?3.5e6:9e6);
   while(A0.w*TILE*s*q*A0.h*TILE*s*q>BUD||(PR.on&&Math.max(A0.w,A0.h)*TILE*s*q>PR.maxTex))q*=.85;
   // 가게 바닥만 꾸미기·업그레이드에 따라 바뀌어요. 다른 장소는 물건을 사도 다시 그리지 않아요
   return {q,key:area+'|'+s.toFixed(3)+'|'+q.toFixed(3)+(area==='shop'?'|'+JSON.stringify(S.up)+'|'+S.style:'')}}
@@ -834,7 +834,10 @@ const STEP=1/60;let ACC=0;
 function prMovers(){const a=S.chars.concat(S.customers||[],S.walkers||[]);(S.walkers||[]).forEach(w=>{if(w.dog)a.push(w.dog)});allCats().forEach(k=>a.push(k));return a}
 function prSnap(){prMovers().forEach(o=>{o._px=o.x;o._py=o.y;o._pa=o.area})}
 function prTick(now){
-  const _t0=performance.now();
+  const _t0=performance.now();PR.lastTickT=_t0;
+  try{prTick0(now,_t0)}catch(e){perfErr(e,'계산')}
+}
+function prTick0(now,_t0){
   let dt=(now-last)/1000;last=now;if(!(dt>0))dt=0;if(dt>.25)dt=.25;
   try{pollPads(dt)}catch(e){}
   const playing=S.phase==='play'&&!S.paused&&innerWidth>=innerHeight;
@@ -847,7 +850,7 @@ function prTick(now){
   const k=playing?ACC/STEP:1,ms=[];
   if(k<1)prMovers().forEach(o=>{if(o._px==null||o._pa!==o.area)return;const dx=o.x-o._px,dy=o.y-o._py;if(dx*dx+dy*dy>1600||(!dx&&!dy))return;ms.push([o,o.x,o.y]);o.x=o._px+dx*k;o.y=o._py+dy*k});
   const b0=PR.bakes,c0=PR.cbakes,g0=PR.bgMs,h0=PR.chunkMs;
-  try{render()}catch(e){PERF.errs++;PERF.lastErr=String(e&&e.message||e).slice(0,60);if(PERF.errs<5)console.error(e)} // 그림 오류가 나도 게임이 멈추지 않게
+  try{render()}catch(e){perfErr(e,'그림')} // 그림 오류가 나도 게임이 멈추지 않게
   finally{ms.forEach(([o,x,y])=>{o.x=x;o.y=y})}
   const _t2=performance.now();
   PERF.cur={upd:_t1-_t0,steps:n,ren:_t2-_t1,bk:PR.bakes-b0,cb:PR.cbakes-c0,bg:PR.bgMs-g0,ch:PR.chunkMs-h0};
@@ -856,7 +859,17 @@ function prTick(now){
 /* ---------- 성능 표시 (설정 → 성능 표시) ----------
    TV에서 사진을 찍어 보내 주면 어디가 무거운지 알 수 있게 자세히 보여 줘요 */
 const PERF={on:false,el:null,frames:0,cpu:0,ren:0,gpu:0,worst:0,worstWhy:'',lastT:0,prevF:0,cur:null,errs:0,lastErr:'',min:{ms:0,why:'',t:0},lost:0};
-try{PERF.lost=+(localStorage.getItem('ourflowershop_perf_lost')||0)}catch(e){}
+try{PERF.lost=+(localStorage.getItem('ourflowershop_perf_lost')||0);PERF.oldErr=(JSON.parse(localStorage.getItem('ourflowershop_perf_err')||'[]')[0]||'').slice(0,160)}catch(e){}
+/* 오류 기록: 화면 오른쪽 아래 성능 표시에 나오고, TV에 최근 3개를 남겨 둬요(다음에 원인을 찾을 수 있게) */
+function perfErr(e,where){PERF.errs++;const m=(where?where+': ':'')+String(e&&e.message||e).slice(0,80);PERF.lastErr=m;if(PERF.errs<5)console.error(e);
+  const now=performance.now();PERF.errT=(PERF.errT||[]).filter(t=>now-t<5000);PERF.errT.push(now);
+  if(PERF.errs<=20){try{const L=JSON.parse(localStorage.getItem('ourflowershop_perf_err')||'[]');const st=String(e&&e.stack||'').split('\n').slice(1,3).map(x=>x.trim().replace(/^at /,'').replace(/https?:\/\/[^ )]*\//g,'')).join(' < ');
+    L.unshift(new Date().toLocaleString()+' '+m+(st?' ('+st+')':''));localStorage.setItem('ourflowershop_perf_err',JSON.stringify(L.slice(0,3)))}catch(_){}}
+  if(PERF.errT.length>=90&&!PR.lostOnce){try{prContextLost('오류가 계속 나서')}catch(_){}}} // 5초 동안 계속 오류가 나면 저장하고 다시 불러오기
+/* 감시: 화면이 켜져 있는데 5초 넘게 그림이 멈춰 있으면(엔진이 멈춤) 저장하고 다시 불러와요 */
+let VIS_T=performance.now();document.addEventListener('visibilitychange',()=>{VIS_T=performance.now()});
+setInterval(()=>{if(!PR.on||PR.lostOnce||document.hidden||!PR.lastTickT)return;const now=performance.now();if(now-VIS_T<8000)return;
+  if(now-PR.lastTickT>5000){try{prContextLost('화면이 멈춰서')}catch(e){}}},1000);
 function perfShow(){PERF.on=!!SET.perf;if(PERF.on&&!PERF.el){PERF.el=document.createElement('div');PERF.el.id='perf';PERF.el.style.cssText='font:17px/1.45 "Jua",sans-serif;max-width:46vw;white-space:pre-wrap';document.body.appendChild(PERF.el);PERF.lastT=performance.now()}
   if(PERF.el)PERF.el.style.display=PERF.on?'block':'none'}
 function perfWhy(c,gap){if(!c)return '';const p=[];p.push(`계산 ${c.upd.toFixed(0)}ms(${c.steps}번)`);p.push(`그림 준비 ${c.ren.toFixed(0)}ms`);
@@ -880,7 +893,7 @@ function perfFrame(now){if(!PERF.on)return;PERF.frames++;const gap=now-(PERF.pre
     `1초 평균: 계산 ${(PERF.cpu/F).toFixed(1)}ms · 그림 준비 ${(PERF.ren/F).toFixed(1)}ms · 그리기 명령 ${(PERF.gpu/F).toFixed(1)}ms\n`+
     `굽기: 가구 ${bk}개/초 · 사람 ${cb}개/초\n${perfMem()}\n`+
     `최근 1분 최악 ${PERF.min.ms.toFixed(0)}ms (${Math.round((now-PERF.min.t)/1000)}초 전)\n  └ ${PERF.min.why}\n`+
-    `JS 메모리 ${heap} · 해상도 ${(DPR||1).toFixed(2)}배 · 그래픽 칩 포기 ${PERF.lost}회 · 오류 ${PERF.errs}${PERF.lastErr?' ('+PERF.lastErr+')':''}`;
+    `JS 메모리 ${heap} · 해상도 ${(DPR||1).toFixed(2)}배 · 화면 그림 객체 ${PR.sc?PR.sc.children.list.length:0}개\n자동 다시 불러오기 ${PERF.lost}회 · 오류 ${PERF.errs}${PERF.lastErr?' ('+PERF.lastErr+')':''}${PERF.oldErr?'\n지난 오류: '+PERF.oldErr:''}`;
   PERF.frames=0;PERF.cpu=0;PERF.ren=0;PERF.gpu=0;PERF.worst=0;PERF.lastT=now}
 function loop(now){
   if(PR.on)return;

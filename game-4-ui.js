@@ -23,7 +23,7 @@ function bouquetSVG(stems,o={}){
     const th=(j/Math.max(1,m))*Math.PI*2+.3+rr()*.5;const r=.55+rr()*.45;
     pos.push({s,hx:bx+r*56*Math.cos(th),hy:Math.min(124,98+r*30*Math.sin(th)-6)});
   });
-  if(BOXY||SH==='round')pos.forEach(q=>{const k=BOXY?.86:.9;q.hx=bx+(q.hx-bx)*k;q.hy=BOXY?118+(q.hy-102)*.62:100+(q.hy-102)*.8});
+  if(BOXY||SH==='round')pos.forEach(q=>{const k=BOXY?.92:.9;q.hx=bx+(q.hx-bx)*k;q.hy=BOXY?104+(q.hy-102)*.7:100+(q.hy-102)*.8}); // 바구니·상자: 줄기를 짧게 쳐서 꽃이 테두리 위로 더 보이게
   if(P&&SH==='round'){const gp=id+'p';defs.push(`<radialGradient id="${gp}" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="${P.c}"/><stop offset="1" stop-color="${P.l}"/></radialGradient>`);
     let d='';const N=16;for(let k=0;k<=N;k++){const a=Math.PI*(.98+k/N*1.04),r1=66,r2=74,a2=a+Math.PI/N*.52;const x1=100+Math.cos(a)*r1,y1=112+Math.sin(a)*r1*.9,x2=100+Math.cos(a2)*r2,y2=112+Math.sin(a2)*r2*.9;d+=(k?' Q':'M')+(k?`${x2.toFixed(1)},${y2.toFixed(1)} `:'')+`${x1.toFixed(1)},${y1.toFixed(1)}`}
     back=`<path d="${d} L100,150 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`}
@@ -31,8 +31,8 @@ function bouquetSVG(stems,o={}){
     back=`<path d="M100,${by+12} L14,82 Q30,34 78,26 Q128,20 150,44 L176,96 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/><path d="M100,${by+8} L40,56 M100,${by+8} L96,30" stroke="${P.d}" stroke-width=".6" opacity=".4"/>`}
   else if(BK){const H=SH==='rattan'?['#C99A63','#A87A48','#E0BC88']:['#F6F3EC','#D9D2C4','#FFFFFF'];
     back=`<path d="M40,140 C38,60 162,60 160,140" stroke="${H[1]}" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M40,140 C38,60 162,60 160,140" stroke="${H[0]}" stroke-width="5.5" fill="none" stroke-linecap="round"/>`+
-      `<ellipse cx="100" cy="136" rx="64" ry="15" fill="#7FA86A"/><ellipse cx="100" cy="133" rx="54" ry="10" fill="#93BA7A"/>`+[...Array(9)].map((_,k)=>{const t=(k+.5)/9,x=Math.pow(1-t,3)*40+3*Math.pow(1-t,2)*t*38+3*(1-t)*t*t*162+t*t*t*160,y=Math.pow(1-t,3)*140+3*Math.pow(1-t,2)*t*60+3*(1-t)*t*t*60+t*t*t*140;return `<path d="M${(x-2.5).toFixed(1)},${(y-2).toFixed(1)} l5,4" stroke="${H[2]}" stroke-width="1.1" opacity=".8"/>`}).join('')}
-  else if(P&&SH==='box'){back=`<ellipse cx="100" cy="140" rx="62" ry="13" fill="${mix(P.c,P.d,.45)}"/><ellipse cx="100" cy="141" rx="56" ry="10" fill="#6E8F5A" opacity=".55"/>`}
+      `<ellipse cx="100" cy="137" rx="64" ry="14" fill="${H[1]}"/><ellipse cx="100" cy="139" rx="54" ry="9" fill="${mix(H[1],'#3A2A1E',.25)}" opacity=".55"/>`+[...Array(9)].map((_,k)=>{const t=(k+.5)/9,x=Math.pow(1-t,3)*40+3*Math.pow(1-t,2)*t*38+3*(1-t)*t*t*162+t*t*t*160,y=Math.pow(1-t,3)*140+3*Math.pow(1-t,2)*t*60+3*(1-t)*t*t*60+t*t*t*140;return `<path d="M${(x-2.5).toFixed(1)},${(y-2).toFixed(1)} l5,4" stroke="${H[2]}" stroke-width="1.1" opacity=".8"/>`}).join('')}
+  else if(P&&SH==='box'){back=`<ellipse cx="100" cy="140" rx="62" ry="13" fill="${mix(P.c,P.d,.45)}"/><ellipse cx="100" cy="142" rx="54" ry="9" fill="${mix(P.d,'#3A2A1E',.3)}" opacity=".35"/>`}
   else if(P){
     const gp=id+'p';
     defs.push(`<linearGradient id="${gp}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.l}"/><stop offset="1" stop-color="${P.c}"/></linearGradient>`);
@@ -40,6 +40,7 @@ function bouquetSVG(stems,o={}){
     back=`<path d="M${bx},${by+12}${top} Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`+
       `<path d="M${bx},${by+10} L58,50 M${bx},${by+10} L142,50 M${bx},${by+10} L100,40" stroke="${P.d}" stroke-width=".6" opacity=".45"/>`;
   }
+  if(BOXY)pos.forEach(({s,hx,hy})=>{const w=wither(s.f);stemS+=`<path d="M${hx.toFixed(1)},${(hy+3).toFixed(1)} L${(bx+(hx-bx)*.8).toFixed(1)},146" stroke="${mix('#6E9A5A','#9C8B62',w)}" stroke-width="${s.t==='gyp'?1.2:2}" fill="none" stroke-linecap="round"/>`});
   if(!BOXY)pos.forEach(({s,hx,hy},k)=>{
     const w=wither(s.f);const sx=bx+(hx-bx)*.1;
     const col=mix('#6E9A5A','#9C8B62',w);

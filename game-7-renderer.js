@@ -15,7 +15,7 @@ const AOFF={shop:0,market:4000,supply:8000,town:12000,north:16000};
 const PR={on:false,game:null,sc:null,bgCam:null,cams:[],scr:null,R:1,frame:0,now:0,
   tex:new Map(),recs:new Map(),areaObj:{},pills:[],pillImgs:[],fades:[],g2:null,
   ovDirty:false,lastRev:-1,wf:0,sf:0,maxTex:4096,palIds:new Map(),
-  fps:60,bakes:0,cbakes:0,bgMs:0,bgN:0,chunkMs:0,preQ:null,preDone:null,camR:[null,null],camA:[null,null]};
+  fps:60,texN:0,bakes:0,cbakes:0,bgMs:0,bgN:0,chunkMs:0,preQ:null,preDone:null,camR:[null,null],camA:[null,null]};
 const OIDS=new WeakMap();let OIDN=0;
 function prOid(o){let v=OIDS.get(o);if(v==null){v=++OIDN;OIDS.set(o,v)}return v}
 function prRound(k,v){return typeof v==='number'?(Math.abs(v)>=2?Math.round(v):Math.round(v*20)/20):v}
@@ -66,6 +66,9 @@ function prCreate(){
   try{let g0=0;PR.game.events.on('prerender',()=>{g0=performance.now()});PR.game.events.on('postrender',()=>{if(PERF.on){const d=performance.now()-g0;PERF.gpu+=d;PERF.lastGpu=d;perfFrame(performance.now())}})}catch(e){}
   /* TV 메모리가 모자라 그래픽 칩이 화면 그리기를 포기하면(화면만 멈춤) → 저장하고 자동으로 다시 불러와요 */
   try{PR.game.canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();prContextLost()},false)}catch(e){}
+  /* 게임 한 프레임 안에서 어떤 오류가 나도 다음 프레임은 계속 돌게 해요.
+     (예전엔 오류 한 번이면 그림·시계가 영영 멈추고 소리만 나왔어요) */
+  try{const L=PR.game.loop,cb=L.callback;if(typeof cb==='function')L.callback=function(t,d){try{cb(t,d)}catch(e){perfErr(e,'엔진')}}}catch(e){}
   perfShow();
   PR.maxTex=(sc.renderer&&sc.renderer.getMaxTextureSize)?sc.renderer.getMaxTextureSize():4096;
   PR.bgCam=sc.cameras.main;PR.bgCam.setBackgroundColor(prBgColor());
@@ -78,13 +81,14 @@ function prCreate(){
   sc.textures.addCanvas('prLight',lightSprite());
   PR.on=true;resize();
 }
-function prContextLost(){
+function prContextLost(why){
   if(PR.lostOnce)return;PR.lostOnce=true;PR.on=false;
+  try{const L=JSON.parse(localStorage.getItem('ourflowershop_perf_err')||'[]');L.unshift(new Date().toLocaleString()+' 자동 다시 불러오기: '+(why||'그래픽 칩이 화면 그리기를 포기(메모리 부족)'));localStorage.setItem('ourflowershop_perf_err',JSON.stringify(L.slice(0,3)))}catch(e){}
   try{saveMid()}catch(e){}
   let n=0;try{n=+(localStorage.getItem('ourflowershop_perf_lost')||0)+1;localStorage.setItem('ourflowershop_perf_lost',String(n))}catch(e){}
   let again=false;try{const t=+(sessionStorage.getItem('ofs_lostAt')||0);again=Date.now()-t<90000;sessionStorage.setItem('ofs_lostAt',String(Date.now()));sessionStorage.setItem('ofs_autoresume','1')}catch(e){}
   const go=()=>{try{location.reload()}catch(e){}};
-  try{showScreen(`<div class="sheet" style="width:min(34rem,94vw)"><h1 style="font-size:1.6rem">화면을 다시 불러올게요</h1><p class="sub">TV 메모리가 모자라 화면이 멈췄어요. 방금까지 한 내용은 저장했어요.${again?'<br>자주 멈추면 설정에서 화질을 \'가볍게\'로 바꿔 보세요.':''}</p><div class="opts"><button class="btn primary" id="goReload">다시 불러오기</button></div></div>`);$('#goReload').onclick=go}catch(e){}
+  try{showScreen(`<div class="sheet" style="width:min(34rem,94vw)"><h1 style="font-size:1.6rem">화면을 다시 불러올게요</h1><p class="sub">${why?why+' ':'TV 메모리가 모자라 '}화면이 멈췄어요. 방금까지 한 내용은 저장했어요.${again?'<br>자주 멈추면 설정에서 화질을 \'가볍게\'로 바꿔 보세요.':''}</p><div class="opts"><button class="btn primary" id="goReload">다시 불러오기</button></div></div>`);$('#goReload').onclick=go}catch(e){}
   if(!again)setTimeout(go,1200)}
 function prW(o){o.cameraFilter=PR.wf;return o}
 function prS(o){o.cameraFilter=PR.sf;return o}
@@ -109,7 +113,8 @@ function prTex(key,w,h){
   const T=PR.sc.textures;let e=PR.tex.get(key);
   if(e&&(e.w!==w||e.h!==h)){if(T.exists(e.key))T.remove(e.key);PR.tex.delete(key);e=null}
   if(!e&&prPoolable(key)){const L=PR_POOL[w+'x'+h];if(L&&L.length){const p=L.pop();e={key:p.key,lkey:key,w,h,t:p.t,g:p.g,used:PR.frame};PR.tex.set(key,e);prUnshrink(e);return e}}
-  if(!e){if(T.exists(key))T.remove(key);const t=T.createCanvas(key,w,h);t.imageData=t.data=t.pixels=t.buffer=null;/* Phaser가 만들어 두는 픽셀 복사본은 안 써서 바로 버려요(메모리 절약) */e={key,w,h,t,g:t.getContext(),used:PR.frame};PR.tex.set(key,e)}
+  /* 그래픽 칩 쪽 이름은 매번 새 번호로(예전엔 같은 이름을 지우고 다시 만들다가, 다른 사람이 쓰던 그림까지 지워져 깜빡였어요) */
+  if(!e){const pk='t'+(++PR.texN);const t=T.createCanvas(pk,w,h);t.imageData=t.data=t.pixels=t.buffer=null;/* Phaser가 만들어 두는 픽셀 복사본은 안 써서 바로 버려요(메모리 절약) */e={key:pk,lkey:key,w,h,t,g:t.getContext(),used:PR.frame};PR.tex.set(key,e)}
   e.used=PR.frame;prUnshrink(e);return e;
 }
 /* 메모리 절약: 그림을 그래픽 칩에 올린 뒤에는 그리던 종이(캔버스)를 1×1로 줄여 두 벌 보관을 없애요.
@@ -123,7 +128,7 @@ function prTexLRU(){
   if(PR.frame%60)return;let bytes=0;const arr=[];
   for(const e of PR.tex.values()){const lk=e.lkey||e.key;if(lk[0]==='c'||lk[0]==='i'||lk.startsWith('pill|')||lk.startsWith('fx|cloud')){bytes+=e.w*e.h*4;arr.push(e)}}
   for(const k in PR_POOL){const [w,h]=k.split('x').map(Number);bytes+=PR_POOL[k].length*w*h*4}
-  const CAP=(prIsTV()?30:80)*1048576;if(bytes<CAP)return;
+  const CAP=(prIsTV()?22:80)*1048576;if(bytes<CAP)return;
   // 1차: 10초 넘게 안 쓴 것부터 75%까지 / 2차(그래도 넘치면): 1초 넘게 안 쓴 것만 한도 아래까지 → 걷기 동작처럼 곧 다시 쓸 그림을 지웠다 다시 굽는 일을 줄임
   arr.sort((a,b)=>a.used-b.used);
   const drop=e=>{const lk=e.lkey||e.key;PR.tex.delete(lk);bytes-=e.w*e.h*4;e.dead=1;
@@ -136,15 +141,16 @@ function prTexLRU(){
 function prStaticTrim(){
   if(PR.frame%60)return;let bytes=0;
   for(const e of PR.tex.values()){const lk=e.lkey||e.key;if(!(lk[0]==='c'||lk[0]==='i'||lk.startsWith('pill|')||lk.startsWith('fx|cloud')))bytes+=e.w*e.h*4}
-  const CAP=(prIsTV()?44:160)*1048576;if(bytes<CAP)return;
-  const old=[...PR.recs.values()].filter(r=>PR.frame-r.seen>prSec(15)).sort((a,b)=>a.seen-b.seen);
+  const CAP=(prIsTV()?34:160)*1048576;if(bytes<CAP)return;
+  let old=[...PR.recs.values()].filter(r=>r.layers&&PR.frame-r.seen>prSec(15)).sort((a,b)=>a.seen-b.seen);
+  if(old.reduce((a,r)=>a+(r.layers||[]).reduce((b,e)=>b+e.w*e.h*4,0),0)<bytes-CAP*.85)old=[...PR.recs.values()].filter(r=>r.layers&&PR.frame-r.seen>prSec(3)).sort((a,b)=>a.seen-b.seen); // 그래도 넘치면 3초 넘게 안 본 것까지
   for(const r of old){if(bytes<CAP*.85)break;let b=0;(r.layers||[]).forEach(e=>{b+=e.w*e.h*4});prKillRec(r);PR.recs.delete(r.id);bytes-=b}
 }
 /* 맵 바닥 그림: 여러 맵을 다녀와 한도를 넘으면 30초 넘게 안 간 맵 바닥부터 비움(다시 가면 금방 새로 그림) */
 function prBgTrim(){
   if(PR.frame%60!==30)return;let bytes=0;const list=[];
   for(const [a,o] of Object.entries(PR.areaObj)){if(!o.bgKey)continue;const b=o.bgBytes||0;bytes+=b;if(PR.frame-(o.seenF||0)>prSec(30))list.push([a,o,b])}
-  const CAP=(prIsTV()?64:160)*1048576;if(bytes<CAP)return; /* 미리 그린 장소 바닥(약 45MB)은 다 보관하고, 넘칠 때만 오래 안 간 곳부터 비워요 */
+  const CAP=(prIsTV()?44:160)*1048576;if(bytes<CAP)return; /* 미리 그린 장소 바닥(TV 약 39MB)은 다 보관하고, 넘칠 때만 오래 안 간 곳부터 비워요 */
   list.sort((p,q)=>(p[1].seenF||0)-(q[1].seenF||0));
   for(const [a,o,b] of list){if(bytes<CAP)break;o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);
     o.bgKey=null;o.bgSig=null;o.bgBytes=0;bytes-=b}
@@ -177,7 +183,7 @@ function prBakeStatic(rec,area,drawFn,B,scO){
   const timed=BAKE.timed;BAKE=null;RENDER_SCALE=oldRS;VIEW=oldV;
   layers.forEach(e=>{e.t.refresh();if(!timed)prShrink(e)});PR.bakes++;
   // 남는 예전 층 정리
-  for(let i=layers.length;i<(rec.nl||0);i++){const k=rec.id+'|'+i;if(PR.sc.textures.exists(k))PR.sc.textures.remove(k);PR.tex.delete(k)}
+  for(let i=layers.length;i<(rec.nl||0);i++)prTexDel(rec.id+'|'+i);
   rec.nl=layers.length;rec.layers=layers;rec.vchars=chars;rec.fx=fx;rec.timed=timed;rec.B=B;rec.sc=sc;rec.bt=PR.now;rec.scO=scO;
   PR.bakeMsF+=performance.now()-t0;
 }
@@ -196,7 +202,15 @@ function prPlaceStatic(rec,area,depth){
   prPlaceFx(rec,area,0,0,depth+.0005);
 }
 function prHideRec(rec){['imgs','cimgs','fimgs','himgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.setVisible(false)));if(rec.sub)rec.sub.forEach(prHideRec)}
-function prKillRec(rec){for(const k of [...PR.tex.keys()])if(k.startsWith('L|'+rec.id+'|')){PR.sc.textures.remove(k);PR.tex.delete(k)}['imgs','cimgs','fimgs','himgs'].forEach(k=>(rec[k]||[]).forEach(o=>o.destroy()));for(let i=0;i<(rec.nl||0);i++){const k=rec.id+'|'+i;if(PR.sc.textures.exists(k))PR.sc.textures.remove(k);PR.tex.delete(k)}if(rec.sub)rec.sub.forEach(prKillRec)}
+/* 오래 안 보인 사람·손님·동물 기록은 그림 객체까지 정리해요.
+   예전엔 손님이 다녀가거나 날이 바뀌어 주민이 새로 생길 때마다 그림 객체가 계속 쌓여서, 오래 하면 점점 느려지고 멈췄어요 */
+function prRecGC(){if(PR.frame%30)return;const lim=PR.frame-prSec(20);
+  for(const [id,r] of PR.recs){if(r.seen>=lim)continue;
+    if(r.layers){if(r.imgs||r.himgs||r.cimgs||r.fimgs){['imgs','cimgs','fimgs','himgs'].forEach(k=>{(r[k]||[]).forEach(o=>o.destroy());r[k]=null})}continue} // 구운 그림은 두고 그림 객체만 정리
+    prKillRec(r);PR.recs.delete(id)}}
+/* 이름(논리 키)으로 그림 하나를 지워요 */
+function prTexDel(lk){const e=PR.tex.get(lk);if(!e)return;PR.tex.delete(lk);e.dead=1;if(PR.sc.textures.exists(e.key))PR.sc.textures.remove(e.key)}
+function prKillRec(rec){const pre='L|'+rec.id+'|';for(const k of [...PR.tex.keys()])if(k.startsWith(pre))prTexDel(k);['imgs','cimgs','fimgs','himgs'].forEach(k=>{(rec[k]||[]).forEach(o=>o.destroy());rec[k]=null});for(let i=0;i<(rec.nl||0);i++)prTexDel(rec.id+'|'+i);rec.nl=0;rec.layers=null;rec.sig=null;if(rec.sub)rec.sub.forEach(prKillRec)}
 
 /* ---------- 물방울 반짝임·냉장고 물결(따로 움직이는 작은 효과) ---------- */
 function prFxTex(kind,s,sc){
@@ -224,7 +238,7 @@ function prPalKey(p){const vol=(p.pose||'')+'|'+(p.pf||'')+'|'+(p.prop||'')+'|'+
   let j;try{j=JSON.stringify(p)}catch(e){j=String(prOid(p))}let v=PR.palIds.get(j);if(v==null){v=PR.palIds.size+1;PR.palIds.set(j,v)}PR_PALC.set(p,[vol,v]);return v}
 const PR_CB=[-16,-46,32,52];
 function prCharTex(area,x,p,dir,phase,moving,glasses,work,sit){
-  const sc=PR.npc?Math.max(1,Math.round(prBakeScale(area)*(prIsTV()?.7:.8)*4)/4):prBakeScale(area); // 주민·손님은 도장을 조금 작게(메모리 절약, TV는 더 작게)
+  const sc=PR.npc?Math.max(1,Math.round(prBakeScale(area)*(prIsTV()?.6:.8)*4)/4):prBakeScale(area); // 주민·손님은 도장을 조금 작게(메모리 절약, TV는 더 작게)
   const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=Math.round(an/(Math.PI/8));if(q<=-8)q=8;if(q>8)q-=16;
   if(PR.npc){q=Math.round(q/2)*2;if(q<=-8)q=8} // 주민·손님은 8방향만(그림 수 절반 → 메모리·첫 굽기 부담 감소)
   let fk,ph=0,bob=0,wk=0;
@@ -349,7 +363,7 @@ function prArea(area){
 /* 아주 큰 장소(캠퍼스)는 바닥을 여러 조각으로 나눠 화면 근처만 그려요(한 장으로 그리면 흐릿해지거나 메모리를 많이 써서) */
 const AREA_CHUNK={};
 function prSyncChunks(area,a){
-  const A=AREAS[area],CS=A.chunk*TILE,V=VIEW||[0,0,A.w*TILE,A.h*TILE],q=Math.min(prIsTV()?1.1:2.5,Math.max(1,prBakeScale(area)*.65));
+  const A=AREAS[area],CS=A.chunk*TILE,V=VIEW||[0,0,A.w*TILE,A.h*TILE],q=Math.min(prIsTV()?1:2.5,Math.max(1,prBakeScale(area)*.65));
   a.ch=a.ch||new Map();a.bg.setVisible(false);
   const nx=Math.ceil(A.w*TILE/CS),ny=Math.ceil(A.h*TILE/CS),m=CS*.8; // 화면 밖 한 칸까지 미리(한 프레임에 하나씩) 그려 둬요
   let made=0;const need=new Map();
@@ -369,7 +383,7 @@ function prSyncChunks(area,a){
       PR.chunkMs+=performance.now()-t0;c={key,q,cv,img,sz};a.ch.set(k,c);made++}
     c.used=PR.frame;c.img.setVisible(true)}
   for(const c of a.ch.values())if(c.used!==PR.frame)c.img.setVisible(false);
-  const LIM=prIsTV()?20:30;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
+  const LIM=prIsTV()?12:30;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
     for(const [k,c] of old){if(a.ch.size<=LIM)break;prChunkFree(c);a.ch.delete(k)}}
 }
 function prChunkFree(c){c.img.setVisible(false);const pl=PR.chunkPool||(PR.chunkPool=[]);if(c.cv&&pl.length<4){pl.push({key:c.key,cv:c.cv,img:c.img,sz:c.sz});return}if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}
@@ -475,6 +489,7 @@ function prRender(){
   for(const a in areas){VIEW=areas[a];VIEWS=rects[a];RENDER_SCALE=prBakeScale(a);prSyncBg(a);prSyncDyn(a);prSyncArea(a);prSyncChars(a);VIEW=null;VIEWS=null}
   Object.keys(PR.areaObj).forEach(a=>{if(areas[a])return;const o=PR.areaObj[a];if(o.gu)o.gu.setVisible(false);if(o.gd)o.gd.setVisible(false)});
   for(const r of PR.recs.values()){if(r.seen!==PR.frame)prHideRec(r)}
+  prRecGC();
   prStaticTrim();prBgTrim();
   if(PR.sunWas&&!PR.sunKeep){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height)}PR.sunWas=PR.sunKeep;
   prFlushPills();prTexLRU();prCull();

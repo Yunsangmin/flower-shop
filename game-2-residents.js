@@ -205,9 +205,9 @@ function mkCouple(zone){const f=Math.random()<.5;const lead=mkWalker('couple',zo
 function makeWalkers(){
   const kk=mkMain('minji','dog','park');kk.dog.name='까미';kk.dog.col='#2A2626';kk.kkami=true;
   makeCat();
-  const W=[kk,mkMain('suni','elder','park'),mkMain('doyun','adult','lane'),mkMain('haru','kid','park',{school:true}),mkWalker('adult','park'),mkWalker('dog','park'),mkWalker('kid','park',{school:true}),mkWalker('elder','park'),mkWalker('student','lane'),mkWalker('adult','lane'),mkWalker('dog','right'),mkWalker('kid','right',{school:true}),mkWalker('kid','park',{school:true}),
-    mkWalker('adult','north'),mkWalker('elder','north'),mkWalker('dog','north'),
-    mkWalker('adult','lake',{eve:true}),mkWalker('elder','lake',{eve:true}),mkWalker('dog','lake',{eve:true}),mkWalker('student','lake',{eve:true})];
+  const W=[kk,mkMain('suni','elder','park'),mkMain('doyun','adult','lane'),mkMain('haru','kid','park',{school:true}),mkWalker('adult','park'),mkWalker('dog','park'),mkWalker('kid','park',{school:true}),mkWalker('elder','park'),mkWalker('student','lane'),mkWalker('dog','right'),mkWalker('kid','right',{school:true}),
+    mkWalker('adult','north'),mkWalker('dog','north'),
+    mkWalker('adult','lake',{eve:true}),mkWalker('elder','lake',{eve:true}),mkWalker('dog','lake',{eve:true})]; // TV 메모리를 위해 엑스트라를 조금 줄였어요
   W.push(...mkCouple('park'),...mkCouple('north'));S.walkers=W;
 }
 function newGame(mode){mode='duo';

@@ -563,10 +563,10 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
 {const _pp=propV;propV=function(g,p,st,hw,t,back){if(p.prop==='coffee'){if(back)return;const x=hw+st-1,y=-50;rr(g,x-3,y-2,7,10,1.5,'#F4EFE6');rr(g,x-3,y+1,7,4,.8,'#8A5A3C');rr(g,x-3.5,y-3.5,8,2,1,'#FFFFFF');return}return _pp(g,p,st,hw,t,back)}}
 {const _mw=makeWalkers;makeWalkers=function(){_mw();const W=[];
   // 학부생 무리(학과별 3~4명, 에너지 넘침) — 스포츠과학과는 키 크고 탄탄하게
-  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,6);if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
+  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,4); // TV 메모리를 위해 학과 무리 6→4if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
   depts.forEach(dp=>{const n=3+(Math.random()<.5?1:0);let lead=null;for(let k=0;k<n;k++){const sp=dp==='스포츠과학과';const w=cNew('student',sp?Math.random()<.35:Math.random()<.5,sp?SPORTY():{},k?'ugf':'ug');w.dept=dp;w.lineI=k;if(k){w.lead=lead;w.slot=k;w.x=lead.x+rnd(-8,8);w.y=lead.y+rnd(-8,8)}else lead=w;W.push(w)}});
   // 혼자 다니는 학생(기계·컴공·물리·수학 — 남학생, 안경, 큰 가방)
-  for(let k=0;k<5;k++){const w=cNew('student',false,{acc:'glasses',pack:true,packC:pick(['#3E4A5C','#5A5A5A','#2F4A3A']),tee:pick(['#8C9AA8','#6E7A6A','#9A8C7A','#5A6A80']),expr:'calm'},'nerd');w.dept=DEPT_NERD[k%4];W.push(w)}
+  for(let k=0;k<3;k++){const w=cNew('student',false,{acc:'glasses',pack:true,packC:pick(['#3E4A5C','#5A5A5A','#2F4A3A']),tee:pick(['#8C9AA8','#6E7A6A','#9A8C7A','#5A6A80']),expr:'calm'},'nerd');w.dept=DEPT_NERD[k%4];W.push(w)}
   // 피크닉(돗자리에 둘러앉아 먹고 떠들기)
   CPICNIC.forEach((m,mi)=>{const dp=m.food==='jjamak'?pick(['기초학문관 앞 짜막 모임','물리학과·수학과 연합']):pick(DEPT_GRP.filter(d=>d!=='스포츠과학과'));const seats=[[.9,.45,'down'],[3.1,.45,'down'],[3.2,2.45,'up'],[.8,2.45,'up']];const n=3+(mi%2);
     const mem=[];seats.slice(0,n).forEach(([ox,oy,dr],k)=>{const w=cNew('student',Math.random()<.55,{gsit:true},'picnic');w.dept=dp;w.mat=m;w.lineI=k;w.x=(m.x+ox)*TILE;w.y=(m.y+oy)*TILE;w.sit=true;w.yo=5;w.dir=dr;w.hdir=dr;w.hx=w.x;w.hy=w.y;mem.push(w);W.push(w)});m.mem=mem;m.next=rnd(1,4)});
@@ -587,7 +587,7 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   {const court=SP.ten[1],[x0,y0,x1,y1]=cB(court),P=[];for(let k=0;k<2;k++){const w=sw('sport','ten',{tee:'#F2F2F2',pants:'#F2F2F2'});w.hy=k?y1-5:y0+5;w.x=(x0+x1)/2;w.y=w.hy;P.push(w);W.push(w)}
     CSPORT.ten={court,players:P,t:0,ball:{dir:0,t0:0,fx:P[0].x,fy:P[0].y,tx:(x0+x1)/2,ty:P[1].hy,x:P[0].x,y:P[0].y,z:0}}}
   for(let k=0;k<3;k++){const w=sw('sport','run');w.u=k/3+.05;w.lane=.9+k*1.1;W.push(w)}
-  for(let k=0;k<4;k++){const w=cNew('adult',Math.random()<.5,{},'sport');w.sport='walk';w.u=k/4;w.lane=2.2+(k%2)*1.2;w.dept='산책 나온 주민';w.hidden=1;W.push(w)}
+  for(let k=0;k<2;k++){const w=cNew('adult',Math.random()<.5,{},'sport');w.sport='walk';w.u=k/2;w.lane=2.2+(k%2)*1.2;w.dept='산책 나온 주민';w.hidden=1;W.push(w)}
   W.forEach(w=>{if(w.cRole==='picnic'||w.sport)return;const q=cNearFree(w.x/TILE,w.y/TILE,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE;w.tx=w.x;w.ty=w.y}});
   // 준엽(메인 주민) · 민욱은 동엽 교수님 건물 근처
   if(typeof CENG2!=='undefined'&&CENG2){const w=mkMain('junyeop','adult','campus');w.cRole='junyeop';w.home=CENG2.gi;const d=cDoor(CENG2);const q=cNearFree(d[0]/T-2,d[1]/T+2,null,6);if(q){w.x=q[0]*T;w.y=q[1]*T}w.tx=w.x;w.ty=w.y;W.push(w)}
@@ -597,12 +597,12 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   const place=(w,cx,cy,r,kinds)=>{for(let n=0;n<6;n++){const p=cSpot(cx,cy,r+n*2,kinds);if(p){w.x=p[0];w.y=p[1];w.tx=w.x;w.ty=w.y;return true}}return false};
   const tc=[(TRK[0]+TRK[2])/2,(TRK[1]+TRK[3])/2];
   // 조깅
-  for(let k=0;k<4;k++){const w=cNew('student',k%2===1,Object.assign(SPORTY(),{pose:'jog'}),'jog');w.dept=k<2?'러닝 동아리':'운동하는 학생';w.life='jog';place(w,CD.W/2,CD.H/2,CD.W/2,[1,8,10]);W.push(w)}
+  for(let k=0;k<2;k++){const w=cNew('student',k%2===1,Object.assign(SPORTY(),{pose:'jog'}),'jog');w.dept=k<2?'러닝 동아리':'운동하는 학생';w.life='jog';place(w,CD.W/2,CD.H/2,CD.W/2,[1,8,10]);W.push(w)}
   // 스트레칭·줄넘기(운동장 옆 잔디)
   for(let k=0;k<3;k++){const w=cNew('student',k!==1,Object.assign(SPORTY(),{pose:k===2?'rope':'stretch'}),'lifeStill');w.dept='운동하는 학생';w.life=k===2?'rope':'stretch';place(w,tc[0]+(k-1)*9,tc[1]+(k%2?-16:16),6,[2,3]);w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
   // 잔디밭 독서
   const LIB=CB.find(G=>/학술정보관|도서관/.test(G.n))||CB[0];const d=cDoor(LIB);
-  for(let k=0;k<3;k++){const w=cNew('student',Math.random()<.6,{gsit:true,pose:'read',bookC:pick(['#C9546A','#5E7FB0','#7FAF6C','#E2B656'])},'lifeStill');w.dept=pick(DEPT_GRP.filter(x=>x!=='스포츠과학과'));w.life='read';
+  for(let k=0;k<2;k++){const w=cNew('student',Math.random()<.6,{gsit:true,pose:'read',bookC:pick(['#C9546A','#5E7FB0','#7FAF6C','#E2B656'])},'lifeStill');w.dept=pick(DEPT_GRP.filter(x=>x!=='스포츠과학과'));w.life='read';
     place(w,d[0]/T+(k-1)*6,d[1]/T+5+k*2,5,[2]);w.sit=true;w.yo=5;w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
   // 산책(강아지·휴대폰·커피)
   ['dog','dog','phone','coffee'].forEach((kind,k)=>{const w=cNew('adult',k%2===0,kind==='phone'?{pose:'phone'}:kind==='coffee'?{prop:'coffee'}:{},'stroll');w.dept=kind==='dog'?'강아지와 산책 중':'산책 나온 사람';w.life=kind;place(w,CD.W/2,CD.H/2,CD.W/2,[1,6,8]);
@@ -702,3 +702,7 @@ function cStep(w,dt){
 // 같은 이름이 두 번 나오지 않게(주요 주민 이름은 그대로 두고 나머지만 다시 뽑아요)
 {const _mw2=makeWalkers;makeWalkers=function(){_mw2();const used=new Set(S.walkers.filter(w=>w.main).map(w=>w.name));
  for(const w of S.walkers){if(w.main||!w.name)continue;if(used.has(w.name)){const L=(isFemName(w.name)?NAMES_F:NAMES_M).filter(n=>!used.has(n));if(L.length)w.name=pick(L)}used.add(w.name)}}}
+/* 동네·캠퍼스 엑스트라는 하루가 바뀌어도 같은 사람들(같은 생김새)로 — 매일 새 얼굴을 새로 그리느라 그림 메모리가 늘어나던 걸 막아요.
+   (게임을 켤 때마다 한 번 정해져요. 메인 주민은 원래대로) */
+const WALKER_SEED=(Math.random()*2147483646|0)+1;
+{const _mw3=makeWalkers;makeWalkers=function(){const R=Math.random;let s=WALKER_SEED;Math.random=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646};try{_mw3()}finally{Math.random=R}}}

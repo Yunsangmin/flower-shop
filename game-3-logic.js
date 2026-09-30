@@ -156,7 +156,7 @@ function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;od
 function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
 function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(n=>!S.chars.some(o=>o!==c&&o.rest&&o.rest.deco===d&&o.rest.seat===n));
   if(seat===undefined){toast(c.i,S0.lie?'돗자리가 꽉 찼어요':'자리가 꽉 찼어요');return}
-  if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?9:-9);c.y=(d.y+d.h/2)*TILE+5;c.dir='down';c.face=c.ang=0;sfx('sit');toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
+  if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?1:-1);c.y=(d.y+d.h/2)*TILE+(seat?10:0); /* 둘이 나란히(위아래로) 누워요 — 예전엔 좌우로 겹쳐서 한 사람이 가려졌어요 */c.dir='down';c.face=c.ang=0;sfx('sit');toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
   const off=S0.n>1?(seat?.5:-.5):0;c.rest={bench:{x:d.x+(d.w-1)/2+off,y:d.y,up:false},seat:0,start:S.t,deco:d};c.rest.seat=seat;c.x=(d.x+d.w/2+off)*TILE;c.y=(d.y+1)*TILE-3;c.dir='down';c.face=c.ang=0;sfx('sit')}
 function toggleEdit(){
   if(S.phase!=='play')return;
@@ -183,7 +183,8 @@ function doAction(i){
   if(c.rest){standUp(c);return}
   const s=targetOf(c),fa=furnAny(c);
   /* 가구 앞: 짧게 누르면 앉기·눕기, 길게 누르면 들기(손을 뗄 때 결정 — update에서 처리) */
-  if(s&&s.type==='seat'){if(fa===s.deco){c.pend={t:now,seat:s.deco};return}sitOn(c,s.deco);return}
+  /* 앉기·눕기는 누르는 순간 바로(손 떼는 순간을 기다리지 않음 → 조이콘에서도 확실하게). 계속 누르고 있으면 일어나서 들기 */
+  if(s&&s.type==='seat'){sitOn(c,s.deco);if(fa===s.deco)c.pend={t:now,seat:s.deco,sat:!!c.rest};return}
   if(!s&&fa){c.pend={t:now};return}
   if(!s){toast(i,'가까이에 쓸 수 있는 게 없어요');return}
   switch(s.type){
@@ -584,8 +585,8 @@ function update(dtReal){
   S.puffs.forEach(q=>q.t+=dtReal);S.puffs=S.puffs.filter(q=>q.t<.5);
   /* 행동 버튼 길게 누르기 → 가구 들기 / 짧게 → 앉기 */
   S.chars.forEach((c,i)=>{if(!c.pend)return;if(c.modal){c.pend=null;return}
-    if(actHeld(i)){if(performance.now()-c.pend.t>=700){const f=furnAny(c);c.pend=null;if(f)pickUp(c,f)}}
-    else{const p=c.pend;c.pend=null;if(p.seat)sitOn(c,p.seat);else toast(i,'행동 버튼을 길게 누르면 가구를 들 수 있어요')}});
+    if(actHeld(i)){if(performance.now()-c.pend.t>=700){const p=c.pend,f=p.sat?p.seat:furnAny(c);c.pend=null;if(p.sat&&c.rest)standUp(c);if(f)pickUp(c,f)}}
+    else{const p=c.pend;c.pend=null;if(p.sat)return;if(p.seat)sitOn(c,p.seat);else toast(i,'행동 버튼을 길게 누르면 가구를 들 수 있어요')}});
   S._wf=(S._wf||0)+dtReal;if(S._wf>.5){S._wf=0;wallFlags()}
   S._gc=(S._gc||0)+dtReal;if(S._gc>3){S._gc=0;giftCatchUp()}
   updateCustomers(dt);updateWalkers(dt);
