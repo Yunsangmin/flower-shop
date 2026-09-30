@@ -809,7 +809,8 @@ function overlays(v){
   if(v.area==='shop'){S.customers.forEach(k=>{if(k.area!=='shop'||k.kind!=='reserve'||k.state!=='wait'||k.talking)return;const [x,y]=S2(k.x,k.y-32);pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)});
     S.customers.forEach(k=>{if(k.area==='shop'&&k.say&&k.state==='move'){const [x,y]=S2(k.x,k.y-32);pillText(k.say,x,y,'rgba(255,253,249,.9)','#7A6E86',9)}})}
   /* 이야기가 준비된 메인 주민의 혼잣말 말풍선 → 가서 말을 걸면 이야기가 시작돼요 */
-  S.walkers.forEach(w=>{if(!w.main||!w.mono||w.hidden||w.talking||(w.monoT||0)>6.5||(wArea(w)!==v.area&&w.zone!==v.area))return;const [x,y]=S2(w.x,w.y+(w.yo||0)-48*(w.pal&&w.pal.sc||1));if(inV(x,y))pillText(w.mono,x,y,'#FFFFFF','#6A5F7A',10)});
+  /* 가까이(캠퍼스 약 8칸, 그 밖 약 6칸) 다가간 사람이 있을 때만 보여요 — 멀리서는 혼잣말을 하지 않아요 */
+  S.walkers.forEach(w=>{if(!w.main||!w.mono||w.hidden||w.talking||(w.monoT||0)>6.5||(wArea(w)!==v.area&&w.zone!==v.area))return;const RN=(v.area==='campus'?8:6)*TILE;if(!S.chars.some(c=>c.area===v.area&&Math.hypot(c.x-w.x,c.y-w.y)<RN))return;const [x,y]=S2(w.x,w.y+(w.yo||0)-48*(w.pal&&w.pal.sc||1));if(inV(x,y))pillText(w.mono,x,y,'#FFFFFF','#6A5F7A',10)});
   if(WIDE_AREAS[v.area]){
     S.walkers.forEach(w=>{if(!w.offer||wArea(w)!==v.area)return;const [x,y]=S2(w.x,w.y-33);if(inV(x,y))pillText('예약하고 싶어요',x,y,'#FBDDE4','#4A3F5C',10)})}
   if(v.area==='market'){
