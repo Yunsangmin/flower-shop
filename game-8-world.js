@@ -388,8 +388,8 @@ function shopStatic(g){
   wallpaper(g,0,W,0,22,P.wall,P.dot);
   if(S.style==='vintage'){for(let x=12;x<W;x+=48){g.strokeStyle='rgba(201,162,74,.45)';g.lineWidth=.5;g.strokeRect(x,4,36,15)}}
   g.fillStyle=P.trim;g.fillRect(0,0,W,2);g.fillRect(0,21,W,1.5);g.fillStyle=P.wain;g.fillRect(0,22.5,W,8.5);for(let x=2;x<W;x+=S.style==='natural'?5:16){g.fillStyle=P.wainL;g.fillRect(x,24,S.style==='natural'?2.2:13,6)}if(S.style==='vintage'){g.fillStyle='#C9A24A';g.fillRect(0,26.8,W,.5)}g.fillStyle=P.trim;g.fillRect(0,31,W,1.5);
-  rr(g,50,9,26,2,.8,S.style==='minimal'?'#E8E2D8':CO.wood);[[54,'#D98E6C'],[61,'#E8D2B4'],[68,'#D98E6C']].forEach(([px,c])=>{rr(g,px-2.5,4,5,5,1,S.style==='minimal'?'#F4F1EA':c);leafyBlob(g,px,3.5,2.6,'#7FAF6C','#A6D08F')});
-  if(!S.up.d_wallshelf)[[180,6],[194,9]].forEach(([px,py],k)=>{rr(g,px,py,11,9,.8,P.frame);rr(g,px+1,py+1,9,7,.5,'#FFF8EE');k?freesiaV(g,px+5.5,py+4.5,2.2,0):roseV(g,px+5.5,py+4.5,2.6,0)});
+  if(!S.up.wsHide){rr(g,50,9,26,2,.8,S.style==='minimal'?'#E8E2D8':CO.wood);[[54,'#D98E6C'],[61,'#E8D2B4'],[68,'#D98E6C']].forEach(([px,c])=>{rr(g,px-2.5,4,5,5,1,S.style==='minimal'?'#F4F1EA':c);leafyBlob(g,px,3.5,2.6,'#7FAF6C','#A6D08F')})}
+  if(!S.up.d_wallshelf&&!S.up.wfHide)[[180,6],[194,9]].forEach(([px,py],k)=>{rr(g,px,py,11,9,.8,P.frame);rr(g,px+1,py+1,9,7,.5,'#FFF8EE');k?freesiaV(g,px+5.5,py+4.5,2.2,0):roseV(g,px+5.5,py+4.5,2.6,0)});
   g.fillStyle=P.side;g.fillRect(0,0,16,176);g.fillRect(W-16,0,16,176);g.fillStyle=mix(P.side,'#000',.08);g.fillRect(15,32,1,128);g.fillRect(W-16,32,1,128);
   g.fillStyle=P.side;g.fillRect(0,160,W,16);g.fillStyle=mix(P.side,'#000',.08);g.fillRect(0,160,W,1);
   const segs=[[24,96]];for(let a=168;a+80<=W-24;a+=96)segs.push([a,a+80]);
@@ -604,7 +604,7 @@ function drawWorldV(g,area){
   const ents=[];
   sts.forEach(s=>{if(!inView((s.x+s.w/2)*TILE,(s.y+s.h)*TILE,s.w*8+30))return;ents.push({y:(s.y+s.h)*TILE-(s.type==='bench'?6:2),draw:()=>{drawStationV(g,s)}})});
   DECOR[area].forEach(d=>{if(d.flat&&d.walk&&!d.carried&&inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+20))drawDecor(g,d)});
-  DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.t==='school'?120:40)))return;ents.push({y:(d.y+d.h)*TILE-2,draw:()=>drawDecor(g,d)})});
+  DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.t==='school'?120:40)))return;ents.push({y:d.wall?d.y*TILE-6:(d.y+d.h)*TILE-2,draw:()=>drawDecor(g,d)})});
   S.chars.forEach(c=>{if(c.area!==area)return;ents.push({y:c.y+(c.rest?2:0),draw:()=>{
     if(S.mode==='solo'&&S.active===c.i){g.save();g.beginPath();g.ellipse(c.x,c.y,7.5,2.4,0,0,7);g.strokeStyle=PAL[c.i].tag;g.globalAlpha=.75;g.lineWidth=1;g.stroke();g.restore()}
     const [hx,hy,behind]=handPos(c);

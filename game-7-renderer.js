@@ -248,7 +248,7 @@ function prSyncArea(area){
   stationsIn(area).forEach(s=>{if(!inView((s.x+s.w/2)*TILE,(s.y+s.h)*TILE,s.w*8+30))return;
     prSyncStatic('s'+s.id,area,(s.y+s.h)*TILE-(s.type==='bench'?6:2),()=>prStSig(s),g=>drawStationV(g,s),()=>prBounds(PR_STB,s.type,s.x*TILE,s.y*TILE,s.w*TILE,s.h*TILE))});
   DECOR[area].forEach(d=>{if(d.flat||d.carried||!inView((d.x+d.w/2)*TILE,(d.y+d.h)*TILE,d.w*8+(d.vm||(d.t==='school'?120:40))))return;
-    const r=d.share?prSyncShared(d,area):prSyncStatic('d'+prOid(d),area,(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d));prFade(r,d,area)});
+    const r=d.share?prSyncShared(d,area):prSyncStatic('d'+prOid(d),area,d.wall?d.y*TILE-6:(d.y+d.h)*TILE-2,()=>prDecSig(d,area),g=>drawDecor(g,d),()=>prBounds(PR_DEB,d.t,d.x*TILE,d.y*TILE,d.w*TILE,d.h*TILE,d));prFade(r,d,area)});
 }
 /* 똑같이 생긴 장식(캠퍼스 나무 등)은 그림 하나를 같이 써요(d.share = 모양 이름) → 수백 그루여도 굽는 양·메모리가 적음 */
 function prSyncShared(d,area){

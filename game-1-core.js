@@ -66,12 +66,16 @@ const TEMPLATES=[
 const STYLE_IDS={natural:'우드톤',minimal:'화이트톤'};
 const SHOP_CATS=[['equip','설비'],['tool','도구'],['wrap','포장재'],['deco','꾸미기'],['interior','인테리어'],['style','옷·치장'],['expand','가게 확장']];
 const STYLE={
-  glasses:{label:'안경',opts:[['horn','검은 뿔테 안경',15000],['gold','동그란 금테 안경',18000]]},
-  hat:{label:'모자',opts:[['beret','베레모',12000],['sunhat','밀짚모자',15000],['beanie','니트 비니',10000],['cap','야구 모자',10000]]},
-  pin:{label:'머리핀·리본',opts:[['ribbon','리본 핀',6000],['flower','꽃 머리핀',8000],['band','헤어밴드',7000]]},
-  apron:{label:'앞치마',opts:[['#F4B6C4','분홍 앞치마',14000],['#A7C7A0','초록 앞치마',14000],['#6F8FB8','데님 앞치마',16000]]},
-  tee:{label:'티셔츠',opts:[['#9FD8C4','민트 티셔츠',12000],['#F6B7A0','코랄 티셔츠',12000],['#F1E6D2','크림 티셔츠',12000]]}
+  glasses:{label:'안경',opts:[['horn','검은 뿔테 안경',15000],['gold','동그란 금테 안경',18000],['sun','동그란 선글라스',16000]]},
+  hat:{label:'모자',opts:[['beret','베레모',12000],['sunhat','밀짚모자',15000],['beanie','니트 비니',10000],['cap','야구 모자',10000],['bucket','린넨 버킷햇',14000],['crown','하루의 꽃 화관',0,'gift']]},
+  pin:{label:'머리핀·리본',opts:[['ribbon','리본 핀',6000],['flower','꽃 머리핀',8000],['band','헤어밴드',7000],['yflower','노란 꽃핀',8000],['pearl','진주 머리핀',0,'gift']]},
+  apron:{label:'앞치마',opts:[['#F4B6C4','분홍 앞치마',14000],['#A7C7A0','초록 앞치마',14000],['#6F8FB8','데님 앞치마',16000],['#C9B8E8','라벤더 앞치마',14000],['#F1E3C4','크림 린넨 앞치마',15000],['knit','순이 할머니의 꽃무늬 앞치마',0,'gift']]},
+  tee:{label:'티셔츠',opts:[['#9FD8C4','민트 티셔츠',12000],['#F6B7A0','코랄 티셔츠',12000],['#F1E6D2','크림 티셔츠',12000],['#FFFFFF','흰 티셔츠',10000],['#F7E08A','레몬 티셔츠',12000],['#C9B8E8','라벤더 티셔츠',12000]]},
+  dress:{label:'원피스·셔츠',opts:[['pink','벚꽃 원피스',22000],['sky','하늘 원피스',22000],['linen','린넨 원피스',24000],['navy','남색 원피스',24000],['stripe','줄무늬 셔츠',18000],['check','체크 셔츠',18000],['denim','데님 셔츠',20000]]},
+  bag:{label:'가방·꽃바구니',opts:[['leather','가죽 크로스백',16000],['canvas','캔버스 에코백',12000],['rattan','라탄 가방',20000],['basket','꽃바구니',18000],['pack','미니 백팩',15000],['kkami','민지의 까미 에코백',0,'gift'],['spring','봄 연구실 에코백',0,'gift']]}
 };
+const DRESS={pink:{c:'#F6C9D3',dress:1},sky:{c:'#BFD9EE',dress:1},linen:{c:'#EFE4D0',dress:1},navy:{c:'#3E4A6E',dress:1},stripe:{c:'#EEF3FA',shirt:'stripe',l:'#4A6A9A'},check:{c:'#F3DCCB',shirt:'check',l:'#B0473E'},denim:{c:'#7F9CC0',shirt:'denim'}};
+const BAGS={leather:{bag:true,bagC:'#9C6B4C'},canvas:{bag:true,bagC:'#EFE6D6',bagP:'#9DBB88'},rattan:{bag:true,bagC:'#C99A63'},basket:{prop:'basket'},pack:{pack:true,packC:'#E8A0A8'},kkami:{bag:true,bagC:'#F4EEE2',bagP:'#2A2626',bagP2:'#F29AB0'},spring:{bag:true,bagC:'#DDEBD4',bagP:'#F29AB0',bagP2:'#FFFFFF'}};
 const SHOP_ITEMS=[
   {id:'fridge',cat:'equip',name:'꽃 냉장고 업그레이드',desc:'냉장고에 넣어둔 꽃과 꽃다발이 절반 속도로 시들어요.',price:120000},
   {id:'bucket3',cat:'equip',name:'물올림 통 추가',desc:'물올림 통이 하나 더 생겨요.',price:30000},
@@ -99,7 +103,7 @@ const SHOP_ITEMS=[
   {id:'hanging',cat:'deco',part:'천장',name:'행잉 화분',desc:'천장에 초록 화분을 더 매달아요.',price:18000},
   {id:'lights',cat:'deco',part:'천장',name:'전구 조명',desc:'가게에 전구 줄을 달아요. 저녁이면 반짝여요.',price:22000},
   {id:'sign',cat:'deco',part:'가게 앞',name:'새 간판 달기',desc:'우리 꽃집 간판을 꽃으로 꾸미고 이름을 새로 정해요. 언제든 다시 살 수 있어요.',price:30000,repeat:true},
-  ...Object.entries(STYLE).flatMap(([k,v])=>v.opts.map(([val,name,price])=>({id:'st_'+k+'_'+val,cat:'style',name,desc:'가게 옷장에서 갈아입을 수 있어요. 둘 다 입을 수 있어요.',price,style:[k,val],part:{glasses:'얼굴',hat:'머리',pin:'머리',apron:'몸',tee:'몸'}[k]}))),
+  ...Object.entries(STYLE).flatMap(([k,v])=>v.opts.filter(o=>o[3]!=='gift').map(([val,name,price])=>({id:'st_'+k+'_'+val,cat:'style',name,desc:'가게 옷장에서 갈아입을 수 있어요. 둘 다 입을 수 있어요.',price,style:[k,val],part:{glasses:'얼굴',hat:'머리',pin:'머리',apron:'몸',tee:'몸',dress:'몸',bag:'소품'}[k]}))),
   ...Object.keys(STYLE_IDS).map(k=>({id:'style_'+k,cat:'interior',name:STYLE_IDS[k],desc:'',price:300000,styleSet:k,repeat:true,part:'가게 전체'})),
   {id:'exp1',cat:'expand',name:'가게 넓히기 1단계',desc:'가게 오른쪽 벽을 터서 바닥이 넓어져요. 넓어진 곳에 가구를 옮겨 놓을 수 있어요.',price:500000},
   {id:'exp2',cat:'expand',name:'가게 넓히기 2단계',desc:'가게가 한 번 더 넓어져요.',price:1200000,need:'exp1'},
@@ -274,7 +278,13 @@ function makeChar(i){
   const p=i===0?[6*TILE,3.9*TILE]:[11.5*TILE,3.9*TILE];
   return {i,pal:PAL[i],area:'shop',x:p[0],y:p[1],vx:0,vy:0,dir:'down',ang:0,face:0,anim:0,moving:false,bag:S.bags[i],modal:null,rest:null,carry:null,waterT:0,boostUntil:-1,fade:0,lastAct:0};
 }
-function palOf(c){const o=S.outfit[c.i]||{};const base=PAL[c.i];const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};if(o.tee){p.tee=o.tee;p.teeSh=mix(o.tee,'#3B2F3F',.15)}return p}
+function palOf(c){return palFromOutfit(PAL[c.i],S.outfit[c.i]||{})}
+function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};
+  if(o.apron==='knit'){p.apron='#F6D3DB';p.apronPat='flower'}
+  if(o.tee){p.tee=o.tee;p.teeSh=mix(o.tee,'#3B2F3F',.15)}
+  const D=o.dress&&DRESS[o.dress];if(D){p.tee=D.c;p.teeSh=mix(D.c,'#3B2F3F',.15);p.num=null;if(D.dress){p.skirt=D.c;p.dress=1}else{p.shirt=D.shirt;if(D.l)p.shirtL=D.l}}
+  const B=o.bag&&BAGS[o.bag];if(B)Object.assign(p,B);
+  return p}
 function stem(t,price){return {t,f:100,hyd:0,cut:0,trim:false,c:price/5}}
 function genOrder(tpl,time,day){return {id:S.nextId++,...tpl,req:{...tpl.req},name:pick(NAMES),time,status:'pending',arrived:false,day}}
 function rollPrices(){TYPES.forEach(t=>{S.prices[t]=Math.round(FL[t].price*rnd(.85,1.15)/100)*100})}

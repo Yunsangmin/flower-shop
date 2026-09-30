@@ -135,7 +135,7 @@ function trimSVG(t,m){
   return `<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="150" width="200" height="30" fill="#EFE2D2"/><path d="M100,48 L100,176" stroke="#6E9A5A" stroke-width="4" stroke-linecap="round"/>${headSvg}${leaves.join('')}</svg>`;
 }
 function cutSVG(m){
-  const z=S.up.scissors?14:8;
+  const z=(S.up.scissors?14:8)+(S.up.g_scissors?5:0);
   const a=m.cutQ!=null?m.finalA:m.angle;
   const rad=a*Math.PI/180;const x2=100+Math.cos(rad)*60,y2=120-Math.sin(rad)*60,x1=100-Math.cos(rad)*60,y1=120+Math.sin(rad)*60;
   return `<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" aria-label="자르는 각도">
@@ -261,7 +261,7 @@ function renderModal(i){
       <div class="row"><button class="btn primary" data-a="buy" ${S.money<tot||free<m.qty?'disabled':''}>${free<m.qty?'가방 칸이 모자라요':m.qty+'단 사기'}</button></div></div></div>`;
   }
   else if(m.type==='supply'){
-    const cat=m.cat||'equip',imgOnly=['style','deco','interior'].includes(cat);
+    const cat=m.cat||'equip',imgOnly=['style','deco','interior','furn'].includes(cat);
     const pit=m.pending&&SHOP_ITEMS.find(x=>x.id===m.pending);
     h=head(i,'용품상점')+(pit?`<div class="confirm"><div class="sart">${itemArt(pit)}</div><div class="grow"><b style="font-weight:normal">${pit.name}</b>${pit.part?` <small>· ${pit.part}</small>`:''}<br>${won(pit.price)}에 살까요?</div><button class="btn primary small" data-a="buyok">살게요</button><button class="btn small" data-a="buyno">아니요</button></div>`:'')+`<p class="req">가진 돈 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k,n])=>`<button class="btn small ${k===cat?'soft':''}" data-a="cat" data-v="${k}">${n}</button>`).join('')}</div><div class="shopgrid${imgOnly?' img':''}">`+SHOP_ITEMS.filter(it=>it.cat===cat).map(it=>{
       const cur=it.styleSet&&S.style===it.styleSet,have=cur||((!!S.up[it.id]||!!S.closet[it.id])&&!it.repeat),lock=it.need&&!S.up[it.need];
@@ -291,11 +291,11 @@ function renderModal(i){
   else if(m.type==='wardrobe'){
     const o=S.outfit[i];const cat=m.cat;const C=STYLE[cat];
     const opts=[[null,cat==='tee'?'기본 등번호 티':'없음']].concat(C.opts.filter(([v])=>S.closet['st_'+cat+'_'+v]).map(([v,n])=>[v,n]));
-    const locked=C.opts.filter(([v])=>!S.closet['st_'+cat+'_'+v]).length;
+    const locked=C.opts.filter(o=>o[3]!=='gift'&&!S.closet['st_'+cat+'_'+o[0]]).length,glock=C.opts.filter(o=>o[3]==='gift'&&!S.closet['st_'+cat+'_'+o[0]]).length;
     h=head(i,'옷장')+`<div class="row tabs">${Object.entries(STYLE).map(([k,v])=>`<button class="btn small ${k===cat?'soft':''}" data-a="wcat" data-v="${k}">${v.label}</button>`).join('')}</div>
       <div class="mg"><div class="preview" style="aspect-ratio:1"><canvas id="wprev${i}" width="220" height="220" style="width:100%;height:100%"></canvas></div><div>
       <div class="list">${opts.map(([v,n])=>`<div class="li"><span class="grow">${n}</span><button class="btn small ${(o[cat]||null)===v?'primary':''}" data-a="wear" data-v="${v===null?'':v}">${(o[cat]||null)===v?'입는 중':'입기'}</button></div>`).join('')}</div>
-      ${locked?`<p class="note" style="text-align:left">용품상점 '옷·치장'에서 ${locked}가지를 더 살 수 있어요.</p>`:''}</div></div>`;
+      ${locked?`<p class="note" style="text-align:left">용품상점 '옷·치장'에서 ${locked}가지를 더 살 수 있어요.</p>`:''}${glock?`<p class="note" style="text-align:left">마을 사람들과 친해지면 선물로 ${glock}가지를 더 받을 수 있어요.</p>`:''}${cat==='dress'&&o.dress?'<p class="note" style="text-align:left">원피스·셔츠를 입으면 티셔츠 대신 보여요.</p>':''}</div></div>`;
   }
   else if(m.type==='rename'){
     h=head(i,'새 간판','나중에')+`<p class="req">가게 이름을 정해 주세요. (12자까지)</p><div class="row"><input id="nameIn${i}" class="namein" maxlength="12" value="${esc(S.shopName)}" aria-label="가게 이름"></div><div class="row"><button class="btn primary" data-a="setname">간판 달기</button></div>`;
@@ -441,7 +441,7 @@ function onModalClick(i,e){
     if(it.bag){const ex=bag.find(x=>x&&x.kind==='sprinkler');if(ex)ex.n++;else if(!bagAdd(i,{kind:'sprinkler',n:1})){toast(i,'가방이 꽉 찼어요');return}}
     S.money-=it.price;S.stats.invest+=it.price;sfx('buy');
     if(it.styleSet){S.style=it.styleSet;BG_CACHE={};toast(i,`가게를 ${it.name} 스타일로 바꿨어요`);renderModal(i);return}
-    if(it.floor){const f={...it.floor};const sp=findSpot(f);if(!sp){S.money+=it.price;S.stats.invest-=it.price;toast(i,'가게에 놓을 자리가 없어요');return}f.x=sp[0];f.y=sp[1];S.decor.push(f);toast(i,`${it.name}을(를) 가게에 놓았어요. 가구 배치로 옮길 수 있어요`);renderModal(i);return}
+    if(it.floor){const f={...it.floor};const sp=findSpot(f);if(!sp){S.money+=it.price;S.stats.invest-=it.price;toast(i,f.wall?'벽에 걸 빈자리가 없어요. 가구 배치로 뒤쪽 가구를 옮겨 보거나 가게를 넓혀 보세요':'가게에 놓을 자리가 없어요');return}f.x=sp[0];f.y=sp[1];S.decor.push(f);toast(i,`${it.name}을(를) 가게에 놓았어요. 가구 배치로 옮길 수 있어요`);renderModal(i);return}
     if(it.style){S.closet[it.id]=true;toast(i,`${it.name}을(를) 샀어요. 가게 옷장에서 입을 수 있어요`);renderModal(i);return}
     if(!it.bag){S.up[it.id]=true;BG_CACHE={}}
     if(/^bag\d/.test(it.id)){ensureBags();toast(i,`가방이 ${bagSize()}칸이 됐어요`)}if(it.cat==='expand')toast(i,'가게가 넓어졌어요! 메뉴 옆 가구 배치 버튼으로 가구를 옮겨 보세요');
@@ -454,7 +454,7 @@ function onModalClick(i,e){
     if(a==='leafnext'){const k=[...Array(m.leaves).keys()].find(q=>!m.removed.includes(q));if(k!=null){m.removed.push(k);sfx('snip')}if(m.removed.length>=m.leaves)m.step='cut';renderModal(i)}
     if(a==='leaf'){const k=+v;if(!m.removed.includes(k))m.removed.push(k);if(m.removed.length>=m.leaves)m.step='cut';renderModal(i)}
     if(a==='cut'&&m.step==='cut'){
-      sfx('snip');const z=S.up.scissors?14:8;const q=clamp(1-Math.max(0,Math.abs(m.angle-45)-z)/30,0,1);m.step='done';if(m.raf)cancelAnimationFrame(m.raf);
+      sfx('snip');const z=(S.up.scissors?14:8)+(S.up.g_scissors?5:0);const q=clamp(1-Math.max(0,Math.abs(m.angle-45)-z)/30,0,1);m.step='done';if(m.raf)cancelAnimationFrame(m.raf);
       const b=bag[m.slot];if(b){b.trim=true;b.stems.forEach(s=>{s.trim=true;s.cut=q})}closeModal(i);
       toast(i,q>.9?'완벽한 각도로 잘랐어요':q>.55?'괜찮은 각도로 잘랐어요':'각도가 조금 아쉽지만 다듬었어요');
     }
@@ -567,7 +567,7 @@ function showStylePick(next){
   $('#screen').querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{S.style=b.dataset.st;BG_CACHE={};next()});
 }
 function showIntro(){
-  if(!S.style||S.style==='vintage')S.style='natural';
+  if(!S.style||!STYLES[S.style])S.style='natural';
   S.phase='intro';$('#hud').style.display='none';updateControlVisibility();
   showScreen(`<div class="sheet"><h1 style="font-size:1.86rem">${S.day}일차 아침</h1>
     <p class="sub">오늘 예약은 ${S.orders.length}건이에요. 꽃시장은 마을 오른쪽 끝에 있고 정오에 문을 닫아요. 픽업이 30분 늦을 때마다 10%씩 할인돼요.</p>

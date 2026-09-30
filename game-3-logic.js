@@ -470,7 +470,7 @@ function talkLine(w){
   const tb=S.t<180?'좋은 아침이에요! ':S.t>480?'벌써 해가 지네요. ':'';
   const o0=S.outfit[0]||{},o1=S.outfit[1]||{},extra=[];
   if(o1.glasses)extra.push('안경 쓴 언니 정말 멋있어요!');if(o0.hat)extra.push('모자 쓴 오빠, 잘 어울려요!');if(o1.pin)extra.push('머리핀 예쁘네요. 어디서 샀어요?');
-  if(o0.apron||o1.apron)extra.push('앞치마 입으니까 진짜 꽃집 사장님 같아요.');
+  if(o0.apron||o1.apron)extra.push('앞치마 입으니까 진짜 꽃집 사장님 같아요.');if(o0.dress||o1.dress)extra.push('옷이 정말 예뻐요. 꽃집이랑 잘 어울려요!');if(o0.bag||o1.bag)extra.push('가방 귀엽다! 어디서 샀어요?');if(o0.hat==='crown'||o1.hat==='crown')extra.push('꽃 화관이다! 동화 속 꽃집 같아요.');
   if(S.t>400)extra.push('강 따라 위쪽 언덕길 벤치에서 보는 노을이 정말 예뻐요.','해 질 녘 강가를 걷는 게 제 낙이에요.');
   if(w.zone==='north')extra.push('은행잎이 노랗게 물들었네요. 가을이 왔어요.','단풍 밟는 소리가 좋아요.','여기 벤치에 앉아 있으면 해가 지는 게 다 보여요.');
   if(w.zone==='lake')extra.push('물결 위로 노을이 번지는 거 보여요?','저녁 바람이 선선해서 좋네요.');
