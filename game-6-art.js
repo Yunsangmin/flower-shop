@@ -42,12 +42,13 @@ function doBind(p,fn,rep){
   if(['up','down','left','right'].includes(fn)){if(ctx){const now=performance.now();if(rep&&now-bindNavT[p]<170)return;bindNavT[p]=now;navMove(ctx,fn)}return}
   if(rep)return;
   if(fn==='act'){if(ctx)navPress(ctx);else if(S.phase==='play')doAction(slot);return}
-  if(fn==='back'){if(ctx)navBack(ctx);else if(S.phase==='play'&&S.chars[slot]&&S.chars[slot].rest)doAction(slot);return}
+  if(fn==='back'){if(ctx)navBack(ctx);else if(S.phase==='play'&&S.chars[slot]&&(S.chars[slot].rest||S.chars[slot].carry))backAct(slot);return}
   if(fn==='menu'){if(ctx&&ctx.key==='screen'&&S.phase==='play')navMenu();else if(S.phase==='play')togglePause();return}
   if(fn==='swap'){if(S.mode==='solo'&&!ctx)swapChar();return}
 }
 function padBindPoll(gp,st){
   let used=false;for(const p of [0,1]){const K=SET.keys[p]||{};for(const [fn] of BFN){const b=K[fn];if(!b||b.t!=='p'||b.id!==gp.id)continue;used=true;const on=gp.buttons[b.b]&&gp.buttons[b.b].pressed;
+    if(on&&fn==='act'&&typeof PADACT!=='undefined')PADACT[S.mode==='solo'?S.active:p]=true;
     if(on&&!st.prev[b.b])doBind(p,fn,false);else if(on&&['up','down','left','right'].includes(fn))doBind(p,fn,true)}}
   return used;
 }
@@ -72,8 +73,13 @@ function showKeys(){
    ========================================================= */
 const STYLES={
   natural:{name:'모던 내추럴',wall:'#EFE8DC',dot:'#E4D8C6',wain:'#D8C9B2',wainL:'#E5D8C3',trim:'#FAF6EE',side:'#E2D7C6',floor:'plank',f1:'#E7D0AF',f2:'#DCC29C',seam:'#CCB08A',frame:'#C9A57E'},
-  vintage:{name:'파리 꽃집',wall:'#F4ECDD',dot:'#F4ECDD',wain:'#EADFCB',wainL:'#F2E9D8',trim:'#C9A24A',side:'#E6DBC6',floor:'check',f1:'#F3EFE6',f2:'#4B4A50',seam:'#D8D2C6',frame:'#C9A24A'},
-  minimal:{name:'미니멀 화이트',wall:'#FAFAF8',dot:'#FAFAF8',wain:'#F3F3F0',wainL:'#F7F7F4',trim:'#FFFFFF',side:'#EFEFEC',floor:'plain',f1:'#F7F7F5',f2:'#F2F2EF',seam:'#EAEAE6',frame:'#E4E4E0'}
+  vintage:{name:'빈티지 파리',wall:'#F4ECDD',dot:'#F4ECDD',wain:'#EADFCB',wainL:'#F2E9D8',trim:'#C9A24A',side:'#E6DBC6',floor:'check',f1:'#F3EFE6',f2:'#4B4A50',seam:'#D8D2C6',frame:'#C9A24A'},
+  minimal:{name:'미니멀 화이트',wall:'#FAFAF8',dot:'#FAFAF8',wain:'#F3F3F0',wainL:'#F7F7F4',trim:'#FFFFFF',side:'#EFEFEC',floor:'plain',f1:'#F7F7F5',f2:'#F2F2EF',seam:'#EAEAE6',frame:'#E4E4E0'},
+  // 상점에서 사는 테마(deco: 벽 장식 추가 그림, wp: 벽지 무늬)
+
+  pastel:{name:'파스텔',wall:'#FDF1F4',dot:'#F7DCE5',wain:'#CFEAE1',wainL:'#DDF1EA',trim:'#FFFFFF',side:'#F4E6EC',floor:'check',f1:'#FFF8FA',f2:'#E4F2EC',seam:'#EFE2E6',frame:'#F4B6C4',wp:'stripe'},
+  xmas:{name:'크리스마스',wall:'#F5EFE3',dot:'#E9DCC6',wain:'#3F6B4E',wainL:'#4C7A5B',trim:'#FFFDF8',side:'#EAE2D3',floor:'plank',f1:'#C9A27A',f2:'#B8906A',seam:'#9E7A58',frame:'#C0463E',deco:'xmas'},
+  spring:{name:'벚꽃 봄',wall:'#FFF5F5',dot:'#F9DDE4',wain:'#F6D8DF',wainL:'#FBE6EB',trim:'#FFFFFF',side:'#F6E7E8',floor:'plank',f1:'#F2E0C9',f2:'#E9D2B6',seam:'#D8BE9E',frame:'#E8A3B4',deco:'spring'}
 };
 function curStyle(){return STYLES[S.style]||STYLES.natural}
 
@@ -114,7 +120,11 @@ function sv(inner){return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/200
 function artPerson(extra,tee){return `<ellipse cx="32" cy="58" rx="16" ry="3" fill="#0001"/><rect x="18" y="38" width="28" height="22" rx="9" fill="${tee||'#4C82D4'}"/><rect x="28" y="30" width="8" height="10" rx="3" fill="#E0B597"/><ellipse cx="32" cy="24" rx="13" ry="14" fill="#F4D3B7"/><path d="M19 22 C19 8 45 8 45 22 C41 17 36 16 32 15 C28 16 23 17 19 22Z" fill="#3B2A22"/><ellipse cx="27" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><ellipse cx="37" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><path d="M29.5 31 Q32 33 34.5 31" stroke="#C0707E" stroke-width="1.1" fill="none"/>${extra}`}
 function itemArt(it){
   const id=it.id;
+  if(it.styleSet&&STYLES[it.styleSet]&&STYLES[it.styleSet].deco&&!it._plain)return themeArt(it);
+  if(it.floor&&/^f_/.test(id||'')&&DECOR_DRAW[it.floor.t])return decorArt(it.floor.t,it.floor.w,it.floor.h,!!it.floor.wall);
   if(it.style){const [k,v]=it.style;
+    const known={glasses:['horn','gold'],hat:['beret','sunhat','beanie','cap'],pin:['ribbon','flower','band']}[k];
+    if(k==='dress'||k==='bag'||(known&&!known.includes(v))||v==='knit')return wearArt(k,v);
     if(k==='glasses')return sv(artPerson(v==='gold'?'<circle cx="27" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><circle cx="37" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><path d="M31.4 25 L32.6 25" stroke="#C9A24A"/>':'<rect x="21.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/><rect x="31.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/>'));
     if(k==='hat'){const h={beret:'<ellipse cx="30" cy="11" rx="15" ry="6" fill="#C65C79" transform="rotate(-8 30 11)"/><circle cx="31" cy="5" r="1.5" fill="#A84C66"/>',sunhat:'<ellipse cx="32" cy="14" rx="22" ry="5" fill="#E9D3A4"/><rect x="21" y="3" width="22" height="12" rx="6" fill="#F0DEB4"/><rect x="21" y="11" width="22" height="3" fill="#E07A7A"/>',beanie:'<rect x="18" y="2" width="28" height="17" rx="9" fill="#E3A04A"/><rect x="17" y="14" width="30" height="5" rx="2.5" fill="#F0C27A"/><circle cx="32" cy="2" r="3" fill="#FFF1D6"/>',cap:'<path d="M18 16 C18 2 46 2 46 16Z" fill="#5C7FB8"/><ellipse cx="40" cy="16" rx="12" ry="3" fill="#46679C"/>'}[v];return sv(artPerson(h))}
     if(k==='pin'){const h={ribbon:'<ellipse cx="38" cy="10" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(-25 38 10)"/><ellipse cx="45" cy="9" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(25 45 9)"/><circle cx="41.5" cy="9.5" r="1.6" fill="#C65C79"/>',flower:[0,1,2,3,4].map(q=>`<circle cx="${40+Math.cos(q*1.256)*2.6}" cy="${11+Math.sin(q*1.256)*2.6}" r="2" fill="#fff"/>`).join('')+'<circle cx="40" cy="11" r="1.5" fill="#F5CF4E"/>',band:'<path d="M19 20 C19 6 45 6 45 20" stroke="#B9A2E0" stroke-width="3" fill="none"/>'}[v];return sv(artPerson(h))}
@@ -126,6 +136,7 @@ function itemArt(it){
     return sv(`<rect x="6" y="6" width="52" height="30" fill="${P.wall}"/><rect x="6" y="27" width="52" height="9" fill="${P.wain}"/>${fl}${lamp}<rect x="42" y="40" width="7" height="10" rx="2" fill="#D98E6C"/><ellipse cx="45.5" cy="38" rx="6" ry="5" fill="#7FAF6C"/><rect x="12" y="20" width="12" height="10" fill="${P.frame}"/><rect x="13.5" y="21.5" width="9" height="7" fill="#FFF8EE"/>`);
   }
   const A={
+    basket:'<path d="M14 32 C14 10 50 10 50 32" stroke="#A87A48" stroke-width="3" fill="none"/><ellipse cx="32" cy="32" rx="20" ry="5" fill="#7FA86A"/><circle cx="24" cy="28" r="5" fill="#EE8FA7"/><circle cx="33" cy="26" r="5" fill="#D9435E"/><circle cx="41" cy="29" r="4.5" fill="#F5CF4E"/><path d="M11 32 Q12 54 32 55 Q52 54 53 32 Q32 38 11 32Z" fill="#C99A63" stroke="#A87A48"/><path d="M14 40 Q32 46 50 40 M16 47 Q32 52 48 47" stroke="#A87A48" fill="none"/><path d="M40 44 C40 36 56 36 56 44" stroke="#D2CABB" stroke-width="2" fill="none" opacity="0"/>',
     fridge:'<rect x="18" y="6" width="28" height="52" rx="4" fill="#8FB3D4"/><rect x="21" y="10" width="22" height="40" rx="2" fill="#E4F3FA"/>'+[18,28,38].map(y=>`<rect x="21" y="${y+8}" width="22" height="1" fill="#BCD3E4"/><circle cx="27" cy="${y+5}" r="3" fill="#EE8FA7"/><circle cx="36" cy="${y+5}" r="3" fill="#F5CF4E"/>`).join(''),
     bucket3:'<path d="M18 26 H46 L42 56 H22Z" fill="#B4C2CC"/><ellipse cx="32" cy="26" rx="14" ry="3.5" fill="#8CC3E6"/>'+[0,1,2].map(k=>`<path d="M${28+k*4} 26 L${24+k*8} 10" stroke="#6E9A5A" stroke-width="1.5"/>`).join('')+'<circle cx="24" cy="10" r="4" fill="#EE8FA7"/><circle cx="32" cy="8" r="4" fill="#D9435E"/><circle cx="40" cy="10" r="4" fill="#F5CF4E"/>',
     dryer:'<rect x="12" y="8" width="3" height="50" fill="#9C6B4C"/><rect x="49" y="8" width="3" height="50" fill="#9C6B4C"/><rect x="10" y="7" width="44" height="4" rx="2" fill="#C99E78"/>'+[20,32,44].map((x,k)=>`<path d="M${x} 11 V18" stroke="#B88A5A"/><path d="M${x} 18 L${x-3} 34 M${x} 18 L${x+3} 34 M${x} 18 V34" stroke="#A89A6E"/><circle cx="${x-3}" cy="36" r="3" fill="${['#C9A07A','#D8B06A','#C98E8E'][k]}"/><circle cx="${x+3}" cy="36" r="3" fill="${['#D8B06A','#C98E8E','#C9A07A'][k]}"/>`).join(''),
@@ -156,6 +167,24 @@ function itemArt(it){
   if(id==='fridge')return sv(A.fridge);
   return sv(A[id]||'<circle cx="32" cy="32" r="16" fill="#EEE"/>');
 }
+/* 계절 테마 그림: 기본 그림 위에 가랜드·꽃잎을 얹어요 */
+function themeArt(it){const s=itemArt({...it,_plain:1});const d=STYLES[it.styleSet].deco;
+    const add=d==='xmas'?'<path d="M6 8 Q14 14 22 8 Q30 14 38 8 Q46 14 58 8" stroke="#3E7A4E" stroke-width="2.4" fill="none"/>'+[14,30,46].map((x,k)=>`<circle cx="${x}" cy="${12.5}" r="2" fill="${['#C0463E','#E2B656','#C0463E'][k]}"/>`).join('')+'<path d="M45 52 L50 38 L55 52Z" fill="#3E7A4E"/><circle cx="50" cy="37" r="1.6" fill="#E2B656"/>'
+      :[10,16,22,28,34,40,46,52].map((x,k)=>`<circle cx="${x}" cy="${9+Math.sin(k)*2}" r="2.6" fill="${k%2?'#F7C3D0':'#FBDDE5'}"/>`).join('')+[[14,44],[36,50],[48,42],[24,54]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1.1" fill="#F7C3D0"/>`).join('');
+    return s.replace('</svg>',add+'</svg>')}
+/* 새 옷·가구 그림: 실제 캐릭터·가구 그림을 작게 찍어서 써요(한 번 그리면 기억) */
+const ART_CACHE={};
+function wearArt(cat,val){const key=cat+'|'+val;if(ART_CACHE[key])return ART_CACHE[key];
+  const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');
+  const o={};o[cat]=val;const p=palFromOutfit(PAL[1],o);const up=['hat','pin','glasses'].includes(cat);
+  g.save();if(up){g.translate(64,226);g.scale(6,6)}else if(cat==='bag'){g.translate(56,118);g.scale(2.9,2.9)}else{g.translate(64,122);g.scale(2.8,2.8)}
+  try{drawChar(g,0,0,p,cat==='bag'?.5:0,0,false,false,false,false)}catch(e){console.error(e)}g.restore();
+  const url=cv.toDataURL();ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
+function decorArt(t,w,h,wall){const key='d|'+t;if(ART_CACHE[key])return ART_CACHE[key];
+  const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');const d={t,w,h,x:0,y:0,wall};
+  const top=wall?0:(PR_DEB[t]?-PR_DEB[t][1]:2),pw=w*TILE,ph=wall?20:h*TILE+top,sc=Math.min(110/Math.max(pw,1),110/Math.max(ph,1),4.2);
+  g.save();g.translate(64-pw*sc/2,wall?64+20*sc:64+ph*sc/2-h*TILE*sc);g.scale(sc,sc);try{DECOR_DRAW[t](g,d,0,0,pw,h*TILE)}catch(e){console.error(e)}g.restore();
+  const url=cv.toDataURL();ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${wall?'<rect x="6" y="6" width="52" height="40" rx="6" fill="'+curStyle().wall+'"/>':''}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
 /* ---------- time of day ---------- */
 const SKY=[[0,'#F7D6C4'],[60,'#BFE0F4'],[330,'#A8D6F3'],[450,'#F4CFA0'],[520,'#F0A98E'],[565,'#C98FA8'],[600,'#4E4F86']];
 function lerpKeys(keys,t){for(let k=0;k<keys.length-1;k++){const [t0,c0]=keys[k],[t1,c1]=keys[k+1];if(t<=t1)return mix(c0,c1,(t-t0)/(t1-t0))}return keys[keys.length-1][1]}
@@ -335,7 +364,12 @@ function drawItemV(g,it,x,y){
     if(st.some(s=>s.hyd>=.99))el(g,x+4.5,y-3,.8,1.2,'#7FB8E6');
   }else if(it.kind==='bouquet'){
     const st=it.stems;
-    if(it.wrapped){const P=PAPERS[it.paper];poly(g,[x-7,y-9,x+7,y-9,x,y+1],P.c);poly(g,[x-7,y-9,x-2,y-8,x,y+1],P.l)}
+    if(it.wrapped){const sh=it.shape||'cone',P=PAPERS[it.paper]||PAPERS.pink;
+      if(sh==='rattan'||sh==='white'){const c=sh==='rattan'?'#C99A63':'#F6F3EC',d=sh==='rattan'?'#A87A48':'#CFC7B8';g.strokeStyle=d;g.lineWidth=.9;g.beginPath();g.arc(x,y-7,6.4,Math.PI,0);g.stroke();poly(g,[x-7.5,y-7,x+7.5,y-7,x+5.5,y+1.5,x-5.5,y+1.5],c);ln(g,x-6.5,y-4.5,x+6.5,y-4.5,d,.45);ln(g,x-6,y-2,x+6,y-2,d,.45);ln(g,x-7.5,y-7,x+7.5,y-7,d,.9)}
+      else if(sh==='box'){el(g,x,y-7,6.6,1.8,mix(P.c,P.d,.45));rr(g,x-6.6,y-7,13.2,8.5,1.6,P.c);el(g,x,y-7,6.6,1.4,P.l)}
+      else if(sh==='round'){el(g,x,y-9,8.5,6,P.l);poly(g,[x-6,y-7,x+6,y-7,x+1.5,y+1,x-1.5,y+1],P.c)}
+      else if(sh==='cross'){poly(g,[x-8,y-11,x+5,y-9,x+1,y+1],P.l);poly(g,[x-8,y-7,x+7,y-4,x+1,y+1,x-1,y+1],P.c)}
+      else{poly(g,[x-7,y-9,x+7,y-9,x,y+1],P.c);poly(g,[x-7,y-9,x-2,y-8,x,y+1],P.l)}}
     else{for(let k=0;k<5;k++)ln(g,x,y,x-3+k*1.5,y-8,CO.leafD,.5);ln(g,x-2,y-3,x+2,y-3,CO.twine,.9)}
     st.slice(0,9).forEach((s,k)=>{const a=k*2.4,r=k?2+ (k%3):0;flowerHead(g,s.t,x+Math.cos(a)*r*1.1,y-10+Math.sin(a)*r*.6,3,s.f)});
     if(it.wrapped){const R=RIBBONS[it.ribbon];el(g,x-1.6,y-3,1.8,1,R.c);el(g,x+1.6,y-3,1.8,1,R.c);el(g,x,y-3,.8,.8,R.d)}
@@ -511,7 +545,20 @@ function poseProp(g,p,x,y,side){
   if(p.pose==='phone'){const px=side?x-2:x+4,py=side?y-10:y-9;rr(g,px-3,py-5,6.2,10,1.4,'#2A2A33');rr(g,px-2.1,py-4,4.4,7.4,.8,'#9CC8F0');el(g,px-.5,py-2,1.2,.6,'rgba(255,255,255,.7)')}
   else if(p.pose==='read'){const c=p.bookC||'#C9546A';if(side){rr(g,x-4,y-7,9,12,1,c);rr(g,x-3,y-6,7,10,.6,'#FBF6EA')}else{rr(g,x-13,y-3,26,12,1.5,c);rr(g,x-12,y-2.5,11.5,10.5,.8,'#FBF6EA');rr(g,x+.5,y-2.5,11.5,10.5,.8,'#F6F0E2');g.strokeStyle='rgba(120,100,90,.35)';g.lineWidth=.6;for(let k=0;k<3;k++){ln(g,x-10,y+.5+k*2.5,x-3,y+.5+k*2.5,'rgba(120,100,90,.35)',.6);ln(g,x+3,y+.5+k*2.5,x+10,y+.5+k*2.5,'rgba(120,100,90,.35)',.6)}}}
 }
+/* 몸 전체가 움직이는 동작: 스트레칭(옆구리 늘리기)·줄넘기(점프+줄)·눕기(돗자리) */
 function drawChar(g,x,y,p,dir,phase,moving,glasses,work,sit){
+  const po=p&&p.pose;
+  if(!po||(po!=='stretch'&&po!=='rope'&&po!=='lie')||(BAKE&&BAKE.onChar))return drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit);
+  if(po==='lie'){const s=(p.sc||1);g.save();g.translate(x,y-6);g.rotate(-Math.PI/2);g.scale(.85,.85);g.translate(-x,-(y-17*s));drawChar0(g,x,y,{...p,pose:null},0,0,false,glasses,false,false);g.restore();return}
+  const f=(p.pf||0)&3,s=.25*(p.sc||1);
+  if(po==='stretch'){const lean=[0,-.13,0,.13][f];g.save();g.translate(x,y);g.rotate(lean);g.translate(-x,-y);drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit);g.restore();return}
+  const jump=[0,10,15,6][f]*s,hy=y+(-46)*s-jump,lx=x-38*s,rx=x+38*s;
+  const rope=(front)=>{const ctl=[y-180*s-jump,2*(y+1.5)-hy,2*(y+1.5)-hy,y-120*s-jump][f];if((f===0||f===1)!==front)return;
+    g.strokeStyle='#E8603C';g.lineWidth=.55;g.beginPath();g.moveTo(lx,hy);g.quadraticCurveTo(x,ctl,rx,hy);g.stroke()};
+  rope(false);drawChar0(g,x,y-jump,p,dir,phase,moving,glasses,work,sit);rope(true);
+  rr(g,lx-.7,hy-1.6,1.4,3.2,.6,'#F4F2EE');rr(g,rx-.7,hy-1.6,1.4,3.2,.6,'#F4F2EE');
+  if(jump<1)el(g,x,y+.4,5*s*4,1.1*s*4,'rgba(80,55,50,.08)')}
+function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
   if(BAKE&&BAKE.onChar){BAKE.onChar({x,y,p,dir,phase,moving,glasses,work,sit});return}
   const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=Math.round(an/(Math.PI/8));if(q<=-8)q=8;if(q>8)q-=16;
   const aq=Math.abs(q),kk=aq<=4?aq:8-aq;const t=kk/4;

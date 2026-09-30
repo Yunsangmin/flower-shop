@@ -4,7 +4,8 @@
 /* ---------- bouquet illustration (SVG) ---------- */
 let GID=0;
 function bouquetSVG(stems,o={}){
-  const P=o.paper?PAPERS[o.paper]:null,RB=o.ribbon?RIBBONS[o.ribbon]:null;
+  const SH=o.wrapped?(o.shape||'cone'):'cone',BK=SH==='rattan'||SH==='white',BOXY=BK||SH==='box';
+  const P=BK?null:(o.paper?PAPERS[o.paper]:null),RB=o.ribbon?RIBBONS[o.ribbon]:null;
   const id='b'+(++GID);const bx=100,by=o.wrapped?182:172;
   const rr=seedRand(11+stems.length*37+(stems[0]?stems[0].t.length*7:0));
   const defs=[];let back='',stemS='',leaves='',gypS='',heads='',front='',extra='';
@@ -22,14 +23,24 @@ function bouquetSVG(stems,o={}){
     const th=(j/Math.max(1,m))*Math.PI*2+.3+rr()*.5;const r=.55+rr()*.45;
     pos.push({s,hx:bx+r*56*Math.cos(th),hy:Math.min(124,98+r*30*Math.sin(th)-6)});
   });
-  if(P){
+  if(BOXY||SH==='round')pos.forEach(q=>{const k=BOXY?.86:.9;q.hx=bx+(q.hx-bx)*k;q.hy=BOXY?118+(q.hy-102)*.62:100+(q.hy-102)*.8});
+  if(P&&SH==='round'){const gp=id+'p';defs.push(`<radialGradient id="${gp}" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="${P.c}"/><stop offset="1" stop-color="${P.l}"/></radialGradient>`);
+    let d='';const N=16;for(let k=0;k<=N;k++){const a=Math.PI*(.98+k/N*1.04),r1=66,r2=74,a2=a+Math.PI/N*.52;const x1=100+Math.cos(a)*r1,y1=112+Math.sin(a)*r1*.9,x2=100+Math.cos(a2)*r2,y2=112+Math.sin(a2)*r2*.9;d+=(k?' Q':'M')+(k?`${x2.toFixed(1)},${y2.toFixed(1)} `:'')+`${x1.toFixed(1)},${y1.toFixed(1)}`}
+    back=`<path d="${d} L100,150 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`}
+  else if(P&&SH==='cross'){const gp=id+'p';defs.push(`<linearGradient id="${gp}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.l}"/><stop offset="1" stop-color="${P.c}"/></linearGradient>`);
+    back=`<path d="M100,${by+12} L14,82 Q30,34 78,26 Q128,20 150,44 L176,96 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/><path d="M100,${by+8} L40,56 M100,${by+8} L96,30" stroke="${P.d}" stroke-width=".6" opacity=".4"/>`}
+  else if(BK){const H=SH==='rattan'?['#C99A63','#A87A48','#E0BC88']:['#F6F3EC','#D9D2C4','#FFFFFF'];
+    back=`<path d="M40,140 C38,60 162,60 160,140" stroke="${H[1]}" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M40,140 C38,60 162,60 160,140" stroke="${H[0]}" stroke-width="5.5" fill="none" stroke-linecap="round"/>`+
+      `<ellipse cx="100" cy="136" rx="64" ry="15" fill="#7FA86A"/><ellipse cx="100" cy="133" rx="54" ry="10" fill="#93BA7A"/>`+[...Array(9)].map((_,k)=>{const t=(k+.5)/9,x=Math.pow(1-t,3)*40+3*Math.pow(1-t,2)*t*38+3*(1-t)*t*t*162+t*t*t*160,y=Math.pow(1-t,3)*140+3*Math.pow(1-t,2)*t*60+3*(1-t)*t*t*60+t*t*t*140;return `<path d="M${(x-2.5).toFixed(1)},${(y-2).toFixed(1)} l5,4" stroke="${H[2]}" stroke-width="1.1" opacity=".8"/>`}).join('')}
+  else if(P&&SH==='box'){back=`<ellipse cx="100" cy="140" rx="62" ry="13" fill="${mix(P.c,P.d,.45)}"/><ellipse cx="100" cy="141" rx="56" ry="10" fill="#6E8F5A" opacity=".55"/>`}
+  else if(P){
     const gp=id+'p';
     defs.push(`<linearGradient id="${gp}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.l}"/><stop offset="1" stop-color="${P.c}"/></linearGradient>`);
     let top='';for(let i=0;i<=12;i++){const x=16+i*(168/12);const yy=74-34*Math.sin(Math.PI*i/12)+(i%2?7:-3);top+=` L${x.toFixed(1)},${yy.toFixed(1)}`}
     back=`<path d="M${bx},${by+12}${top} Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`+
       `<path d="M${bx},${by+10} L58,50 M${bx},${by+10} L142,50 M${bx},${by+10} L100,40" stroke="${P.d}" stroke-width=".6" opacity=".45"/>`;
   }
-  pos.forEach(({s,hx,hy},k)=>{
+  if(!BOXY)pos.forEach(({s,hx,hy},k)=>{
     const w=wither(s.f);const sx=bx+(hx-bx)*.1;
     const col=mix('#6E9A5A','#9C8B62',w);
     const ex=sx+(hx-bx)*.1;
@@ -40,7 +51,7 @@ function bouquetSVG(stems,o={}){
       leaves+=`<path d="M${lx.toFixed(1)},${ly} Q${(lx+dir*3).toFixed(1)},${ly-20} ${(lx+dir*22).toFixed(1)},${ly-30} Q${(lx+dir*18).toFixed(1)},${ly-8} ${lx.toFixed(1)},${ly}Z" fill="${mix('#88B271','#A8A070',w)}" stroke="${mix('#6E9A5A','#8E7F58',w)}" stroke-width=".6"/>`;
     }
   });
-  if(stems.length>=3){const nL=Math.min(9,3+Math.floor(stems.length/2));for(let k=0;k<nL;k++){const th=Math.PI*(1.05+k/(nL-1)*.9)+(rr()-.5)*.2;const lx=bx+Math.cos(th)*50,ly=112+Math.sin(th)*34;const ang=th*180/Math.PI+90;const avgW=wither(avg(stems.map(q=>q.f)));leaves+=`<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="5" ry="13" transform="rotate(${ang.toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})" fill="${mix(k%2?'#8DB874':'#7AA864','#A8A070',avgW)}" stroke="${mix('#6E9A5A','#8E7F58',avgW)}" stroke-width=".5"/>`}}
+  if(stems.length>=3){const nL=Math.min(9,3+Math.floor(stems.length/2));for(let k=0;k<nL;k++){const th=Math.PI*(1.05+k/(nL-1)*.9)+(rr()-.5)*.2;const lx=bx+Math.cos(th)*(BOXY?56:50),ly=(BOXY?134:112)+Math.sin(th)*(BOXY?14:34);const ang=th*180/Math.PI+90;const avgW=wither(avg(stems.map(q=>q.f)));leaves+=`<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="5" ry="13" transform="rotate(${ang.toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})" fill="${mix(k%2?'#8DB874':'#7AA864','#A8A070',avgW)}" stroke="${mix('#6E9A5A','#8E7F58',avgW)}" stroke-width=".5"/>`}}
   pos.sort((a,b)=>a.hy-b.hy).forEach(({s,hx,hy})=>{
     const w=wither(s.f);const dir=hx>=bx?1:-1;
     if(s.t==='gyp')gypS+=imgHead('gyp',hx,hy-2+w*4,15,(rr()-.5)*40,w,Math.floor(rr()*8));
@@ -89,8 +100,28 @@ function bouquetSVG(stems,o={}){
     }
     return out;
   }
-  if(P){
+  let flaps='',flapTop=[];
+  if(P&&SH==='round'){const inner=mix(P.l,'#FFFFFF',.3);
+    front=`<path d="M40,124 Q100,150 160,124 L114,200 L86,200Z" fill="${inner}" stroke="${P.d}" stroke-width=".6"/>`;
+    flaps=`<path d="M30,120 Q66,142 100,140 Q134,142 170,120 Q150,168 110,206 L90,206 Q50,168 30,120Z" fill="${P.c}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`;
+    flapTop=['M30,120 Q66,142 100,140 Q134,142 170,120'];front+=flaps+`<path d="M34,123 Q66,144 100,142 Q134,144 166,123" stroke="${P.l}" stroke-width="2" fill="none" opacity=".9"/>`}
+  else if(P&&SH==='cross'){
+    front=`<path d="M184,112 Q150,108 124,130 L98,204 L110,206 Z" fill="${mix(P.c,P.d,.3)}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`;
+    flaps=`<path d="M14,100 Q70,92 160,140 L112,208 L96,208 Z" fill="${P.c}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`;
+    flapTop=['M14,100 Q70,92 160,140'];front+=flaps+`<path d="M16,102 Q70,94 156,139" stroke="${P.l}" stroke-width="2" fill="none" opacity=".9"/><path d="M30,108 L104,204" stroke="${P.d}" stroke-width=".5" opacity=".35"/>`}
+  else if(P&&SH==='box'){
+    flaps=`<path d="M38,140 Q100,158 162,140 L160,196 Q100,216 40,196 Z" fill="${P.c}" stroke="${P.d}" stroke-width=".9" stroke-linejoin="round"/>`;
+    flapTop=[];front=flaps+`<path d="M38,140 Q100,158 162,140" stroke="${P.l}" stroke-width="2.4" fill="none"/><path d="M150,146 L150,200" stroke="#FFFFFF" stroke-width="3" opacity=".25"/>`}
+  else if(BK){const H=SH==='rattan'?['#C99A63','#A87A48','#E0BC88','#B8864F']:['#F6F3EC','#D2CABB','#FFFFFF','#E6E0D4'];
+    let wv='';for(let y=148;y<200;y+=7){const q=(y-140)/60;wv+=`<path d="M${(34+q*14).toFixed(1)},${y} Q100,${y+12} ${(166-q*14).toFixed(1)},${y}" stroke="${H[1]}" stroke-width="1" fill="none" opacity=".7"/>`}
+    for(let x=46;x<156;x+=9)wv+=`<path d="M${x},142 Q${(100+(x-100)*.72).toFixed(1)},180 ${(100+(x-100)*.62).toFixed(1)},206" stroke="${H[3]}" stroke-width="1.6" fill="none" opacity=".75"/>`;
+    defs.push(`<clipPath id="${id}bk"><path d="M32,138 Q34,204 100,208 Q166,204 168,138 Q100,156 32,138Z"/></clipPath>`);
+    front=`<path d="M32,138 Q34,204 100,208 Q166,204 168,138 Q100,156 32,138Z" fill="${H[0]}" stroke="${H[1]}" stroke-width="1"/><g clip-path="url(#${id}bk)">${wv}</g><path d="M32,138 Q34,204 100,208 Q166,204 168,138" stroke="${H[1]}" stroke-width="1.2" fill="none"/><path d="M30,138 Q100,158 170,138" stroke="${H[1]}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M30,137 Q100,156 170,137" stroke="${H[2]}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".9"/>`}
+  else if(P){
     const inner=mix(P.l,'#FFFFFF',.3);
+    flapTop=['M18,108 Q56,98 82,124','M182,108 Q144,98 118,124'];
+    flaps=`<path d="M18,108 Q56,98 82,124 L112,186 L100,208 Z" fill="${P.c}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`+
+      `<path d="M182,108 Q144,98 118,124 L88,186 L100,208 Z" fill="${mix(P.c,P.d,.28)}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`;
     front=`<path d="M52,122 Q100,106 148,122 L104,198 L96,198Z" fill="${inner}" stroke="${P.d}" stroke-width=".6"/>`+
       `<path d="M18,108 Q56,98 82,124 L112,186 L100,208 Z" fill="${P.c}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`+
       `<path d="M182,108 Q144,98 118,124 L88,186 L100,208 Z" fill="${mix(P.c,P.d,.28)}" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`+
@@ -98,7 +129,9 @@ function bouquetSVG(stems,o={}){
       `<path d="M182,108 Q144,98 118,124" stroke="${P.l}" stroke-width="2" fill="none" opacity=".7"/>`+
       `<path d="M40,112 L96,196 M160,112 L104,196" stroke="${P.d}" stroke-width=".5" opacity=".4"/>`;
   }
-  if(o.wrapped&&RB){
+  if(o.wrapped&&RB&&SH==='box'){extra+=`<path d="M38,164 Q100,182 162,164 L162,172 Q100,190 38,172Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/><ellipse cx="90" cy="178" rx="11" ry="6" transform="rotate(-18 90 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="112" cy="178" rx="11" ry="6" transform="rotate(18 112 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="101" cy="179" r="3.6" fill="${RB.d}"/>`}
+  else if(o.wrapped&&RB&&BK){extra+=`<ellipse cx="152" cy="128" rx="9" ry="5" transform="rotate(-30 152 128)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="166" cy="130" rx="9" ry="5" transform="rotate(30 166 130)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="159" cy="130" r="3.2" fill="${RB.d}"/><path d="M158,132 q-3,10 -8,16 M160,132 q4,10 8,15" stroke="${RB.c}" stroke-width="3" fill="none" stroke-linecap="round"/>`}
+  else if(o.wrapped&&RB){
     extra+=`<path d="M100,194 C93,202 89,214 84,224 L90,222 L92,228 C96,214 98,204 101,196Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/>`+
       `<path d="M100,194 C107,202 111,214 116,224 L110,222 L108,228 C104,214 102,204 99,196Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/>`+
       `<ellipse cx="88" cy="190" rx="11" ry="6" transform="rotate(-18 88 190)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/>`+
@@ -114,9 +147,12 @@ function bouquetSVG(stems,o={}){
   let backOv='',frontOv='',topOv='';
   if(P&&o.wrapped&&o.pat&&o.pat!=='plain'&&PATTERNS[o.pat]){const pid=id+'pt';defs.push(patDef(o.pat,pid,P));
     const clip=(str,cid)=>{const ds=[...str.matchAll(/<path d="([^"]+)" fill="(?!none)/g)].map(m=>m[1]);if(!ds.length)return '';defs.push(`<clipPath id="${cid}">${ds.map(d=>`<path d="${d}"/>`).join('')}</clipPath>`);return `<rect width="200" height="236" fill="url(#${pid})" clip-path="url(#${cid})"/>`};
-    backOv=clip(back,id+'cb');frontOv=clip(front,id+'cf');
-    if(o.pat==='lace'){const m0=/<path d="M100,[\d.]+( L[^"]+) Z"/.exec(back);if(m0){const pts=[...m0[1].matchAll(/L([\d.]+),([\d.]+)/g)].map(m=>[+m[1],+m[2]]);let sc='';for(let i=0;i+1<pts.length;i++){const [x0,y0]=pts[i],[x1,y1]=pts[i+1];for(let u=0;u<1;u+=.34){const x=x0+(x1-x0)*u,y=y0+(y1-y0)*u;sc+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#FFFFFF" stroke="${P.d}" stroke-width=".4" opacity=".95"/>`}}backOv+=sc}}
-    if(o.pat==='sheer')topOv=`<path d="M100,214 L14,70 Q60,26 100,30 Q140,26 186,70 Z" fill="#EAF6FF" opacity=".22" stroke="#FFFFFF" stroke-width="1.2"/><path d="M34,78 Q52,58 66,52 M150,56 Q162,64 170,78" stroke="#FFFFFF" stroke-width="2.4" opacity=".75" fill="none" stroke-linecap="round"/>`;}
+    /* 무늬는 앞쪽 겉포장지(바깥 날개)에만 */
+    frontOv=clip(flaps,id+'cf');
+    if(o.pat==='lace'){let sc='';flapTop.forEach(d=>{const m0=/M([\d.]+),([\d.]+) Q([\d.]+),([\d.]+) ([\d.]+),([\d.]+)(?: Q([\d.]+),([\d.]+) ([\d.]+),([\d.]+))?/.exec(d);if(!m0)return;const N=m0.slice(1).filter(v=>v!==undefined).map(Number);
+      const segs=[[N[0],N[1],N[2],N[3],N[4],N[5]]];if(N.length>6)segs.push([N[4],N[5],N[6],N[7],N[8],N[9]]);
+      segs.forEach(([x0,y0,cx,cy,x1,y1])=>{for(let u=0;u<=1.001;u+=.1){const x=(1-u)*(1-u)*x0+2*(1-u)*u*cx+u*u*x1,y=(1-u)*(1-u)*y0+2*(1-u)*u*cy+u*u*y1;sc+=`<circle cx="${x.toFixed(1)}" cy="${(y-1).toFixed(1)}" r="2.4" fill="#FFFFFF" stroke="${P.d}" stroke-width=".4" opacity=".95"/>`}})});frontOv+=sc}
+    if(o.pat==='sheer')frontOv+=`<g clip-path="url(#${id}cf)"><rect width="200" height="236" fill="#EAF6FF" opacity=".25"/><path d="M40,112 L90,190 M150,112 L112,180" stroke="#FFFFFF" stroke-width="3" opacity=".6"/></g>`;}
   return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="꽃다발 그림"><defs>${defs.join('')}</defs>${back}${backOv}${stemS}${leaves}${gypS}${heads}${topOv}${front}${frontOv}${extra}</svg>`;
 }
 
@@ -179,6 +215,15 @@ function reqCheck(o,stems){
   const cnt={};stems.forEach(s=>cnt[s.t]=(cnt[s.t]||0)+1);
   return `<div class="check">${Object.keys(o.req).map(t=>{const h=cnt[t]||0,r=o.req[t];return `<span class="${h>=r?'ok':''}">${FL[t].name} ${h}/${r}</span>`}).join('')}${Object.keys(cnt).filter(t=>!o.req[t]).map(t=>`<span>${FL[t].name} ${cnt[t]} (요청 외)</span>`).join('')}</div>`;
 }
+function shapeKeys(){return Object.keys(SHAPES).filter(k=>!SHAPES[k].basket||S.up.basket)}
+function shapeSwatch(k,paper){const P=PAPERS[paper]||PAPERS.pink,c=P.c,d=P.d;const I={
+  cone:`<path d="M5,10 L15,27 L25,10 Q15,5 5,10Z" fill="${c}" stroke="${d}"/>`,
+  round:`<circle cx="15" cy="12" r="10" fill="${P.l}" stroke="${d}" stroke-width=".7"/><path d="M5,14 Q15,20 25,14 L17,28 L13,28Z" fill="${c}" stroke="${d}"/>`,
+  cross:`<path d="M4,8 Q14,6 24,16 L17,28 L14,28Z" fill="${c}" stroke="${d}"/><path d="M26,12 L16,28" stroke="${d}"/>`,
+  box:`<ellipse cx="15" cy="12" rx="10" ry="3" fill="${d}"/><path d="M5,12 L5,24 Q15,28 25,24 L25,12 Q15,15 5,12Z" fill="${c}" stroke="${d}"/>`,
+  rattan:`<path d="M6,14 C6,3 24,3 24,14" stroke="#A87A48" stroke-width="2" fill="none"/><path d="M4,14 Q5,27 15,27 Q25,27 26,14Z" fill="#C99A63" stroke="#A87A48"/>`,
+  white:`<path d="M6,14 C6,3 24,3 24,14" stroke="#D2CABB" stroke-width="2" fill="none"/><path d="M4,14 Q5,27 15,27 Q25,27 26,14Z" fill="#F6F3EC" stroke="#C9C0B0"/>`}[k]||'';
+  return `<svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#FFFBF5"/>${I}<circle cx="11" cy="9" r="2.4" fill="#EE8FA7"/><circle cx="17" cy="8" r="2.4" fill="#F5CF4E"/><circle cx="14" cy="12" r="2" fill="#FFFFFF" stroke="#DDD" stroke-width=".3"/></svg>`}
 function patKeys(){return Object.keys(PATTERNS).filter(k=>!PATTERNS[k].extra||S.up.patterns2)}
 function patSwatch(k,paper){const P=PAPERS[paper]||PAPERS.pink,id='sw'+(++GID);return `<svg viewBox="0 0 30 30" width="100%" height="100%"><defs>${patDef(k,id,P)}</defs><rect width="30" height="30" rx="6" fill="${P.c}"/>${k==='plain'?'':`<rect width="30" height="30" rx="6" fill="url(#${id})"/>`}</svg>`}
 function patDef(k,id,P){const d=P.d;
@@ -202,9 +247,9 @@ const ICON_CACHE=new Map();
 function itemIcon(it){
   if(it.kind==='seed')return seedSVG(it.t);if(it.kind==='sprinkler')return sprSVG();
   const f=avg(it.stems.map(s=>s.f)),wet=avg(it.stems.map(s=>s.hyd||0))>=.99;
-  const key=it.kind+'|'+(it.t||'')+'|'+(it.kind==='bouquet'?it.stems.map(s=>s.t[0]+Math.round(s.f/10)).join(''):it.stems.length+'/'+Math.round(f/10))+'|'+(it.wrapped?(it.pat||'')+it.paper+it.ribbon:'')+(it.trim?'t':'')+(wet?'w':'');
+  const key=it.kind+'|'+(it.t||'')+'|'+(it.kind==='bouquet'?it.stems.map(s=>s.t[0]+Math.round(s.f/10)).join(''):it.stems.length+'/'+Math.round(f/10))+'|'+(it.wrapped?(it.pat||'')+it.paper+it.ribbon+(it.shape||''):'')+(it.trim?'t':'')+(wet?'w':'');
   if(ICON_CACHE.has(key))return ICON_CACHE.get(key);
-  const svg=it.kind==='bouquet'?(it.wrapped?bouquetSVG(it.stems,{paper:it.paper,ribbon:it.ribbon,pat:it.pat,wrapped:true}):bouquetSVG(it.stems,{tied:true})):bunchSVG(it);
+  const svg=it.kind==='bouquet'?(it.wrapped?bouquetSVG(it.stems,{paper:it.paper,ribbon:it.ribbon,pat:it.pat,shape:it.shape,wrapped:true}):bouquetSVG(it.stems,{tied:true})):bunchSVG(it);
   if(ICON_CACHE.size>300)ICON_CACHE.clear();ICON_CACHE.set(key,svg);return svg;
 }
 function freshWord2(f){return f>=85?'아주 싱싱해요':f>=60?'싱싱해요':f>=35?'조금 시들었어요':f>=WILT?'많이 시들었어요':'시들어 버렸어요'}
@@ -321,16 +366,18 @@ function renderModal(i){
     if(m.step==='pick'){h=head(i,'포장대')+two(i,bagGrid(i,'wpick',it=>!(it.kind==='bouquet'&&!it.wrapped)),`<p class="req">왼쪽 가방에서 포장할 꽃다발을 골라 주세요.</p>`)}
     else{const b=c.bag[m.slot],o=orderById(b.orderId);
       if(m.step==='edit'){
-        h=head(i,'포장하기')+`<div class="mg"><div class="preview">${bouquetSVG(b.stems,{paper:m.paper,ribbon:m.ribbon,pat:m.pat,card:m.card,wrapped:true})}</div><div>
+        h=head(i,'포장하기')+`<div class="mg"><div class="preview">${bouquetSVG(b.stems,{paper:m.paper,ribbon:m.ribbon,pat:m.pat,shape:m.shape,card:m.card,wrapped:true})}</div><div>
           <p class="req">${o?esc(o.name)+'님은 '+PAPERS[o.paper].name+' 포장을 원해요.':''}</p>
-          <div class="lbl">포장지</div><div class="row">${paperKeys().map(k=>`<button class="sw ${m.paper===k?'on':''}" style="background:${PAPERS[k].c}" data-a="paper" data-v="${k}" aria-label="${PAPERS[k].name} 포장지"></button>`).join('')}</div>
+          <div class="lbl">모양</div><div class="row">${shapeKeys().map(k=>`<button class="sw pat ${(m.shape||'cone')===k?'on':''}" data-a="shape" data-v="${k}" aria-label="${SHAPES[k].name}" title="${SHAPES[k].name}">${shapeSwatch(k,m.paper)}</button>`).join('')}</div>
+          <p class="req" style="margin-top:.2rem">${SHAPES[m.shape||'cone'].name}${SHAPES[m.shape||'cone'].basket?' · 재료비 5,000원, 판매가 +5,000원 · 누구나 좋아해요':''}</p>
+          ${SHAPES[m.shape||'cone'].basket?'':`<div class="lbl">포장지</div><div class="row">${paperKeys().map(k=>`<button class="sw ${m.paper===k?'on':''}" style="background:${PAPERS[k].c}" data-a="paper" data-v="${k}" aria-label="${PAPERS[k].name} 포장지"></button>`).join('')}</div>
           <div class="lbl">무늬</div><div class="row">${patKeys().map(k=>`<button class="sw pat ${m.pat===k?'on':''}" data-a="pat" data-v="${k}" aria-label="${PATTERNS[k].name} 무늬" title="${PATTERNS[k].name}">${patSwatch(k,m.paper)}</button>`).join('')}</div>
-          ${m.pat&&m.pat!=='plain'&&(PAT_GOOD[m.pat]||[]).includes(m.paper)?'<p class="req">✿ 이 색이랑 잘 어울리는 무늬예요!</p>':''}
+          ${m.pat&&m.pat!=='plain'&&(PAT_GOOD[m.pat]||[]).includes(m.paper)?'<p class="req">✿ 이 색이랑 잘 어울리는 무늬예요!</p>':''}`}
           <div class="lbl">리본</div><div class="row">${ribbonKeys().map(k=>`<button class="sw ${m.ribbon===k?'on':''}" style="background:${RIBBONS[k].c}" data-a="ribbon" data-v="${k}" aria-label="${RIBBONS[k].name} 리본"></button>`).join('')}</div>
           <div class="row"><button class="btn ${m.card?'soft':''}" data-a="card">${m.card?'메시지 카드 넣음':'메시지 카드 넣기'}</button></div>
           <div class="row"><button class="btn primary" data-a="wrap">포장 완성</button></div></div></div>`;
       }else{
-        h=head(i,'완성했어요','확인')+`<div class="mg"><div class="preview">${bouquetSVG(b.stems,{paper:b.paper,ribbon:b.ribbon,pat:b.pat,card:b.card,wrapped:true})}</div><div>
+        h=head(i,'완성했어요','확인')+`<div class="mg"><div class="preview">${bouquetSVG(b.stems,{paper:b.paper,ribbon:b.ribbon,pat:b.pat,shape:b.shape,card:b.card,wrapped:true})}</div><div>
           <p class="big">${o?esc(o.name)+'님께 드릴 '+esc(o.title):'완성한 꽃다발'}</p><p class="req">${o?clock(o.time)+'에 찾으러 와요. ':''}가방에 넣어 두었어요. 카운터에서 건네주거나${S.up.pickup?' 자동 픽업대에 올려두거나':''} 선반에 잠시 올려둘 수 있어요.</p>
           <button class="btn primary" data-a="close">확인</button></div></div>`;
       }
@@ -338,7 +385,7 @@ function renderModal(i){
   }
   else if(m.type==='counter'){
     if(m.rec){const r=m.rec;
-      h=head(i,'전달했어요','확인')+`<div class="mg"><div class="preview">${bouquetSVG(r.b.stems,{paper:r.b.paper,ribbon:r.b.ribbon,pat:r.b.pat,card:r.b.card,wrapped:true})}</div><div>
+      h=head(i,'전달했어요','확인')+`<div class="mg"><div class="preview">${bouquetSVG(r.b.stems,{paper:r.b.paper,ribbon:r.b.ribbon,pat:r.b.pat,shape:r.b.shape,card:r.b.card,wrapped:true})}</div><div>
         <p class="big">“${r.line}”</p><p class="stars" aria-label="별 ${r.ev.stars}개">${'★'.repeat(r.ev.stars)}${'☆'.repeat(3-r.ev.stars)}</p>
         <div class="stat"><span>기본 가격</span><span>${won(r.o.price)}</span></div><div class="stat"><span>완성도</span><span>${Math.round(r.ev.q*100)}%</span></div>
         ${r.disc?`<div class="stat"><span>늦어서 할인</span><span>−${Math.round(r.disc*100)}%</span></div>`:''}${r.tip?`<div class="stat"><span>카드 감동 팁</span><span>+${won(r.tip)}</span></div>`:''}
@@ -490,8 +537,10 @@ function onModalClick(i,e){
     if(a==='paper'){m.paper=v;renderModal(i)}
     if(a==='ribbon'){m.ribbon=v;renderModal(i)}
     if(a==='pat'){m.pat=v;renderModal(i)}
+    if(a==='shape'){m.shape=v;renderModal(i)}
     if(a==='card'){m.card=!m.card;renderModal(i)}
-    if(a==='wrap'){const b=bag[m.slot];b.wrapped=true;b.paper=m.paper;b.ribbon=m.ribbon;b.pat=m.pat||'plain';b.card=m.card;m.step='done';renderModal(i)}
+    if(a==='wrap'){const b=bag[m.slot],bk=SHAPES[m.shape||'cone']&&SHAPES[m.shape||'cone'].basket;if(bk&&S.money<5000){toast(i,'꽃바구니 재료비 5,000원이 모자라요');return}
+      if(bk){S.money-=5000;S.stats.spent=(S.stats.spent||0)+5000}b.wrapped=true;b.paper=m.paper;b.ribbon=m.ribbon;b.pat=bk?'plain':(m.pat||'plain');b.shape=m.shape||'cone';b.card=m.card;m.step='done';renderModal(i)}
   }
   else if(m.type==='counter'&&a==='rsv'){const k=S.customers[+v];if(!k)return;k.talking=true;k.offer=reserveOffer(k);c.modal=null;openModal(i,{type:'booking',walker:k});return}
   else if(m.type==='counter'&&a==='give'){
@@ -582,7 +631,7 @@ function endDay(){
   S.orders.forEach(o=>{if(o.status==='pending'||o.status==='crafted'){o.status='cancelled';S.stats.cancel.push(o)}});
   S.phase='settle';$('#hud').style.display='none';updateControlVisibility();
   const st=S.stats;const rev=st.rev.reduce((a,r)=>a+r.price,0);const dayNo=S.day;const tmr=S.tomorrow.slice();
-  const gallery=st.rev.map(r=>`<figure>${bouquetSVG(r.b.stems,{paper:r.b.paper,ribbon:r.b.ribbon,pat:r.b.pat,card:r.b.card,wrapped:true})}<figcaption>${esc(r.o.title)}<br><span class="stars">${'★'.repeat(r.ev.stars)}</span></figcaption></figure>`).join('');
+  const gallery=st.rev.map(r=>`<figure>${bouquetSVG(r.b.stems,{paper:r.b.paper,ribbon:r.b.ribbon,pat:r.b.pat,shape:r.b.shape,card:r.b.card,wrapped:true})}<figcaption>${esc(r.o.title)}<br><span class="stars">${'★'.repeat(r.ev.stars)}</span></figcaption></figure>`).join('');
   const cancel=st.cancel.map(o=>esc(o.title)).join(', ');
   prepareNextDay();
   showScreen(`<div class="sheet"><h1 style="font-size:1.86rem">${dayNo}일차 마감</h1><p class="sub">오늘도 수고했어요. 게임이 자동으로 저장됐어요.</p>

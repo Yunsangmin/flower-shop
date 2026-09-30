@@ -78,6 +78,7 @@ const cReach=(x,y)=>{x=Math.floor(x);y=Math.floor(y);return x>=0&&y>=0&&x<CD.W&&
 let CNAV=null;
 {const _ng=navGrid;navGrid=function(area){if(area!=='campus')return _ng(area);if(CNAV)return CNAV;
   const g=CNAVG.slice();if(S&&S.stList)for(const s of S.stList)if(s.area==='campus')for(let y=s.y;y<s.y+s.h;y++)for(let x=s.x;x<s.x+s.w;x++)g[y*CD.W+x]=1;
+  for(const d of (S&&S.odecor&&S.odecor.campus)||[]){if(d.walk||d.carried)continue;for(let y=d.y;y<d.y+d.h;y++)for(let x=d.x;x<d.x+d.w;x++)g[y*CD.W+x]=1} // 들고 나온 가구
   CNAV={t:performance.now(),w:CD.W,h:CD.H,g};return CNAV}}
 {const _nr=navRoute;navRoute=function(area,sx,sy,tx,ty){if(area==='campus'&&(Math.hypot(tx-sx,ty-sy)>32*TILE||!cReach(tx/TILE,ty/TILE)))return null;return _nr(area,sx,sy,tx,ty)}}
 
@@ -409,32 +410,32 @@ STORY.yuna=[
     '…괜찮아요. 저 이제 박사잖아요. 조금만 더 버티면 제 연구실 차릴 거예요.',
     '그러니까 {me} 씨도 저 응원해 줘요. 병권 교수님 앞에서는 티 내지 말고요.']},
   {req:6,pages:[
-    '민욱이 봤어요? 제 후배예요. 요즘 병권 교수님 때문에 반쯤 영혼이 없어요.',
+    '준엽이 봤어요? 제 후배예요. 요즘 병권 교수님 때문에 반쯤 영혼이 없어요.',
     '그래서 가끔 제가 커피 사 줘요. 선배가 해 줄 수 있는 게 그 정도라서요.',
     '…{me} 씨, 꽃도 누군가를 버티게 해 줄 수 있어요?',
     '그렇구나. 그럼 제가 부탁할 일이 생길 것 같아요. 조금만 기다려 줘요.']},
   {req:8,when:()=>S.t<420,pages:[
-    '{me} 씨! 부탁이 있어요. 민욱이가 이번에 첫 논문을 냈거든요.',
+    '{me} 씨! 부탁이 있어요. 준엽이가 이번에 첫 논문을 냈거든요.',
     '병권 교수님은 당연하다는 듯 넘어갔지만, 저는 제대로 축하해 주고 싶어요.',
     '꽃다발 하나 부탁해도 될까요? 노란색으로요. 기운 나는 색.',
     {order:'yuna'},
     '내일 제가 찾으러 갈게요. 병권 교수님한테는 비밀이에요.']},
   {req:10,pages:[
-    '{me} 씨, 민욱이가 꽃다발 받고 울었어요. 연구실 창가에 두고 하루 종일 쳐다보더라고요.',
+    '{me} 씨, 준엽이가 꽃다발 받고 울었어요. 연구실 창가에 두고 하루 종일 쳐다보더라고요.',
     '저도 오랜만에 이 캠퍼스가 좋아졌어요. 이상하죠, 꽃 한 다발로.',
     '저 교수 임용 면접 보기로 했어요. 제 연구실이 생기면 학생들한테 꽃 한 송이씩은 꼭 줄 거예요.',
     '병권 교수님처럼은 절대 안 될 거예요. 약속해요.',
     {gift:'윤아의 연구실 명판 모양 책갈피를 받았어요'}]}
 ];
-STORY_ORDERS.yuna={title:'첫 논문 축하 꽃다발',text:'후배 민욱이의 첫 논문 축하예요. 기운 나는 노란색으로!',req:{freesia:4,tulip:2},paper:'yellow',price:46000,time:330,name:'윤아'};
+STORY_ORDERS.yuna={title:'첫 논문 축하 꽃다발',text:'후배 준엽이의 첫 논문 축하예요. 기운 나는 노란색으로!',req:{freesia:4,tulip:2},paper:'yellow',price:46000,time:330,name:'윤아'};
 SMALL.yuna=[
   [['아침 실험 걸어 놓고 나왔어요. 캠퍼스 공기는 아침이 제일 좋아요.','아침부터 병권 교수님 메일이 세 통이네요. …안 읽음으로 둘래요.'],
    ['점심은 학생회관에서 대충 먹었어요. 박사도 밥은 먹어야죠.','실험 결과 기다리는 중이에요. 기다리는 게 일의 절반이에요.'],
    ['해 지는 거 보니까 오늘도 연구실에서 밤새겠네요.','저녁엔 공학관 불빛이 예뻐요. 다 저 같은 사람들이 켜 놓은 거지만요.']],
-  [['{me} 씨! 오늘도 산책이에요? 저는 커피 수혈하러 나왔어요.','민욱이가 어제 실험 망쳤다고 울상이에요. 이따 커피 사 줘야겠어요.'],
+  [['{me} 씨! 오늘도 산책이에요? 저는 커피 수혈하러 나왔어요.','준엽이가 어제 실험 망쳤다고 울상이에요. 이따 커피 사 줘야겠어요.'],
    ['{shop} 꽃 사진을 연구실 모니터 배경으로 했어요. 기분이 좀 나아요.','병권 교수님이 또 회의를 두 시간 했어요. 결론은 "다시 해 와".'],
    ['오늘은 일찍 퇴근… 하는 꿈을 꿨어요.','{other} 씨한테도 안부 전해 줘요. 지난번에 인사를 못 했거든요.']],
-  [['{me} 씨 얼굴 보니까 오늘은 실험이 잘될 것 같아요.','아침에 민욱이가 {shop} 얘기를 하더라고요. 벌써 팬이 됐어요.'],
+  [['{me} 씨 얼굴 보니까 오늘은 실험이 잘될 것 같아요.','아침에 준엽이가 {shop} 얘기를 하더라고요. 벌써 팬이 됐어요.'],
    ['나중에 제 연구실이 생기면 창가에 꽃을 둘 거예요. 제일 좋아하는 꽃으로요.','병권 교수님 앞에서도 이제 할 말은 해요. {me} 씨 덕분에 좀 단단해졌나 봐요.'],
    ['오늘은 진짜 일찍 가요. 저 자신이랑 약속했어요.','캠퍼스 밤길 같이 걸을래요? 가로등 켜지면 여기도 꽤 예뻐요.']]];
 CALL_LINES.yuna=['{me} 씨! 잠깐만요, 시간 있어요?','{me} 씨, 마침 잘 만났어요!'];
@@ -459,8 +460,21 @@ const NERD_LINE={
   '물리학과':['양자역학은 이해하는 게 아니라 익숙해지는 거래요.','하늘이 파란 이유, 설명해 드릴까요? …아, 바쁘시구나.','…엔트로피는 늘 증가해요. 제 과제도요.'],
   '수학과':['해석학 증명 하나에 세 시간 걸렸어요.','…방금 뭐라고 하셨죠? 머릿속으로 적분하고 있었어요.','수학은 아름다워요. 시험만 빼고요.']};
 const GRAD_LINE=['실험하다가 잠깐 바람 쐬러 나왔어요…','오늘도 연구실에서 밤샐 것 같아요.','커피 없으면 못 살아요. 벌써 네 잔째예요.','교수님 메일 알림만 울려도 심장이 쿵 해요.','데이터가 또 날아갔어요… 괜찮아요, 원래 그래요.','졸업이요? 그게 뭐죠? 먹는 건가요…','…힘들어요. 그냥, 힘들어요.','실험 기다리는 동안만 잠깐 쉬는 거예요. 금방 들어가야 해요.'];
-const SUNGPIL_LINE=['안녕하세요! 저 성필이에요. 제2종합연구동의 햇살 담당이죠!','솔직히… 저 쭈꾸미보다 잘생겼죠? 다들 인정하더라고요. 하하!','실험이 또 망했어요! 괜찮아요, 망하면 다시 하면 되죠!','교수님이 뭐라 하셔도 저는 웃어요. 웃는 얼굴이 제 무기거든요.','오늘 거울 봤는데 또 잘생겼더라고요. 연구보다 확실한 결과예요!','꽃집 사장님들이세요? 꽃도 예쁘지만 제 쌍꺼풀도 한번 보고 가세요!','대학원 생활이요? 힘들죠! 그래도 힘든 건 힘든 거고, 재밌는 건 재밌는 거예요!','민욱이한테 제 긍정 에너지 좀 나눠 주고 싶은데, 걔는 충전기가 고장 났나 봐요.'];
-const MINWOOK_LINE=['윤아 선배가 커피 사 줬어요. 선배 없으면 전 벌써 도망갔을 거예요.','병권 교수님 방 앞을 지날 때는 숨을 참아요.','첫 논문… 쓰고는 있어요. 쓰고는요.','…실험 망했어요. 윤아 선배한테는 비밀이에요.'];
+const SUNGPIL_LINE=['안녕하세요! 저 성필이에요. 제2종합연구동의 햇살 담당이죠!','솔직히… 저 쭈꾸미보다 잘생겼죠? 다들 인정하더라고요. 하하!','실험이 또 망했어요! 괜찮아요, 망하면 다시 하면 되죠!','교수님이 뭐라 하셔도 저는 웃어요. 웃는 얼굴이 제 무기거든요.','오늘 거울 봤는데 또 잘생겼더라고요. 연구보다 확실한 결과예요!','꽃집 사장님들이세요? 꽃도 예쁘지만 제 쌍꺼풀도 한번 보고 가세요!','대학원 생활이요? 힘들죠! 그래도 힘든 건 힘든 거고, 재밌는 건 재밌는 거예요!','준엽이한테 제 긍정 에너지 좀 나눠 주고 싶은데, 걔는 윤아 선배 앞에서만 고장 나요.'];
+const MINWOOK_LINE=['동엽 교수님이요? 좋은 분이에요. 잔소리 빼면요. 하하.','실험은 망했지만 점심은 맛있었어요. 그럼 된 거죠.','논문이요? 언젠가 나오겠죠~ 급할 거 있나요.','교수님이 부르셔도 커피는 다 마시고 가요. 식으면 아깝잖아요.','오늘 날씨 좋다~ 이런 날 실험하면 벌 받아요.','연구실에서 제일 좋은 건 창가 자리예요. 제 자리거든요.'];
+const MW_TO_PROF={동엽:['아 교수님~ 커피 드실래요? 제가 사 올게요.','교수님, 오늘 넥타이 멋있으세요!','실험이요? 하고 있죠~ 마음속으로요.','교수님, 점심 뭐 드셨어요? 전 돈가스요.'],병권:['아 네~ 교수님, 이따 갈게요~','교수님, 너무 무섭게 보시면 주름 생겨요~']};
+const PROF_TO_MW={동엽:['…허허, 자네는 참 태평해서 좋군.','이 친구 참… 커피나 한 잔 사 오게.','자네를 보면 화를 낼 수가 없어.'],병권:['…자네는 긴장이란 걸 모르나?','허, 참.']};
+const LIFE_LINE={
+  jog:['캠퍼스 한 바퀴 뛰는 중이에요! 숨 차요, 하하.','아침저녁으로 뛰면 머리가 맑아져요.','일월저수지까지 갔다 오는 코스예요!','이 노래 들으면서 뛰면 하나도 안 힘들어요.'],
+  jogRest:['스트레칭 중이에요. 다치면 안 되니까요!','잠깐 쉬었다 다시 뛸 거예요. 으쌰!'],
+  stretch:['몸 좀 풀고 있어요. 으쌰!','하나, 둘… 옆구리 쭈욱!','운동 전엔 스트레칭 필수예요.'],
+  rope:['줄넘기 백 개 도전 중! 아, 걸렸다!','이단 뛰기 연습 중이에요. 아직 한 번밖에 못 해요.','줄넘기 하면 동네 꼬마 된 기분이에요, 하하.'],
+  read:['(책에서 눈을 떼며) 아, 안녕하세요. 여기 햇볕이 딱 좋아요.','시험 전에 소설 한 권 읽는 게 제 소확행이에요.','도서관보다 잔디밭이 더 잘 읽혀요.','이 책 결말이 궁금해서 수업 가기 싫어요. 쉿!'],
+  dog:['우리 강아지 산책 시간이에요. 캠퍼스가 넓어서 좋아해요.','이 녀석이 잔디밭만 보면 뛰어요.','학생들이 다 예뻐해 줘서 인기 스타예요.'],
+  phone:['아, 죄송해요! 폰 보다가… 길 찾는 중이었어요.','(휴대폰을 내리며) 안녕하세요! 여기 GS25가 어디예요?','단톡방이 너무 시끄러워서요, 하하.'],
+  coffee:['커피 한 잔 들고 걷는 게 제 휴식이에요.','카페 라떼 맛있어요. 한 모금 드릴까요? 농담이에요.','점심 먹고 한 바퀴 걷는 중이에요.']};
+
+function lifeFrame(){return Math.floor(performance.now()/380)%4}
 const GRAD_SCARED=['쉿… 교수님 근처에 계신 거 아니죠?','방금 교수님 목소리 들린 것 같아요… 저 없는 걸로 해 주세요.'];
 const PROF_LINE={동엽:['자네, 논문은 언제 나오나?','주말에도 실험실 불은 켜져 있어야지.','이번 학회 마감이 다음 주인 거 알지?','요즘 학생들은 끈기가 없어. 우리 때는 말이야…'],
   병권:['데이터가 이게 다야? 다시 해 오게.','내가 어제 새벽에 보낸 메일, 아직 답이 없던데?','휴가? 연구가 휴가야.','윤아 박사 못 봤나? 할 얘기가 있는데. 아주 많이.']};
@@ -485,7 +499,7 @@ const CPICNIC=[];
 [[150.7,114,'chicken','#F3A6A6'],[141,113,'kimbap','#8FC1E3'],[158,116,'pizza','#F5D36E'],[136.5,47.5,'jjamak','#A8D5A0'],[149,47,'chicken','#F3A6A6']].forEach(([ax,ay,food,c1])=>{const s=cMatSpot(ax,ay);if(!s)return;
   const m={t:'cmat',x:s[0],y:s[1]+.3,w:4,h:2,flat:true,walk:true,food,c1,c2:'rgba(255,255,255,.45)'};if(CPICNIC.some(o=>Math.abs(o.x-m.x)<6&&Math.abs(o.y-m.y)<4))return;CPICNIC.push(m);CDEC.push(m)});
 DECOR_BASE.campus=CDEC;
-Object.defineProperty(DECOR,'campus',{get(){return DECOR_BASE.campus},configurable:true});
+Object.defineProperty(DECOR,'campus',{get(){return withOut('campus',DECOR_BASE.campus)},configurable:true});
 
 /* 바닥에 양반다리로 앉기(pal.gsit): 다리를 앞으로 모아 그려요 */
 {const _dc=drawChar;drawChar=function(g,x,y,p,dir,phase,moving,glasses,work,sit){_dc(g,x,y,p,dir,phase,moving,glasses,work,sit);
@@ -530,7 +544,9 @@ function cSportsUpdate(dt){const T=TILE,day=S.t<500,eve=S.t>=440;
     if(u>=1){b.dir^=1;b.t0=tn.t;b.fx=b.x;b.fy=b.y;const nt=b.dir?A:B;b.tx=rnd(x0+6,x1-6);b.ty=nt.hy;to.throwT=.3}}
   CSPORT.balls=[soc&&day?{x:soc.ball.x,y:soc.ball.y,z:soc.ball.z,c:'#FFFFFF',r:2.2}:null,bb&&day?{x:bb.ball.x,y:bb.ball.y,z:bb.ball.z,c:'#E8722C',r:2.3}:null,tn&&day?{x:tn.ball.x,y:tn.ball.y,z:tn.ball.z,c:'#D9F04A',r:1.3}:null].filter(Boolean)}
 {const _pc=prSyncChars;prSyncChars=function(area){_pc(area);if(area!=='campus')return;CSPORT.balls.forEach((b,k)=>{if(!inView(b.x,b.y))return;const r=prRec('cball'+k);prBegin(r);
-  prLive(r,'ball',area,[b.x-6,b.y-40,12,44],b.y+1,g=>{el(g,b.x,b.y+1,b.r*1.1*(1-Math.min(.6,b.z/40)),b.r*.45,'rgba(60,50,40,.22)');const yy=b.y-2-b.z;el(g,b.x,yy,b.r,b.r,b.c);g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=.35;g.beginPath();g.arc(b.x,yy,b.r,0,7);g.stroke()},null);prEnd(r)})}}
+  const sh=Math.round(b.r*1.1*(1-Math.min(.6,b.z/40))*4)/4,yy=b.y-2-b.z;
+  prLive(r,'bshadow',area,[b.x-4,b.y-1,8,4],b.y,g=>el(g,b.x,b.y+1,sh,b.r*.45,'rgba(60,50,40,.22)'),'s'+sh);
+  prLive(r,'ball',area,[b.x-b.r-1,yy-b.r-1,b.r*2+2,b.r*2+2],b.y+1,g=>{el(g,b.x,yy,b.r,b.r,b.c);g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=.35;g.beginPath();g.arc(b.x,yy,b.r,0,7);g.stroke()},b.c+b.r);prEnd(r)})}} // 공·그림자 그림은 한 번 그려 두고 위치만 옮겨요
 
 /* ---------- 역할별 움직임 ---------- */
 function cDoor(G){return G.door||[(G.bb[0]+G.bb[2])/2*TILE,G.bb[3]*TILE]}
@@ -541,7 +557,7 @@ function cSpot(x0,y0,r,kinds){for(let n=0;n<60;n++){const x=x0+rnd(-r,r),y=y0+rn
 {const _pk=park;park=function(zone){if(zone==='campus'){for(let k=0;k<8;k++){const p=cSpot(CD.W/2,CD.H/2,CD.W/2);if(p)return p}return [40*TILE,CENT.y*TILE]}return _pk(zone)}}
 function cPal(kind,fem,extra){const p=newPal(kind,fem);return Object.assign(p,extra||{})}
 function cNew(kind,fem,extra,role){const w=mkWalker(kind,'campus',{fem});w.pal=cPal(kind,fem,extra);w.name=nameFor(w.pal);[w.x,w.y]=park('campus');w.tx=w.x;w.ty=w.y;w.cRole=role;return w}
-const GRADS=[['민욱','m',true],['혜린','f'],['태현','m'],['수민','f'],['준호','m']];
+const GRADS=[['민욱','m'],['혜린','f'],['태현','m'],['수민','f'],['준호','m']];
 const PROFS=[['동엽',{coat:'cardigan',coatC:'#5A5048',innerC:'#E8E4DC',hair:'#8E8E8E',hs:'short'}],['병권',{coat:'trench',coatC:'#4A4F5C',hair:'#6E6A66',hs:'bald'}]];
 const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3E9A6A']),pants:pick(['#1E1E24','#2F3A5A','#3A3A40']),shoe:pick(['#F4F2EE','#E8603C','#3A7ED0']),expr:'grin',pack:false});
 {const _pp=propV;propV=function(g,p,st,hw,t,back){if(p.prop==='coffee'){if(back)return;const x=hw+st-1,y=-50;rr(g,x-3,y-2,7,10,1.5,'#F4EFE6');rr(g,x-3,y+1,7,4,.8,'#8A5A3C');rr(g,x-3.5,y-3.5,8,2,1,'#FFFFFF');return}return _pp(g,p,st,hw,t,back)}}
@@ -554,7 +570,7 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   // 피크닉(돗자리에 둘러앉아 먹고 떠들기)
   CPICNIC.forEach((m,mi)=>{const dp=m.food==='jjamak'?pick(['기초학문관 앞 짜막 모임','물리학과·수학과 연합']):pick(DEPT_GRP.filter(d=>d!=='스포츠과학과'));const seats=[[.9,.45,'down'],[3.1,.45,'down'],[3.2,2.45,'up'],[.8,2.45,'up']];const n=3+(mi%2);
     const mem=[];seats.slice(0,n).forEach(([ox,oy,dr],k)=>{const w=cNew('student',Math.random()<.55,{gsit:true},'picnic');w.dept=dp;w.mat=m;w.lineI=k;w.x=(m.x+ox)*TILE;w.y=(m.y+oy)*TILE;w.sit=true;w.yo=5;w.dir=dr;w.hdir=dr;w.hx=w.x;w.hy=w.y;mem.push(w);W.push(w)});m.mem=mem;m.next=rnd(1,4)});
-  // 대학원생(건물 바로 근처, 커피, 기운 없음) — 민욱은 제2공학관
+  // 대학원생(건물 바로 근처, 커피, 기운 없음) — 민욱은 동엽 교수님 건물(태평한 성격)
   GRADS.forEach(([nm,s,e2],k)=>{const G=e2&&CENG2?CENG2:CLAB[(k*5+2)%CLAB.length];const w=cNew('adult',s==='f',{expr:'sleepy',prop:'coffee',tee:pick(['#7A7F8A','#5E6470','#8A8078','#4F5A66']),pants:'#3A3F4A',pack:false},'grad');w.name=nm;w.home=G.gi;const d=cDoor(G);const q=cNearFree(d[0]/TILE,d[1]/TILE+1,null,5);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE}w.tx=w.x;w.ty=w.y;W.push(w)});
   // 성필(대학원생, 제2종합연구동 근처) — 까무잡잡, 진한 쌍꺼풀, 긍정 에너지 폭발
   {const G=CB.find(G=>G.n==='제2종합연구동')||CLAB[0];const w=cNew('adult',false,{hs:'short',hair:'#171314',hairHi:'#3E3436',skin:'#B97E56',skinSh:'#98603E',eyeC:'#2A1A12',dbl:true,expr:'grin',blush:false,tee:'#F2C230',pants:'#2E3B55',shoe:'#F4F2EE',pack:false,prop:'coffee'},'grad');
@@ -573,6 +589,27 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   for(let k=0;k<3;k++){const w=sw('sport','run');w.u=k/3+.05;w.lane=.9+k*1.1;W.push(w)}
   for(let k=0;k<4;k++){const w=cNew('adult',Math.random()<.5,{},'sport');w.sport='walk';w.u=k/4;w.lane=2.2+(k%2)*1.2;w.dept='산책 나온 주민';w.hidden=1;W.push(w)}
   W.forEach(w=>{if(w.cRole==='picnic'||w.sport)return;const q=cNearFree(w.x/TILE,w.y/TILE,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE;w.tx=w.x;w.ty=w.y}});
+  // 준엽(메인 주민) · 민욱은 동엽 교수님 건물 근처
+  if(typeof CENG2!=='undefined'&&CENG2){const w=mkMain('junyeop','adult','campus');w.cRole='junyeop';w.home=CENG2.gi;const d=cDoor(CENG2);const q=cNearFree(d[0]/T-2,d[1]/T+2,null,6);if(q){w.x=q[0]*T;w.y=q[1]*T}w.tx=w.x;w.ty=w.y;W.push(w)}
+  const mw=W.find(w=>w.cRole==='grad'&&w.name==='민욱'),dy=W.find(w=>w.cRole==='prof'&&w.name==='동엽');
+  if(mw&&dy&&typeof CLAB!=='undefined'){const G=CLAB[1%CLAB.length];mw.home=G.gi;const d=cDoor(G);const q=cNearFree(d[0]/T+2,d[1]/T+1.5,null,6);if(q){mw.x=q[0]*T;mw.y=q[1]*T;mw.tx=mw.x;mw.ty=mw.y}mw.pal.expr='smile';mw.pal.prop='coffee'}
+  // 산책·운동하는 사람들
+  const place=(w,cx,cy,r,kinds)=>{for(let n=0;n<6;n++){const p=cSpot(cx,cy,r+n*2,kinds);if(p){w.x=p[0];w.y=p[1];w.tx=w.x;w.ty=w.y;return true}}return false};
+  const tc=[(TRK[0]+TRK[2])/2,(TRK[1]+TRK[3])/2];
+  // 조깅
+  for(let k=0;k<4;k++){const w=cNew('student',k%2===1,Object.assign(SPORTY(),{pose:'jog'}),'jog');w.dept=k<2?'러닝 동아리':'운동하는 학생';w.life='jog';place(w,CD.W/2,CD.H/2,CD.W/2,[1,8,10]);W.push(w)}
+  // 스트레칭·줄넘기(운동장 옆 잔디)
+  for(let k=0;k<3;k++){const w=cNew('student',k!==1,Object.assign(SPORTY(),{pose:k===2?'rope':'stretch'}),'lifeStill');w.dept='운동하는 학생';w.life=k===2?'rope':'stretch';place(w,tc[0]+(k-1)*9,tc[1]+(k%2?-16:16),6,[2,3]);w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
+  // 잔디밭 독서
+  const LIB=CB.find(G=>/학술정보관|도서관/.test(G.n))||CB[0];const d=cDoor(LIB);
+  for(let k=0;k<3;k++){const w=cNew('student',Math.random()<.6,{gsit:true,pose:'read',bookC:pick(['#C9546A','#5E7FB0','#7FAF6C','#E2B656'])},'lifeStill');w.dept=pick(DEPT_GRP.filter(x=>x!=='스포츠과학과'));w.life='read';
+    place(w,d[0]/T+(k-1)*6,d[1]/T+5+k*2,5,[2]);w.sit=true;w.yo=5;w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
+  // 산책(강아지·휴대폰·커피)
+  ['dog','dog','phone','coffee'].forEach((kind,k)=>{const w=cNew('adult',k%2===0,kind==='phone'?{pose:'phone'}:kind==='coffee'?{prop:'coffee'}:{},'stroll');w.dept=kind==='dog'?'강아지와 산책 중':'산책 나온 사람';w.life=kind;place(w,CD.W/2,CD.H/2,CD.W/2,[1,6,8]);
+    if(kind==='dog')w.dog={x:w.x-10,y:w.y,dir:'down',walk:0,col:pick(['#E8D2B4','#8A5A3C','#F4F2EE','#3E3A3A','#D9A36A']),name:pick(DOG_NAMES)};W.push(w)});
+  // 트랙 달리기는 팔 굽혀 달리기, 혼자 다니는 학생 둘은 휴대폰 보며 걷기
+  W.forEach(w=>{if(w.zone!=='campus')return;if(w.sport==='run')w.pal.pose='jog'});
+  W.filter(w=>w.zone==='campus'&&w.cRole==='nerd').slice(0,2).forEach(w=>{w.pal.pose='phone'})
   S.walkers.push(...W)}}
 function cBub(w,txt,sec){w.bub=txt;w.bubT=S.t+sec}
 function cGo(w,dt,spd){w.path=[[w.tx,w.ty]];return stepToward(w,dt,spd)}
@@ -585,7 +622,27 @@ function cStep(w,dt){
   const T=TILE;if(w.throwT>0)w.throwT-=dt;
   if(w.bub&&S.t>w.bubT)w.bub=null;
   if(w.sport)return;
+  // 민욱: 교수님이 쫓아와도 도망가지 않고 여유 부리기
+  if(w.cRole==='grad'&&w.name==='민욱'){const P=S.walkers.find(o=>o.cRole==='prof'&&!o.hidden&&o.chase===w);
+    if(P&&Math.hypot(P.x-w.x,P.y-w.y)<40){if((w._mwT||0)<S.t){cBub(w,pick(MW_TO_PROF[P.name]||MW_TO_PROF.동엽),3.5);cBub(P,pick(PROF_TO_MW[P.name]||PROF_TO_MW.동엽),3.5);w._mwT=S.t+25}P.chase=null;P.rest=rnd(3,6)}
+    w.inside=0;w.hidden=0;w.flee=false}
   switch(w.cRole){
+    case 'junyeop':{mainCall(w,dt);
+    const Y=S.walkers.find(o=>o.main==='yuna'&&!o.hidden),G=CB[w.home],d=cDoor(G);
+    if(w.wait>0){w.wait-=dt;w.walk=0;if(Y&&Math.hypot(Y.x-w.x,Y.y-w.y)<10*T&&!w.mono&&Math.random()<dt*.02)cBub(w,pick(['(선배다…)','(오늘 선배 머리 묶었네.)','(말 걸까… 말까…)']),2.5);return}
+    if(cGo(w,dt,14)){w.wait=rnd(3,7);let p=null;if(Y&&Math.hypot(Y.x-w.x,Y.y-w.y)<16*T)p=cSpot(Y.x/T+(Math.random()<.5?-4:4),Y.y/T+2,2.5,[1,2,6,8]);if(!p)p=cSpot(d[0]/T,d[1]/T+3,5,[1,2,6,8]);if(p){w.tx=p[0];w.ty=p[1]}}return}
+    case 'jog':{w.hidden=S.t>=570?1:0;if(w.hidden)return;
+      if(w.rest>0){w.rest-=dt;w.walk=0;w.pal.pose='stretch';w.pal.pf=lifeFrame();if(w.rest<=0){w.pal.pose='jog';delete w.pal.pf}return}
+      if(cGo(w,dt,34)){if(Math.random()<.3){w.rest=rnd(4,8);if(Math.random()<.4)cBub(w,pick(['후우… 잠깐 쉬어요.','스트레칭!','다리가 뻐근해요.']),2)}
+        const p=cSpot(w.x/T,w.y/T,20,[1,8,10]);if(p){w.tx=p[0];w.ty=p[1]}}return}
+    case 'lifeStill':{w.hidden=S.t<500?0:1;w.x=w.hx;w.y=w.hy;w.walk=0;w.dir=w.hdir;
+      if(w.life==='read'){w.pal.pose='read';if(Math.random()<dt*.02)cBub(w,pick(['(책장 넘기는 소리)','흠…','와, 반전이다!']),2);return}
+      w.swapT=(w.swapT||rnd(10,20))-dt;if(w.swapT<=0){w.swapT=rnd(12,24);if(w.life==='stretch'&&Math.random()<.35){w.pal.pose=w.pal.pose==='rope'?'stretch':'rope'}}
+      w.pal.pf=lifeFrame();if(w.pal.pose==='rope'&&Math.random()<dt*.03)cBub(w,pick(['열여덟, 열아홉…','앗, 걸렸다!','이단 뛰기!']),1.6);return}
+    case 'stroll':{w.hidden=S.t>=560?1:0;if(w.hidden)return;
+      if(w.dog){const dg=w.dog,[ox,oy]=DIRV[w.dir]||[0,1];const tx=w.x-ox*10+6,ty=w.y-oy*6+3;const dd=Math.hypot(tx-dg.x,ty-dg.y);dg.path=[[tx,ty]];if(dd>1.5)stepToward(dg,dt,Math.min(45,dd*4))}
+      if(w.wait>0){w.wait-=dt;w.walk=0;return}
+      if(cGo(w,dt,w.life==='phone'?9:12)){w.wait=rnd(1.5,4);const p=cSpot(w.x/T,w.y/T,16,[1,6,8]);if(p){w.tx=p[0];w.ty=p[1]}}return}
     case 'picnic':{w.walk=0;w.x=w.hx;w.y=w.hy;w.dir=w.hdir;w.hidden=S.t>=500?1:0;return}
     case 'ug':case 'nerd':{
       if(w.wait>0){w.wait-=dt;w.walk=0;return}
@@ -596,7 +653,7 @@ function cStep(w,dt){
       if(dd>2)stepToward(w,dt,Math.min(44,dd*3.5));else{w.walk=0;w.dir=L.dir}return}
     case 'yuna':{if(mainCall(w,dt))return;const G=CB[w.home],d=cDoor(G);
       const P=S.walkers.find(o=>o.cRole==='prof'&&o.name==='병권'&&!o.hidden);
-      if(P&&Math.hypot(P.x-w.x,P.y-w.y)<8*T&&!w.dodge){w.dodge=1;cBub(w,pick(['…병권 교수님이네. 못 본 척.','(한숨) 또 오셨네.','민욱아, 지금이야. 튀어.']),3);const p=cSpot(w.x/T+(w.x<P.x?-6:6),w.y/T+3,4,[1,2,6,8]);if(p){w.tx=p[0];w.ty=p[1]}w.wait=0}
+      if(P&&Math.hypot(P.x-w.x,P.y-w.y)<8*T&&!w.dodge){w.dodge=1;cBub(w,pick(['…병권 교수님이네. 못 본 척.','(한숨) 또 오셨네.','준엽아, 지금이야. 튀어.']),3);const p=cSpot(w.x/T+(w.x<P.x?-6:6),w.y/T+3,4,[1,2,6,8]);if(p){w.tx=p[0];w.ty=p[1]}w.wait=0}
       if(P&&Math.hypot(P.x-w.x,P.y-w.y)>12*T)w.dodge=0;
       if(w.inside>0){w.inside-=dt;if(w.inside<=0){w.hidden=0;const q=cNearFree(d[0]/T,d[1]/T+.8,null,5)||[d[0]/T,d[1]/T+1];w.x=q[0]*T;w.y=q[1]*T;w.tx=w.x;w.ty=w.y+14}return}
       if(w.wait>0){w.wait-=dt;w.walk=0;if(Math.random()<dt*.008&&!w.calling){w.hidden=1;w.inside=rnd(15,35)}return}
@@ -621,9 +678,13 @@ function cStep(w,dt){
   const chk=(S._cChk=(S._cChk||0)+1)%20===0;
   for(const w of S.walkers){if(w.zone!=='campus'||!w.cRole||w.follow||w.sport||w.cRole==='picnic')continue;if(chk&&!w.hidden&&!cFree(w.x/TILE,(w.y-2)/TILE)){const q=cNearFree(w.x/TILE,w.y/TILE,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE;w.tx=w.x;w.ty=w.y;w._route=null;w._rk=null}}const key=w.tx+','+w.ty;if(w._cT===key)continue;
     if(Math.hypot(w.tx-w.x,w.ty-w.y)>26*TILE){const p=cSpot(w.x/TILE,w.y/TILE,22);if(p){w.tx=p[0];w.ty=p[1]}}w._cT=w.tx+','+w.ty}}}
-{const _ws=walkerStep;walkerStep=function(w,dt){if(w.zone==='campus'&&w.cRole&&!w.talking){cStep(w,dt);return}return _ws(w,dt)}}
+{const _ws=walkerStep;walkerStep=function(w,dt){if(w.life&&w.talking&&w.pal){if(w.pal.pose==='rope'||w.pal.pose==='stretch'){w._pose=w.pal.pose;w.pal.pose=null}}else if(w.life&&w._pose&&w.pal){w.pal.pose=w._pose;w._pose=null}if(w.zone==='campus'&&w.cRole&&!w.talking){cStep(w,dt);return}return _ws(w,dt)}} // 말 거는 동안엔 줄넘기·스트레칭 멈춤
 // 말 걸면: 학과·역할·사람마다 다른 대사
 {const _tl=talkLine;talkLine=function(w){if(w.zone!=='campus'||!w.cRole)return _tl(w);const k=w.lineI||0;
+  if(w.life){w._tc=(w._tc||0)+1;
+  const L=w.life==='jog'&&w.rest>0?LIFE_LINE.jogRest:w.life==='stretch'&&w._pose==='rope'?LIFE_LINE.rope:LIFE_LINE[w.life]||LIFE_LINE.jog;
+  return `(${w.dept}) `+L[w._tc%L.length]}
+  if(w.cRole==='grad'&&w.name==='민욱')return '(대학원생 민욱) '+pick(MINWOOK_LINE);
   switch(w.cRole){
     case 'ug':case 'ugf':{const L=DEPT_LINE[w.dept]||[];return `(${w.dept}) `+(L[(k+(w._tc=(w._tc||0)+1))%L.length]||'')}
     case 'picnic':{const L=(MAT_THEME[w.mat&&w.mat.food]||MAT_THEME.kimbap).lines;w._tc=(w._tc||0)+1;return `(${w.dept}) `+L[(k*2+(w._tc%2))%L.length]}

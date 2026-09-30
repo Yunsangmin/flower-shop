@@ -168,7 +168,8 @@ const SMALL={
 const CALL_LINES={minji:['{me} 씨! 잠깐 시간 있어요?','{me} 씨~ 보여 줄 게 있어요!'],suni:['{me}, 잠깐 이리 와 봐요.','아이고, {me} 마침 잘 만났네.'],doyun:['{me} 씨! 잠깐만요!','{me} 씨, 드릴 말씀이 있어요!'],haru:['사장님! 사장님!','사장님, 여기요 여기!']};
 function fillTxt(s,i,k){const me=PAL[i].name,other=PAL[1-i].name,b=k?bondOf(k):null;
   return s.replace(/\{me\}/g,me).replace(/\{other\}/g,other).replace(/\{shop\}/g,S.shopName||'우리 둘의 꽃집').replace(/\{fav\}/g,(b&&b.mem.fav)||'꽃')}
-function storyReady(k){const b=bondOf(k),ch=STORY[k][b.ch];if(!ch)return null;if(b.h<ch.req)return null;if(b.ch>0&&b.chDay===S.day)return null;if(ch.when&&!ch.when())return null;return ch}
+function storyReady(k){const b=bondOf(k),ch=STORY[k]&&STORY[k][b.ch];if(!ch)return null;if(b.h<ch.req)return null;if(b.ch>0&&b.chDay===S.day)return null;if(b.ch>=6&&b.chDay&&S.day-b.chDay<2)return null; // 7막부터는 이틀 간격
+  if(ch.when&&!ch.when())return null;return ch}
 /* 말 걸기: 이야기 한 막 또는 평소 대화 */
 function mainTalk(i,w){
   const k=w.main,b=bondOf(k);let pages,story=false;
@@ -181,23 +182,22 @@ function mainTalk(i,w){
 }
 function storyDone(i,k){S.callQuiet=S.t+45;S.callNext=S.t+rnd(60,140);const b=bondOf(k);b.ch++;b.chDay=S.day;if(b.h<BOND_MAX)b.h++;bump();saveMid()}
 function storyEffect(i,k,e){
-  if(e.gift){toastAll(e.gift+' ♥');sfx('buy');return}
+  if(e.gift){toastAll(e.gift+' ♥');sfx('buy');giftGive(e.gift);return} // 선물 → 진짜 아이템(game-11-story.js)
   if(e.order){const T=STORY_ORDERS[e.order];if(!T)return;const o=genOrder({title:T.title,text:T.text,req:{...T.req},paper:T.paper,price:T.price},T.time,S.day+1);o.name=T.name;o.story=e.order;S.tomorrow.push(o);toastAll(`${T.name}의 특별 예약이 내일 ${clock(T.time)}에 잡혔어요`);sfx('ring')}
 }
-/* 메인 주민이 먼저 다가와 말 걸기 */
+/* 이야기가 준비되면 메인 주민이 먼저 부르지 않고 혼잣말 말풍선을 띄워요(가서 말을 걸면 이야기 시작) */
+const MONO={
+  minji:['(이 장면… 누구한테 보여 주고 싶은데.)','(까미야, 오늘은 무슨 얘기부터 하지?)','(할 얘기가 생겼는데… 꽃집 사장님들 지나가려나.)','(연필이 오늘따라 말을 안 듣네.)','(흠, 누가 이 얘기 좀 들어 줬으면.)'],
+  suni:['(에구, 오늘은 옛날 생각이 많이 나네.)','(이 얘기를 누구한테 해 줄까.)','(꽃 냄새 참 좋다… 우리 영감도 좋아했는데.)','(젊은 사장들 얼굴 한번 보고 싶네.)'],
+  doyun:['(아, 이건 꼭 얘기해야 하는데!)','(편지는 다 돌렸는데, 할 말은 남았네.)','(해솔 씨… 아니야, 아직은 비밀.)','(누가 내 얘기 좀 들어 줬으면 좋겠다.)'],
+  haru:['(토토야, 사장님들한테 자랑할 거 있다!)','(히히, 이거 말하면 깜짝 놀랄걸.)','(오늘 학교에서 진짜 신기한 일 있었는데!)','(비밀인데… 사장님들한테는 말해도 되겠지?)'],
+  yuna:['(…하, 오늘도 길다.)','(커피 세 잔째인데 정신이 안 드네.)','(이 얘기, 꽃집 사람들한테는 해도 되겠지.)','(누구랑 얘기라도 하고 싶다.)'],
+  junyeop:['(선배는 오늘도 멋있네… 아, 아니 그게 아니라.)','(말 걸어 볼까… 아니야, 논문이나 써야지.)','(선배가 좋아하는 꽃이 뭐였더라.)','(하아… 누가 내 고민 좀 들어 줬으면.)','(오늘은 꼭 말해야지. 오늘은. 아마도.)']};
 function mainCall(w,dt){
-  if(!w.main||w.talking||w.hidden)return false;const ch=storyReady(w.main);if(!ch){w.calling=0;return false}
-  const area=wArea(w);let best=null,bd=1e9;
-  S.chars.forEach((c,i)=>{if(c.area!==area||c.modal||c.rest)return;const d=Math.hypot(c.x-w.x,c.y-w.y);if(d<bd){bd=d;best=c}});
-  if(!best||bd>110){w.calling=0;return false}
-  if((w.callCool||0)>S.t||(S.callQuiet||0)>S.t)return false;
-  if(!w.calling&&S.walkers.some(o=>o!==w&&o.calling))return false; // 한 번에 한 명만 다가와요
-  if(!w.calling){if(S.callNext==null)S.callNext=S.t+rnd(20,70);if(S.t<S.callNext||Math.random()>.02)return false} // 가끔, 랜덤한 때에만
-  if(!w.calling){w.calling=1;w.callT=0;w.callLine=fillTxt(pick(CALL_LINES[w.main]),best.i,w.main);sfx('bell')}
-  w.callT+=dt;if(w.callT>22){w.calling=0;w.callCool=S.t+90;S.callNext=S.t+rnd(60,140);return false}
-  if(bd>24){w.path=[[best.x+(w.x<best.x?-16:16),best.y+2]];stepToward(w,dt,26)}else{w.walk=0;w.dir=faceTo(w,best)}
-  return true;
-}
+  if(!w.main||w.hidden){w.mono=null;return false}w.calling=0;
+  const ch=w.talking?null:storyReady(w.main);if(!ch){w.mono=null;return false}
+  w.monoT=(w.monoT||0)+dt;if(!w.mono||w.monoT>9){w.monoT=0;const L=MONO[w.main]||['(할 얘기가 있는데…)'];let t=pick(L);if(L.length>1)while(t===w.mono)t=pick(L);w.mono=t}
+  return false}
 
 function mkMain(key,kind,zone,extra){const M=MAIN[key];const w=mkWalker(kind,zone,extra);w.pal={...M.pal};w.name=M.name;w.main=key;return w}
 // 산책 나온 부부: 항상 두 사람이 나란히(남녀 한 쌍, 이름도 성별에 맞게)
@@ -213,7 +213,7 @@ function makeWalkers(){
 function newGame(mode){mode='duo';
   S.bonds={};S.mode=mode;S.active=0;S.day=1;S.money=80000;S.speed=1;S.nextId=1;S.up={};S.edit=false;
   S.bags=[Array(BAGN).fill(null),Array(BAGN).fill(null)];S.bench=[];S.works={craft:{orderId:null,stems:[]},craft2:{orderId:null,stems:[]}};S.tomorrow=[];S.shopName='우리 둘의 꽃집';
-  S.decor=DECOR_BASE.shop.map(d=>({...d}));S.closet={};S.outfit=[{},{}];S.tut=S.tutPending!=null?S.tutPending:-1;S.tutPending=null;S.tutDone=0;
+  S.decor=DECOR_BASE.shop.map(d=>({...d}));S.odecor={};S.closet={};S.outfit=[{},{}];S.tut=S.tutPending!=null?S.tutPending:-1;S.tutPending=null;S.tutDone=0;
   makeStations();
   const base=TEMPLATES.filter(t=>!t.req.rose&&!t.req.hydrangea);S.orders=[genOrder(base[0],195,1),genOrder(base[1],300,1),genOrder(base[2],420,1)];S.style='natural';
   startDaySetup();

@@ -40,6 +40,8 @@ const PAPERS={
 const PATTERNS={plain:{name:'민무늬'},dot:{name:'물방울'},stripe:{name:'줄무늬'},check:{name:'체크'},lace:{name:'레이스',extra:true},news:{name:'영자신문',extra:true},sheer:{name:'투명 비닐',extra:true}};
 const PAT_GOOD={dot:['pink','yellow','mint','sky'],stripe:['sky','cream','mint','lilac'],check:['cream','coral','kraft','yellow'],lace:['pink','lilac','cream','sky'],news:['kraft','cream'],sheer:['sky','lilac','mint','pink','cream']};
 const PAT_LINE={dot:['물방울 무늬 너무 귀여워요! 받는 사람도 웃을 것 같아요.','동글동글 무늬가 꽃이랑 잘 어울려요!'],stripe:['줄무늬 포장이 깔끔하고 세련됐네요!','단정한 줄무늬라 선물하기 딱 좋아요.'],check:['체크무늬라 소풍 가는 기분이에요!','포근한 체크 포장, 감각 있으시네요.'],lace:['레이스라니… 너무 로맨틱해요!','레이스 테두리가 꽃을 더 우아하게 만들어 줘요.'],news:['영자신문 포장! 유럽 꽃집 같아요.','빈티지한 느낌이 너무 멋져요.'],sheer:['투명 포장이라 꽃이 반짝반짝 빛나 보여요!','비닐 한 겹이 이렇게 고급스러울 줄이야!']};
+const SHAPES={cone:{name:'기본 V자 포장'},round:{name:'둥근 부케'},cross:{name:'비대칭 크로스 포장'},box:{name:'꽃 상자'},rattan:{name:'라탄 꽃바구니',basket:true},white:{name:'흰색 꽃바구니',basket:true}};
+function isBasket(b){return !!(b&&b.shape&&SHAPES[b.shape]&&SHAPES[b.shape].basket)}
 function styleScore(b){if(!b||!b.pat||b.pat==='plain')return 0;return (PAT_GOOD[b.pat]||[]).includes(b.paper)?2:1}
 const RIBBONS={
   white:{name:'흰색',c:'#FFFFFF',d:'#D6D0C6'},
@@ -64,7 +66,7 @@ const TEMPLATES=[
   {title:'감사 인사',text:'선생님께 드려요. 단정하고 예쁘게요.',req:{tulip:3,freesia:2,gyp:3},paper:'lilac',price:37000}
 ];
 const STYLE_IDS={natural:'우드톤',minimal:'화이트톤'};
-const SHOP_CATS=[['equip','설비'],['tool','도구'],['wrap','포장재'],['deco','꾸미기'],['interior','인테리어'],['style','옷·치장'],['expand','가게 확장']];
+const SHOP_CATS=[['equip','설비'],['tool','도구'],['wrap','포장재'],['deco','꾸미기'],['furn','가구'],['interior','인테리어'],['style','옷·치장'],['expand','가게 확장']];
 const STYLE={
   glasses:{label:'안경',opts:[['horn','검은 뿔테 안경',15000],['gold','동그란 금테 안경',18000],['sun','동그란 선글라스',16000]]},
   hat:{label:'모자',opts:[['beret','베레모',12000],['sunhat','밀짚모자',15000],['beanie','니트 비니',10000],['cap','야구 모자',10000],['bucket','린넨 버킷햇',14000],['crown','하루의 꽃 화관',0,'gift']]},
@@ -89,6 +91,7 @@ const SHOP_ITEMS=[
   {id:'scissors',cat:'tool',name:'좋은 가위',desc:'사선 자르기 성공 구간이 넓어져요.',price:40000},
   {id:'papers2',cat:'wrap',name:'새 포장지 세트',desc:'민트, 코랄, 크라프트 포장지가 생겨요.',price:25000},
   {id:'ribbons2',cat:'wrap',name:'새 리본 세트',desc:'라벤더, 초록 리본이 생겨요.',price:15000},
+  {id:'basket',cat:'wrap',name:'꽃바구니 (라탄·흰색)',desc:'꽃다발을 라탄이나 흰색 바구니에 담을 수 있어요. 만들 때 5,000원이 더 들지만 판매가도 5,000원 올라가고, 누구나 좋아해요.',price:30000},
   {id:'patterns2',cat:'wrap',name:'고급 포장 무늬',desc:'레이스, 영자신문, 투명 비닐 포장이 생겨요.',price:18000},
   {id:'d_jute',cat:'deco',part:'바닥',name:'주트 러그',desc:'',price:28000,repeat:true,floor:{t:'rug_jute',w:4,h:2,flat:true,walk:true}},
   {id:'d_pendant',cat:'deco',part:'천장',name:'펜던트 조명',desc:'',price:35000},
@@ -109,6 +112,18 @@ const SHOP_ITEMS=[
   {id:'exp2',cat:'expand',name:'가게 넓히기 2단계',desc:'가게가 한 번 더 넓어져요.',price:1200000,need:'exp1'},
   {id:'exp3',cat:'expand',name:'가게 넓히기 3단계',desc:'가게가 가장 넓어져요.',price:2500000,need:'exp2'}
 ];
+/* 인테리어 테마(상점 '인테리어' 칸) · 가구(상점 '가구' 칸) · 벽 장식(상점 '꾸미기' 칸, 가게 뒤 벽에만) */
+const THEME_SHOP=[['vintage','빈티지 파리',300000],['pastel','파스텔',300000],['xmas','크리스마스',250000],['spring','벚꽃 봄',250000]];
+const FURN=[ // [그림 이름, 상품 이름, 가격, 가로칸, 세로칸, 바닥에 까는 것(밟고 지나감)]
+  ['cafetable','카페 테이블 세트',38000,2,1],['flowercart','꽃 수레',52000,2,1],['bike','꽃바구니 자전거',45000,2,1],['bookshelf','원목 책장',34000,1,1],['record','레코드 플레이어',42000,1,1],
+  ['catcushion','고양이 방석',20000,1,1],['candles','캔들 선반',16000,1,1],['armchair','벨벳 1인 소파',48000,1,1],['floorlamp','스탠드 조명',26000,1,1],['flowerbench','꽃 벤치',36000,2,1],
+  ['cactus','선인장 삼총사',18000,1,1],['fiddle','떡갈고무나무',28000,1,1],['birdcage','새장 화분 스탠드',30000,1,1],['piano','업라이트 피아노',180000,2,1],['xmastree','크리스마스 트리',40000,1,1],
+  ['sakura','벚꽃 나무 화분',45000,1,1],['rug_round','파스텔 원형 러그',30000,3,2,1],['rug_check','체크 러그',32000,4,2,1],
+  ['picnictable','피크닉 테이블',42000,2,1],['campchair','캠핑 의자',24000,1,1],['picnicmat','피크닉 돗자리',18000,3,2,1]];
+const WALLS=[['w_flowerart','꽃 그림 액자',18000,1],['w_pressed','압화 액자 세트',22000,2],['w_macrame','마크라메 벽걸이',20000,1],['w_garland','드라이플라워 가랜드',16000,2],['w_roundmirror','동그란 벽 거울',24000,1],['w_plantshelf','벽 선반 화분',24000,2]];
+SHOP_ITEMS.push(...THEME_SHOP.map(([k,n,p])=>({id:'style_'+k,cat:'interior',name:n,desc:'',price:p,styleSet:k,repeat:true,part:'가게 전체'})),
+  ...FURN.map(([t,n,p,w,h,flat])=>({id:'f_'+t,cat:'furn',part:n,name:n,desc:'',price:p,repeat:true,floor:flat?{t,w,h,flat:true,walk:true}:{t,w,h}})),
+  ...WALLS.map(([t,n,p,w])=>({id:'f_'+t,cat:'deco',part:'벽 · '+n,name:n,desc:'',price:p,repeat:true,floor:{t,w,h:1,wall:true,walk:true}})));
 const NAMES_F=['서연','지우','수아','은비','하린','예린','나연','유진','소윤','다은','채원','지아','윤서','하은','서아','민서','지유','예은','수빈','가윤','소희','연우'];
 const NAMES_M=['하준','민재','시우','태오','지호','준서','건우','현우','서진','우진','지훈','은호','도현','주원','민준','이준','승우','유찬','준혁','시현','동건','태민'];
 const NAMES=NAMES_F.concat(NAMES_M); // 메인 주민 이름(민지·순이·도윤·하루)은 엑스트라에 쓰지 않음
@@ -182,7 +197,12 @@ const DECOR_BASE={
     {t:'school',x:3,y:24,w:12,h:4},{t:'schoolclock',x:8.5,y:28,w:1,h:.1,walk:true},{t:'swing',x:3,y:30,w:4,h:1},{t:'slide',x:14,y:29,w:2,h:1},{t:'sandbox',x:3,y:32,w:3,h:1,flat:true,walk:true},{t:'playmat',x:7,y:32,w:2,h:1,flat:true,walk:true}
   ]
 };
-const DECOR={get north(){return DECOR_BASE.north},get shop(){return S.decor||DECOR_BASE.shop},get market(){return DECOR_BASE.market},get supply(){return DECOR_BASE.supply},get town(){return DECOR_BASE.town}};
+/* 장소별 장식. 바깥(마을·언덕·캠퍼스·텃밭)은 기본 장식 + 플레이어가 들고 나가 놓은 가구(S.odecor) */
+const OUT_AREAS=['town','north','campus','farm'];
+let ODEC_V=0;const ODEC_C={};
+function withOut(a,B){const O=(S.odecor&&S.odecor[a])||[];if(!O.length)return B;const c=ODEC_C[a];if(c&&c.v===ODEC_V&&c.b===B)return c.arr;const arr=B.concat(O);ODEC_C[a]={v:ODEC_V,b:B,arr};return arr}
+function odec(area){S.odecor=S.odecor||{};return S.odecor[area]||(S.odecor[area]=[])}
+const DECOR={get north(){return withOut('north',DECOR_BASE.north)},get shop(){return S.decor||DECOR_BASE.shop},get market(){return DECOR_BASE.market},get supply(){return DECOR_BASE.supply},get town(){return withOut('town',DECOR_BASE.town)}};
 const DOORS=[
   {area:'town',x0:24*TILE,x1:27*TILE,edge:'top',y:.5*TILE,to:'north',sx:25.5*TILE,sy:20.4*TILE,dir:'up'},
   {area:'town',x0:34*TILE,x1:37*TILE,edge:'top',y:.5*TILE,to:'north',sx:35.5*TILE,sy:20.4*TILE,dir:'up'},
@@ -237,6 +257,7 @@ function wArea(w){return ZONE_AREA[w.zone]||'town'}
 function solid(area,px,py){
   const A=AREAS[area];const tx=Math.floor(px/TILE),ty=Math.floor(py/TILE);
   if((tx<1||tx>A.w-2)&&!sideGap(area,tx,ty))return true;if(py<0||px<0||px>=A.w*TILE)return true;
+  const O=S.odecor&&S.odecor[area];if(O&&O.length)for(const d of O){if(d.carried||d.walk)continue;if(px>=d.x*TILE&&px<(d.x+d.w)*TILE&&py>=d.y*TILE&&py<(d.y+d.h)*TILE)return true}
   if(AREA_SOLID[area]){const r=AREA_SOLID[area](px,py,tx,ty);if(r!==undefined)return r}
   if(area==='town'){if(ty<6&&!doorGap(area,tx,ty)&&!walkCol(tx))return true;if(ty>=A.h-1)return true;if(tx>=RIVER[0]&&tx<=RIVER[1]&&!bridgeRow(ty)&&ty<27)return true;if(ty>=27&&tx>=20&&!(tx>=40&&tx<=42&&ty<=30))return true}
   else if(area==='north'){if(ty<7)return true;if(ty>=A.h-1&&!walkCol(tx))return true;if(py>=A.h*TILE)return true;if(tx>=RIVER[0]&&tx<=RIVER[1]&&!(ty>=13&&ty<=14))return true}
@@ -270,15 +291,20 @@ function targetOf(c){
   for(const s of list){if(fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3)return s}
   let best=null,bd=18;
   for(const s of list){const cx=clamp(c.x,s.x*TILE,(s.x+s.w)*TILE),cy=clamp(c.y-3,s.y*TILE,(s.y+s.h)*TILE);const d=Math.hypot(cx-c.x,cy-(c.y-3));if(d<bd){bd=d;best=s}}
-  return best;
+  if(best||S.edit)return best;
+  const seat=seatAt(c);return seat?{type:'seat',deco:seat}:null;
 }
+/* 앉을 수 있는 가구(의자·소파·벤치) · 누울 수 있는 가구(돗자리) */
+const SEATS={campchair:{n:1},armchair:{n:1},flowerbench:{n:2},picnicmat:{n:2,lie:true}};
+function seatAt(c){const L=c.area==='shop'?S.decor:DECOR[c.area];if(!L)return null;const [dx,dy]=DIRV[c.dir]||[0,1];const fx=c.x+dx*12,fy=c.y-3+dy*12;let best=null,bd=16;
+  for(const d of L){if(!SEATS[d.t]||d.carried)continue;const cx=clamp(fx,d.x*TILE,(d.x+d.w)*TILE),cy=clamp(fy,d.y*TILE,(d.y+d.h)*TILE);const dd=Math.hypot(cx-fx,cy-fy);if(dd<bd){bd=dd;best=d}}return best}
 
 /* ---------- setup ---------- */
 function makeChar(i){
   const p=i===0?[6*TILE,3.9*TILE]:[11.5*TILE,3.9*TILE];
   return {i,pal:PAL[i],area:'shop',x:p[0],y:p[1],vx:0,vy:0,dir:'down',ang:0,face:0,anim:0,moving:false,bag:S.bags[i],modal:null,rest:null,carry:null,waterT:0,boostUntil:-1,fade:0,lastAct:0};
 }
-function palOf(c){return palFromOutfit(PAL[c.i],S.outfit[c.i]||{})}
+function palOf(c){const p=palFromOutfit(PAL[c.i],S.outfit[c.i]||{});if(c.rest&&c.rest.lie){p.pose='lie';p.expr='sleepy'}return p}
 function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};
   if(o.apron==='knit'){p.apron='#F6D3DB';p.apronPat='flower'}
   if(o.tee){p.tee=o.tee;p.teeSh=mix(o.tee,'#3B2F3F',.15)}
@@ -296,7 +322,14 @@ const HAIRC=['#3B2A22','#6B4A3A','#1F1A1E','#8A5A3C','#B08560','#C9A06A','#5A3A2
 const TEES=['#F2B5A7','#A7C7A0','#E9D48A','#B8A6D9','#9CC5D8','#F0C3D2','#F6C48E','#C6D8A8','#E8E1D5','#7FA7C9'];
 const PANTS=['#5C6A8C','#6E5B4B','#3E3E48','#8C7D6A','#A7C7A0','#D9C3A5','#4A5A70'];
 const SKINS=[['#F4D3B7','#E0B597'],['#EBC3A0','#D3A284'],['#F1C9A5','#DBAA86'],['#D9A882','#BF8C68'],['#C99270','#AD7757'],['#FBE0CA','#E8C2A6']];
-function newPal(kind,fem){
+/* 손님·주민이 주인공(생민·수갱)과 닮지 않게: 닮으면 다시 뽑아요 */
+function darkHair(h){const c=parseInt(String(h||'#888888').slice(1),16);return ((c>>16)+((c>>8)&255)+(c&255))/3<82}
+function looksLikePlayer(p){if(!p)return false;if(/^#(4C82D4|3A68B3)$/i.test(p.tee||''))return true;
+  if(p.style==='f'&&['long','bob'].includes(p.hs)&&darkHair(p.hair))return true; // 수갱: 긴 검은 머리
+  if(p.style==='m'&&(p.hs==='short'||p.hs==='curly')&&darkHair(p.hair)&&!p.acc)return true; // 생민: 짧은 어두운 머리
+  return false}
+function newPal(kind,fem){let p=newPal1(kind,fem);for(let n=0;n<10&&looksLikePlayer(p);n++)p=newPal1(kind,fem);if(looksLikePlayer(p)){p.hair='#8A5A3C';p.hairHi=mix(p.hair,'#FFFFFF',.25)}return p}
+function newPal1(kind,fem){
   kind=kind||pick(['adult','adult','student','elder']);
   const f=fem==null?Math.random()<.5:!!fem;const [sk,skS]=pick(SKINS);
   let hs=f?pick(['long','bob','bun','pony','curly','long']):pick(['short','short','curly','short']);

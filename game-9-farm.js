@@ -40,7 +40,7 @@ DECOR_BASE.farm=[
   {t:'farmsign',x:3,y:10,w:1,h:1},
   ...[[1,3,'pine'],[4,3,'maple'],[7,3,'pine'],[17,3,'ginkgo'],[20,3,'pine'],[36,3,'maple'],[38,4,'pine'],[38,9,'ginkgo'],[38,14,'pine'],[1,17,'maple'],[1,22,'pine'],[12,23,'ginkgo'],[20,23,'birch'],[27,23,'pine']].map(([x,y,v])=>({t:'tree',v,x,y,w:1,h:1}))
 ];
-Object.defineProperty(DECOR,'farm',{get(){return DECOR_BASE.farm},configurable:true});
+Object.defineProperty(DECOR,'farm',{get(){return withOut('farm',DECOR_BASE.farm)},configurable:true});
 Object.assign(PR_DEB,{farmhouse:[-8,-78,10,14],greenhouse:[-6,-62,6,8],woodpile:[0,-12,0,2],tent:[-10,-44,14,10],firepit:[-8,-26,8,4],lightpole:[-2,-44,2,1],picnic:[0,-10,0,4],cathouse:[0,-18,0,2],catbowls:[0,0,0,0],farmsign:[-10,-26,10,2]});
 
 /* 캠핑 의자(앉아 쉬기) — 모닥불을 바라보고 앉아요 */

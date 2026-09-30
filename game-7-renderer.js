@@ -87,29 +87,38 @@ function prResize(){
   for(const r of PR.recs.values())r.sig=null;
   prDropTex(k=>k.startsWith('c|')||k.startsWith('i|')||k.startsWith('fx|')||k.startsWith('pill|'));
 }
-function prDropTex(test){const T=PR.sc.textures;for(const [k,e] of PR.tex){if(test(k)){if(T.exists(k))T.remove(k);PR.tex.delete(k)}}}
+function prDropTex(test){const T=PR.sc.textures;for(const [k,e] of PR.tex){if(test(k)){if(T.exists(e.key))T.remove(e.key);PR.tex.delete(k)}}
+  if(test('c|')||test('i|'))for(const q in PR_POOL){for(const p of PR_POOL[q])if(T.exists(p.key))T.remove(p.key);PR_POOL[q]=[]}}
 
 /* ---------- 텍스처(도장) 관리 ---------- */
+/* 사람·물건 그림은 크기가 같아서, 오래 안 쓴 그림 자리를 지우지 않고 모아 뒀다가 새 그림에 다시 써요
+   (그림 자리를 새로 만들고 지우는 일이 TV에서 가장 무거워요) */
+const PR_POOL={};function prPoolable(key){return key[0]==='c'||key[0]==='i'}
 function prTex(key,w,h){
   const T=PR.sc.textures;let e=PR.tex.get(key);
-  if(e&&(e.w!==w||e.h!==h)){if(T.exists(key))T.remove(key);PR.tex.delete(key);e=null}
+  if(e&&(e.w!==w||e.h!==h)){if(T.exists(e.key))T.remove(e.key);PR.tex.delete(key);e=null}
+  if(!e&&prPoolable(key)){const L=PR_POOL[w+'x'+h];if(L&&L.length){const p=L.pop();e={key:p.key,lkey:key,w,h,t:p.t,g:p.g,used:PR.frame};PR.tex.set(key,e);return e}}
   if(!e){if(T.exists(key))T.remove(key);const t=T.createCanvas(key,w,h);t.imageData=t.data=t.pixels=t.buffer=null;/* Phaser가 만들어 두는 픽셀 복사본은 안 써서 바로 버려요(메모리 절약) */e={key,w,h,t,g:t.getContext(),used:PR.frame};PR.tex.set(key,e)}
   e.used=PR.frame;return e;
 }
 function prTexLRU(){
   /* 사람·물건 그림은 쓰는 만큼만 보관(약 40MB 넘으면 오래 안 쓴 것부터 정리) */
   if(PR.frame%60)return;let bytes=0;const arr=[];
-  for(const e of PR.tex.values())if(e.key[0]==='c'||e.key[0]==='i'||e.key.startsWith('pill|')||e.key.startsWith('fx|cloud')){bytes+=e.w*e.h*4;arr.push(e)}
+  for(const e of PR.tex.values()){const lk=e.lkey||e.key;if(lk[0]==='c'||lk[0]==='i'||lk.startsWith('pill|')||lk.startsWith('fx|cloud')){bytes+=e.w*e.h*4;arr.push(e)}}
+  for(const k in PR_POOL){const [w,h]=k.split('x').map(Number);bytes+=PR_POOL[k].length*w*h*4}
   const CAP=(prIsTV()?44:80)*1048576;if(bytes<CAP)return;
   // 1차: 10초 넘게 안 쓴 것부터 75%까지 / 2차(그래도 넘치면): 1초 넘게 안 쓴 것만 한도 아래까지 → 걷기 동작처럼 곧 다시 쓸 그림을 지웠다 다시 굽는 일을 줄임
-  arr.sort((a,b)=>a.used-b.used);const drop=e=>{PR.sc.textures.remove(e.key);PR.tex.delete(e.key);bytes-=e.w*e.h*4;e.dead=1};
+  arr.sort((a,b)=>a.used-b.used);
+  const drop=e=>{const lk=e.lkey||e.key;PR.tex.delete(lk);bytes-=e.w*e.h*4;e.dead=1;
+    if(prPoolable(lk)){const L=PR_POOL[e.w+'x'+e.h]||(PR_POOL[e.w+'x'+e.h]=[]);if(L.length<48){L.push({key:e.key,t:e.t,g:e.g});return}}
+    PR.sc.textures.remove(e.key)};
   for(const e of arr){if(bytes<CAP*.75)break;if(e.used>=PR.frame-600)break;drop(e)}
   if(bytes>=CAP)for(const e of arr){if(bytes<CAP)break;if(e.dead||e.used>=PR.frame-60)continue;drop(e)}
 }
 /* 건물·가구 그림 보관: 한도 안이면 계속 보관(다시 가도 바로 보임), 넘으면 15초 넘게 안 본 것부터 정리 */
 function prStaticTrim(){
   if(PR.frame%60)return;let bytes=0;
-  for(const e of PR.tex.values())if(!(e.key[0]==='c'||e.key[0]==='i'||e.key.startsWith('pill|')||e.key.startsWith('fx|cloud')))bytes+=e.w*e.h*4;
+  for(const e of PR.tex.values()){const lk=e.lkey||e.key;if(!(lk[0]==='c'||lk[0]==='i'||lk.startsWith('pill|')||lk.startsWith('fx|cloud')))bytes+=e.w*e.h*4}
   const CAP=(prIsTV()?52:160)*1048576;if(bytes<CAP)return;
   const old=[...PR.recs.values()].filter(r=>PR.frame-r.seen>900).sort((a,b)=>a.seen-b.seen);
   for(const r of old){if(bytes<CAP*.85)break;let b=0;(r.layers||[]).forEach(e=>{b+=e.w*e.h*4});prKillRec(r);PR.recs.delete(r.id);bytes-=b}
@@ -133,6 +142,9 @@ function prProxy(){
 /* ---------- 구울 때의 크기(측정값 + 여유) ---------- */
 const PR_STB={storage:[0,-36,0,4.5],wardrobe:[-2,-38.5,0,3.5],bucket:[0,-24,0,1],craft:[-.3,-26,.3,3.3],wrap:[-.3,-23,.3,3.3],dryer:[0,-27,0,2],trim:[0,-14,0,2.5],board:[0,-12,0,2],trash:[0,-4,0,1],counter:[0,-24,0,3.5],phone:[0,-8,0,1],pickup:[0,-24,0,2],display:[0,-24,0,3.5],stall:[-.8,-28,.3,5.3],seedstall:[-.3,-32,.3,5.3],keeper:[0,-29,0,3.5],bench:[0,-3,0,1],plot:[0,-20,0,1],sprspot:[-14,-14,14,8],shelf:[0,-14,0,2]};
 const PR_DEB={tree:[-4,-23,4.8,2],lamp:[0,-28,0,0],table:[-6.5,-12,6.5,1.5],waitbench:[0,-4,0,1],bigplant:[-4,-13,4,.8],easel:[0,-9,0,.5],crate:[0,-6,1.5,.8],planterTree:[0,-14,0,.8],bucketRow:[-.3,-10,0,1],boxes:[0,-7,0,1],tallshelf:[0,-26,0,3],tooltable:[-.3,-4,.3,3.3],pottable:[-.3,-3,.3,3.3],fridgeDemo:[0,-20,0,1.8],seedRack:[0,-14,0,.8],canRack:[0,-14,0,.8],clocktower:[0,-80,.8,2],fenceH:[-1,-2,2,2],fenceV:[0,0,0,0],shed:[0,-4,0,2.5],mailbox:[0,-3,0,0],planterBox:[0,-6,0,1],hoursSign:[-.5,-9,.5,.5],school:[-8,-92,32,8],schoolclock:[-4,-126,4,0],playmat:[0,-4,0,0],swing:[0,-16,0,2],slide:[0,-20,1,1],sandbox:[0,0,0,0]};
+/* 상점 가구·선물 소품 그림 범위 · 벽 장식은 모두 같은 범위 */
+Object.assign(PR_DEB,{cafetable:[0,-14,0,1],flowercart:[-2,-18,2,1],bike:[-2,-16,2,1],bookshelf:[0,-28,0,1],record:[0,-20,0,1],catcushion:[0,-4,0,1],candles:[0,-16,0,1],armchair:[-1,-14,1,1],floorlamp:[-1,-30,1,1],flowerbench:[-2,-12,2,1],cactus:[0,-10,0,1],fiddle:[-2,-30,2,1],birdcage:[-1,-30,1,1],piano:[0,-24,0,1],xmastree:[-4,-36,4,1],sakura:[-6,-32,6,1],memocab:[0,-34,0,1],portrait_easel:[-2,-28,2,1],picbook:[0,-18,0,1],readnook:[-1,-16,1,1],notedesk:[0,-16,0,1],seapot:[-1,-16,1,1],mugtable:[0,-12,0,1],picnictable:[-1,-12,1,1],campchair:[-1,-12,1,1]});
+['w_flowerart','w_pressed','w_macrame','w_garland','w_roundmirror','w_plantshelf','w_postcard','w_crayon','w_pageart','w_portrait','w_scissors','w_invite','w_stamp','w_haruphoto','w_yunaphoto','w_plaque'].forEach(t=>PR_DEB[t]=[0,-30,0,-14]);
 function prBounds(tab,type,x,y,w,h,d){let b=tab[type];if(typeof b==='function')b=b(d||{});b=b||[-12,-44,12,8];return [x+Math.min(0,b[0])-8,y+Math.min(0,b[1])-12,w+Math.max(0,b[2])-Math.min(0,b[0])+16,h+Math.max(0,b[3])-Math.min(0,b[1])+18]}
 
 /* ---------- 가구·장식 굽기 ---------- */
@@ -196,11 +208,12 @@ function prCharTex(area,x,p,dir,phase,moving,glasses,work,sit){
   if(PR.npc){q=Math.round(q/2)*2;if(q<=-8)q=8} // 주민·손님은 8방향만(그림 수 절반 → 메모리·첫 굽기 부담 감소)
   let fk,ph=0,bob=0,wk=0;
   /* 주민·손님(PR.npc)은 걷기 8단계·서 있을 때 숨쉬기 없음 → 도장 수를 크게 줄여 메모리·첫 굽기 부담을 낮춤. SM·SK는 그대로 부드럽게 */
-  if(moving){let f=Math.round((((phase%TAU)+TAU)%TAU)/(TAU/16))%16;if(PR.npc)f=(f>>1)<<1;fk='m'+f;ph=f*TAU/16}
+  if(moving){let f=Math.round((((phase%TAU)+TAU)%TAU)/(TAU/16))%16;if(PR.npc)f=prIsTV()?(f>>2)<<2:(f>>1)<<1;fk='m'+f;ph=f*TAU/16}
   else{const b=PR.npc?0:Math.round(Math.sin(PR.now/600+(sit?0:(x%7)))*4);fk='i'+b;bob=b/4*1.1}
   if(work){const w=PR.npc?Math.round(Math.sin(PR.now/120))*4:Math.round(Math.sin(PR.now/90)*4);fk+='w'+w;wk=w/4*.18}
   const key='c|'+prPalKey(p)+'|'+q+'|'+fk+'|'+(glasses?1:0)+(sit?1:0)+'|'+sc;
   let e=PR.tex.get(key);if(e){e.used=PR.frame;return e}
+  if(PR_CHAR_LEFT<=0&&PR.allowSkip)return null;PR_CHAR_LEFT--;
   const W=Math.ceil(PR_CB[2]*sc)+2,H=Math.ceil(PR_CB[3]*sc)+2;e=prTex(key,W,H);const g=e.g;
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);g.setTransform(sc,0,0,sc,-PR_CB[0]*sc+1,-PR_CB[1]*sc+1);
   CHT={bob,wk};try{drawChar(g,0,0,p,q*Math.PI/8,ph,moving,glasses,work,sit)}catch(err){console.error(err)}CHT=null;
@@ -233,10 +246,13 @@ function prDecSig(d,area){
   if(d.t==='lamp')x+=Math.round(lampAt(S.t)*40)+'|'+Math.floor(S.t/10);
   return x+'|'+prBakeScale(area);
 }
+/* 한 프레임에 새로 굽는 가구·건물 그림 수를 제한해요(새 장소에 들어갈 때 한꺼번에 굽느라 멈추지 않게, 나머지는 다음 프레임에) */
+let PR_BAKE_LEFT=99;
 function prSyncStatic(id,area,depth,sigFn,drawFn,boundsFn){
   const r=prRec(id);
   const check=r.sig===null||S.rev!==r.rev||((PR.frame+(r.h||(r.h=(id.length*7)%6)))%6===0);
-  if(check){r.rev=S.rev;const sg=sigFn();if(sg!==r.sig){r.sig=sg;prBakeStatic(r,area,drawFn,boundsFn())}}
+  if(check){const sg=sigFn();if(sg!==r.sig){if(PR_BAKE_LEFT<=0){r.rev=-1;if(!r.layers)return r}else{PR_BAKE_LEFT--;r.rev=S.rev;r.sig=sg;prBakeStatic(r,area,drawFn,boundsFn())}}else r.rev=S.rev}
+  if(!r.layers)return r;
   if(r.timed&&PR.now-r.bt>83)prBakeStatic(r,area,drawFn,boundsFn());
   prPlaceStatic(r,area,depth);return r;
 }
@@ -309,24 +325,29 @@ function prArea(area){
 /* 아주 큰 장소(캠퍼스)는 바닥을 여러 조각으로 나눠 화면 근처만 그려요(한 장으로 그리면 흐릿해지거나 메모리를 많이 써서) */
 const AREA_CHUNK={};
 function prSyncChunks(area,a){
-  const A=AREAS[area],CS=A.chunk*TILE,V=VIEW||[0,0,A.w*TILE,A.h*TILE],q=Math.min(2.5,Math.max(1,prBakeScale(area)*.65));
+  const A=AREAS[area],CS=A.chunk*TILE,V=VIEW||[0,0,A.w*TILE,A.h*TILE],q=Math.min(prIsTV()?1.3:2.5,Math.max(1,prBakeScale(area)*.65));
   a.ch=a.ch||new Map();a.bg.setVisible(false);
-  const nx=Math.ceil(A.w*TILE/CS),ny=Math.ceil(A.h*TILE/CS),m=CS*.35;
-  const cx0=Math.max(0,Math.floor((V[0]-m)/CS)),cx1=Math.min(nx-1,Math.floor((V[2]+m)/CS)),cy0=Math.max(0,Math.floor((V[1]-m)/CS)),cy1=Math.min(ny-1,Math.floor((V[3]+m)/CS));
-  let made=0;
-  for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){
-    const k=cx+','+cy;let c=a.ch.get(k);const vis=!(cx*CS>V[2]||(cx+1)*CS<V[0]||cy*CS>V[3]||(cy+1)*CS<V[1]);
+  const nx=Math.ceil(A.w*TILE/CS),ny=Math.ceil(A.h*TILE/CS),m=CS*.8; // 화면 밖 한 칸까지 미리(한 프레임에 하나씩) 그려 둬요
+  let made=0;const need=new Map();
+  for(const R of (VIEWS&&VIEWS.length>1?VIEWS:[V])){const cx0=Math.max(0,Math.floor((R[0]-m)/CS)),cx1=Math.min(nx-1,Math.floor((R[2]+m)/CS)),cy0=Math.max(0,Math.floor((R[1]-m)/CS)),cy1=Math.min(ny-1,Math.floor((R[3]+m)/CS));
+    for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const vis=!(cx*CS>R[2]||(cx+1)*CS<R[0]||cy*CS>R[3]||(cy+1)*CS<R[1]);const k=cx+','+cy;need.set(k,(need.get(k)||vis)?1:0)}}
+  for(const [k,vv] of need){const [cx,cy]=k.split(',').map(Number);let c=a.ch.get(k);const vis=!!vv;
     if(!c||c.q!==q){if(!vis&&made>=1)continue;
-      if(c){if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}
-      const cv=document.createElement('canvas');cv.width=Math.ceil(CS*q);cv.height=Math.ceil(CS*q);const g=cv.getContext('2d');g.setTransform(q,0,0,q,-cx*CS*q,-cy*CS*q);
+      if(c)prChunkFree(c);
+      /* 지운 조각의 그림 자리(캔버스·텍스처)를 다시 써요 → 새로 만들고 지우는 부담이 없어요 */
+      const sz=Math.ceil(CS*q),pl=PR.chunkPool||(PR.chunkPool=[]),pi=pl.findIndex(p=>p.cv.width===sz);
+      let key,cv,img;if(pi>=0){({key,cv,img}=pl.splice(pi,1)[0])}else{cv=document.createElement('canvas');cv.width=cv.height=sz}
+      const g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,sz,sz);g.setTransform(q,0,0,q,-cx*CS*q,-cy*CS*q);
       try{AREA_CHUNK[area](g,cx*CS,cy*CS,CS,CS)}catch(e){console.error(e)}
-      const key='bgc|'+(++OIDN);PR.sc.textures.addImage(key,cv);
-      c={key,q,img:prW(PR.sc.add.image(AOFF[area]+cx*CS,cy*CS,key).setOrigin(0,0).setDepth(-3e6).setScale(CS/cv.width+.0005))};a.ch.set(k,c);made++}
+      if(key&&PR.sc.textures.exists(key)){PR.sc.textures.get(key).source[0].update();img.setPosition(AOFF[area]+cx*CS,cy*CS)}
+      else{key='bgc|'+(++OIDN);PR.sc.textures.addImage(key,cv);img=prW(PR.sc.add.image(AOFF[area]+cx*CS,cy*CS,key).setOrigin(0,0).setDepth(-3e6).setScale(CS/cv.width+.0005))}
+      c={key,q,cv,img};a.ch.set(k,c);made++}
     c.used=PR.frame;c.img.setVisible(true)}
   for(const c of a.ch.values())if(c.used!==PR.frame)c.img.setVisible(false);
-  const LIM=prIsTV()?12:24;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
-    for(const [k,c] of old){if(a.ch.size<=LIM)break;if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy();a.ch.delete(k)}}
+  const LIM=prIsTV()?24:30;if(a.ch.size>LIM){const old=[...a.ch.entries()].filter(([k,c])=>c.used!==PR.frame).sort((p,q2)=>p[1].used-q2[1].used);
+    for(const [k,c] of old){if(a.ch.size<=LIM)break;prChunkFree(c);a.ch.delete(k)}}
 }
+function prChunkFree(c){c.img.setVisible(false);const pl=PR.chunkPool||(PR.chunkPool=[]);if(c.cv&&pl.length<4){pl.push({key:c.key,cv:c.cv,img:c.img});return}if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}
 function prSyncBg(area){
   const a=prArea(area);a.seenF=PR.frame;
   if(AREAS[area].chunk&&AREA_CHUNK[area]){prSyncChunks(area,a);prSyncAmb(area,a);return}
@@ -376,12 +397,13 @@ function prFrame(g,x,y,w,h,r,bgc,stroke){
 
 /* ---------- 매 프레임 ---------- */
 function prRender(){
+  PR_BAKE_LEFT=prIsTV()?4:10;PR_CHAR_LEFT=prIsTV()?8:20;
   PR.frame++;PR.now=performance.now();const R=PR.R;const g2=PR.g2;g2.clear();
   if(PR.ovDirty){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);PR.ovDirty=false}
   PR.sunKeep=false;
   const live=(S.phase==='play'||S.phase==='settle'||S.phase==='intro')&&S.chars.length;
   if(!live){PR.cams.forEach(c=>c.setVisible(false));for(const r of PR.recs.values())prHideRec(r);PR.fades.forEach(f=>f.setVisible(false));prFlushPills();return}
-  const vps=viewports();const areas={};
+  const vps=viewports();const areas={},rects={};
   PR.cams.forEach((c,i)=>{
     const v=vps[i];if(!v){c.setVisible(false);PR.fades[i].setVisible(false);return}
     const cam=camera(v);Object.assign(v,cam);const {s,ox,oy,mw,mh}=cam;
@@ -395,14 +417,15 @@ function prRender(){
     c.setVisible(true).setViewport(Math.round(x0*R),Math.round(y0*R),Math.max(1,Math.round((x1-x0)*R)),Math.max(1,Math.round((y1-y0)*R)));
     c.setZoom(s*R);c.centerOn(AOFF[v.area]+((x0+x1)/2-ox)/s,((y0+y1)/2-oy)/s);
     const vr=[(v.x-ox)/s,(v.y-oy)/s,(v.x+v.w-ox)/s,(v.y+v.h-oy)/s];
-    const A=areas[v.area];areas[v.area]=A?[Math.min(A[0],vr[0]),Math.min(A[1],vr[1]),Math.max(A[2],vr[2]),Math.max(A[3],vr[3])]:vr;
+    (rects[v.area]=rects[v.area]||[]).push(vr);const A=areas[v.area];areas[v.area]=A?[Math.min(A[0],vr[0]),Math.min(A[1],vr[1]),Math.max(A[2],vr[2]),Math.max(A[3],vr[3])]:vr;
     const fd=Math.max(...v.chars.map(i=>S.chars[i].fade));const F=PR.fades[i];
     if(fd>0)F.setPosition(x0*R,y0*R).setSize((x1-x0)*R,(y1-y0)*R).setAlpha(fd*.7).setVisible(true);else F.setVisible(false);
     prFrame(g2,x0,y0,x1-x0,y1-y0,14,prBgColor(),(v.split&&S.mode==='solo'&&v.chars[0]===S.active)?PAL[S.active].tag:'rgba(74,63,92,.3)');
     PR.curV=[x0,y0,x1,y1];overlays(v);PR.curV=null;
   });
   Object.keys(PR.areaObj).forEach(a=>{if(!areas[a]){const o=PR.areaObj[a];o.bg.setVisible(false);if(o.ch)o.ch.forEach(c=>c.img.setVisible(false));o.amb.setVisible(false);o.lights.forEach(l=>l.setVisible(false))}});
-  for(const a in areas){VIEW=areas[a];RENDER_SCALE=prBakeScale(a);prSyncBg(a);prSyncDyn(a);prSyncArea(a);prSyncChars(a);VIEW=null}
+  /* 두 화면이 같은 장소의 서로 먼 곳을 보면, 두 화면 사이(안 보이는 곳)는 그리지 않아요 */
+  for(const a in areas){VIEW=areas[a];VIEWS=rects[a];RENDER_SCALE=prBakeScale(a);prSyncBg(a);prSyncDyn(a);prSyncArea(a);prSyncChars(a);VIEW=null;VIEWS=null}
   Object.keys(PR.areaObj).forEach(a=>{if(areas[a])return;const o=PR.areaObj[a];if(o.gu)o.gu.setVisible(false);if(o.gd)o.gd.setVisible(false)});
   for(const r of PR.recs.values()){if(r.seen!==PR.frame)prHideRec(r)}
   prStaticTrim();prBgTrim();
@@ -419,8 +442,12 @@ function prNext(rec,key){let im=rec.imgs[rec.n];if(!im)im=rec.imgs[rec.n]=prImg(
 function prEnd(rec){for(let i=rec.n;i<rec.imgs.length;i++)rec.imgs[i].setVisible(false);for(let i=rec.sn;i<rec.sub.length;i++)prHideRec(rec.sub[i])}
 function prSub(rec){let s=rec.sub[rec.sn];if(!s)s=rec.sub[rec.sn]={id:rec.id+'~'+rec.sn};rec.sn++;return s}
 /* 사람 몸 */
+/* 사람 동작 그림도 한 프레임에 새로 굽는 수를 제한(남는 건 바로 전 동작 그림을 한 프레임 더 보여 줘요) */
+let PR_CHAR_LEFT=99;
 function prBody(rec,area,x,y,p,dir,phase,moving,glasses,work,sit,depth){
-  const e=prCharTex(area,x,p,dir,phase,moving,glasses,work,sit);
+  PR.allowSkip=!!(rec.lastE&&!rec.lastE.dead&&PR.tex.get(rec.lastE.lkey||rec.lastE.key)===rec.lastE);
+  let e=prCharTex(area,x,p,dir,phase,moving,glasses,work,sit);PR.allowSkip=false;
+  if(!e)e=rec.lastE;else rec.lastE=e;e.used=PR.frame;
   prNext(rec,e.key).setPosition(AOFF[area]+x+PR_CB[0]-1/e.sc,y+PR_CB[1]-1/e.sc).setScale(1/e.sc).setDepth(depth);
 }
 /* 들고 있는 물건(꽃 묶음·꽃다발 등) */
@@ -440,11 +467,11 @@ function prItem(rec,area,it,x,y,depth){
 /* 매 프레임 새로 그리는 작은 그림(강아지·고양이·물뿌리개·가구 옮기기 미리보기) */
 function prLive(rec,name,area,B,depth,drawFn,key){
   const sc=prBakeScale(area);
-  const bw=Math.ceil(B[2]/16)*16,bh=Math.ceil(B[3]/16)*16;const W=Math.ceil(bw*sc)+2,H=Math.ceil(bh*sc)+2;
+  const W=Math.ceil((Math.ceil(B[2]*sc)+2)/48)*48,H=Math.ceil((Math.ceil(B[3]*sc)+2)/48)*48; // 크기를 48 단위로 → 조금 움직여도 그림 자리를 다시 만들지 않아요
   const tk='L|'+rec.id+'|'+name;const e=prTex(tk,W,H);
   if(key==null||e.lk!==key||e.lsc!==sc){const g=e.g;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);g.setTransform(sc,0,0,sc,-B[0]*sc+1,-B[1]*sc+1);g.globalAlpha=1;
     const oV=VIEW;VIEW=null;try{drawFn(g)}catch(err){console.error(err)}VIEW=oV;g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.setLineDash&&g.setLineDash([]);e.t.refresh();e.lk=key;e.lsc=sc}
-  prNext(rec,tk).setPosition(AOFF[area]+B[0]-1/sc,B[1]-1/sc).setScale(1/sc).setDepth(depth);
+  prNext(rec,e.key).setPosition(AOFF[area]+B[0]-1/sc,B[1]-1/sc).setScale(1/sc).setDepth(depth);
 }
 function prBagTex(area,behind){
   const sc=prBakeScale(area),key='i|bag|'+behind+'|'+sc;let e=PR.tex.get(key);if(e){e.used=PR.frame;return e}
@@ -495,15 +522,17 @@ function prSyncChars(area){
     const r=prRec('w'+prOid(w));prBegin(r);prBody(r,area,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit,w.y+(w.dz||0));prEnd(r);
     if(w.dog){const d=w.dog,rd=prRec('g'+prOid(d));prBegin(rd);const hx=w.x+(DIRV[w.dir][0]>=0?5:-5),hy=w.y-12;
       const x0=Math.min(hx,d.x-12)-4,y0=Math.min(hy,d.y-16)-4,x1=Math.max(hx,d.x+12)+4,y1=Math.max(hy,d.y+4)+4;
-      prLive(rd,'dog',area,[x0,y0,x1-x0,y1-y0],d.y,g=>{g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d)},null);prEnd(rd)}});
+      prLive(rd,'dog',area,[x0,y0,x1-x0,y1-y0],d.y,g=>{g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d)},[d.dir,d.mv?Math.floor(d.walk*1.4/.9):'s',Math.floor(PR.now/125)%16,Math.round((hx-x0)*2),Math.round((hy-y0)*2),Math.round((d.x-x0)*2),Math.round((d.y-y0)*2)].join());prEnd(rd)}}); // 강아지는 바뀔 때만 다시 그려요
   /* 운동장 공 */
   if(area==='town'&&S.ball){const [bx,by,bh]=ballPos(S.ball);const r=prRec('ball');prBegin(r);
-    prLive(r,'ball',area,[bx-5,by-34,10,38],by+2,g=>{el(g,bx,by+1,2.6*(1-bh/40),1,'rgba(80,55,50,.18)');const yy=by-10-bh;el(g,bx,yy,2.3,2.3,'#F08D8D');g.strokeStyle='#FFFFFF';g.lineWidth=.5;g.beginPath();g.arc(bx,yy,2.3,-.6,1.2);g.stroke();el(g,bx-.8,yy-.8,.6,.6,'rgba(255,255,255,.8)')},null);prEnd(r)}
+    const sh=Math.round(2.6*(1-bh/40)*4)/4,yy=by-10-bh;
+    prLive(r,'bshadow',area,[bx-4,by-1,8,4],by+1,g=>el(g,bx,by+1,sh,1,'rgba(80,55,50,.18)'),'s'+sh);
+    prLive(r,'ball',area,[bx-3.5,yy-3.5,7,7],by+2,g=>{el(g,bx,yy,2.3,2.3,'#F08D8D');g.strokeStyle='#FFFFFF';g.lineWidth=.5;g.beginPath();g.arc(bx,yy,2.3,-.6,1.2);g.stroke();el(g,bx-.8,yy-.8,.6,.6,'rgba(255,255,255,.8)')},'b');prEnd(r)}
   PR.npc=false;
   /* 토토 */
-  allCats().forEach((t,ci)=>{if(t.area!==area||!inView(t.x,t.y))return;const r=prRec('cat'+ci);prBegin(r);prLive(r,'cat',area,[t.x-16,t.y-24,32,32],t.y,g=>drawCat(g,t),null);prEnd(r)});
+  allCats().forEach((t,ci)=>{if(t.area!==area||!inView(t.x,t.y))return;const r=prRec('cat'+ci);prBegin(r);prLive(r,'cat',area,[t.x-16,t.y-24,32,32],t.y,g=>drawCat(g,t),[t.dir,t.state,t.mv?Math.floor((t.walk||0)*1.4/.9):'s',t.talking?1:0,(performance.now()-(t.hearts||0))<2200?1:0,Math.floor(PR.now/125)%24].join());prEnd(r)});
   /* 가구 옮기기 미리보기 */
-  if(area==='shop'&&S.edit)S.chars.forEach(c=>{if(!c.carry||c.area!=='shop')return;const f=c.carry,[x,y]=placeSpot(c,f),ok=spotOK(f,x,y);
+  S.chars.forEach(c=>{if(!c.carry||c.area!==area)return;const f=c.carry,[x,y,ok]=carrySpot(c);
     const r=prRec('e'+c.i);prBegin(r);const B=f.type?prBounds(PR_STB,f.type,x*TILE,y*TILE,f.w*TILE,f.h*TILE):prBounds(PR_DEB,f.t,x*TILE,y*TILE,f.w*TILE,f.h*TILE,f);
     prLive(r,'ghost',area,B,9999,g=>{const ox0=f.x,oy0=f.y;f.x=x;f.y=y;g.globalAlpha=.6;try{if(f.type)drawStationV(g,f);else drawDecor(g,f)}finally{g.globalAlpha=1;f.x=ox0;f.y=oy0}rr(g,x*TILE,y*TILE,f.w*TILE,f.h*TILE,2);g.strokeStyle=ok?'rgba(127,192,106,.95)':'rgba(224,112,140,.95)';g.lineWidth=1.4;g.setLineDash([3,2]);g.stroke();g.setLineDash([])},
       [prOid(f),x,y,ok,S.rev].join());prEnd(r)});

@@ -8,19 +8,20 @@ function saveGame(mid){
     const pos={};S.stList.forEach(s=>{if(s.area==='shop')pos[s.id]=[s.x,s.y]});
     const plots={};S.stList.forEach(s=>{if(s.plot)plots[s.id]=s.plot});
     const spr={};S.stList.forEach(s=>{if(s.on)spr[s.id]=1});
-    const data={v:SAVE_VER,style:S.style,mid:mid||null,spr,closet:S.closet,outfit:S.outfit,day:S.day,money:S.money,nextId:S.nextId,up:S.up,bags:S.bags,bench:S.bench,works:S.works,slots,pos,plots,decor:S.decor,orders:S.orders,shopName:S.shopName,bonds:S.bonds||{}};
+    const data={v:SAVE_VER,style:S.style,mid:mid||null,spr,closet:S.closet,outfit:S.outfit,day:S.day,money:S.money,nextId:S.nextId,up:S.up,bags:S.bags,bench:S.bench,works:S.works,slots,pos,plots,decor:S.decor,odecor:S.odecor||{},orders:S.orders,shopName:S.shopName,bonds:S.bonds||{}};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
 }
-const SAVE_VER=7;
+const SAVE_VER=8;
 /* 앞으로 저장 형식이 바뀌면 여기서 예전 저장을 새 형식으로 옮겨요 (v4 → v5 → …) */
-const MIGRATE={6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
+const MIGRATE={7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
 function migrateSave(d){if(!d||typeof d.v!=='number'||d.v<4)return null;while(d.v<SAVE_VER){const f=MIGRATE[d.v];if(!f)return null;d=f(d)}return d}
 function loadSave(){try{const d=migrateSave(JSON.parse(localStorage.getItem(SAVE_KEY)||'null'));dropSurnames(d,0);return d}catch(e){return null}}
 function continueGame(mode){mode='duo';
   const d=loadSave();if(!d){newGame(mode);return}
   S.mode=mode;S.active=0;S.speed=1;
-  Object.assign(S,{style:d.style||null,closet:d.closet||{},outfit:d.outfit||[{},{}],day:d.day,money:d.money,nextId:d.nextId,up:d.up||{},bags:d.bags,bench:d.bench,works:d.works,orders:d.orders,tomorrow:[],shopName:d.shopName||'우리 둘의 꽃집',decor:d.decor||DECOR_BASE.shop.map(x=>({...x})),bonds:d.bonds||{}});
+  Object.assign(S,{style:d.style||null,closet:d.closet||{},outfit:d.outfit||[{},{}],day:d.day,money:d.money,nextId:d.nextId,up:d.up||{},bags:d.bags,bench:d.bench,works:d.works,orders:d.orders,tomorrow:[],shopName:d.shopName||'우리 둘의 꽃집',decor:d.decor||DECOR_BASE.shop.map(x=>({...x})),odecor:d.odecor||{},bonds:d.bonds||{}});
+  S.decor.forEach(x=>x.carried=false);for(const a in S.odecor)S.odecor[a].forEach(x=>x.carried=false);ODEC_V++;
   makeStations();
   Object.entries(d.slots||{}).forEach(([id,v])=>{const s=S.st[id];if(s&&s.slots)v.forEach((it,k)=>{if(k<s.slots.length)s.slots[k]=it})});
   Object.entries(d.pos||{}).forEach(([id,[x,y]])=>{const s=S.st[id];if(s){s.x=x;s.y=y}});
@@ -64,7 +65,7 @@ function wiltedB(b){return b.kind==='bouquet'&&avg(b.stems.map(s=>s.f))<25}
 function freePrice(b){
   const base=b.stems.reduce((a,s)=>a+FL[s.t].price/5,0),f=avg(b.stems.map(s=>s.f)),types=new Set(b.stems.map(s=>s.t)).size;
   const p=base*2.8*(.35+.65*clamp((f-25)/65,0,1))*(b.wrapped?1.15:1)*(1+.06*(types-1))*(b.card?1.05:1)*(1+.05*styleScore(b));
-  return Math.max(0,Math.round(p/100)*100);
+  return Math.max(0,Math.round(p/100)*100)+(isBasket(b)&&p>0?5000:0);
 }
 function itemName(it){
   if(!it)return '';
@@ -92,9 +93,11 @@ const OPEN_LABEL={wardrobe:'옷 갈아입기',storage:'냉장고 열기',shelf:'
 function plotReady(P){return P&&P.prog>=GROW[P.t]}
 function actionLabel(c){
   if(c.waterT>0)return ['물 주는 중',false];
-  if(S.edit&&c.area==='shop'){if(c.carry)return ['내려놓기',spotOK(c.carry,...placeSpot(c,c.carry))];return furnAt(c)?['가구 들기',true]:['가구 배치 중',false]}
+  if(c.carry)return ['내려놓기',carrySpot(c)[2]];
+  if(S.edit&&c.area==='shop'){return furnAt(c)?['가구 들기',true]:['가구 배치 중',false]}
   if(c.rest)return ['일어나기',true];
-  const s=targetOf(c);if(!s)return ['행동',false];
+  const s=targetOf(c);if(!s)return furnAny(c)?['길게 눌러 들기',true]:['행동',false];
+  if(s.type==='seat')return [SEATS[s.deco.t].lie?'눕기 (길게: 들기)':'앉기 (길게: 들기)',true];
   if(s.type==='npc'){const w=s.walker;return [w.kind==='reserve'&&w.state==='wait'?'예약 상담':'이야기하기',true]}
   if(s.type==='phone')return ringingCall()?['전화 받기',true]:['전화',false];
   if(s.type==='sprspot')return s.on?['스프링클러 걷기',true]:['스프링클러 설치',true];
@@ -108,15 +111,52 @@ function furnAt(c){
   for(const f of movables()){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}
   return null;
 }
-function placeSpot(c,f){const [dx,dy]=DIRV[c.dir];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),Math.round(cy/TILE-f.h/2)]}
+function placeSpot(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),f.wall?2:Math.round(cy/TILE-f.h/2)]} // 벽 장식은 늘 뒤 벽(2번 줄)
 function spotOK(f,x,y){
-  const W=AREAS.shop.w;if(x<1||x+f.w>W-1||y<2||y+f.h>10)return false;
+  const W=AREAS.shop.w;
+  if(f.wall){if(y!==2||x<1||x+f.w>W-1)return false;for(const o of S.decor){if(o===f||!o.wall||o.carried)continue;if(x<o.x+o.w&&x+f.w>o.x)return false}return true}
+ if(x<1||x+f.w>W-1||y<2||y+f.h>10)return false;
   if(x<10&&x+f.w>8&&y+f.h>9)return false;
   for(const o of movables()){if(o===f||f.walk||o.walk)continue;if(x<o.x+o.w&&x+f.w>o.x&&y<o.y+o.h&&y+f.h>o.y)return false}
   for(const c of S.chars){if(c.area!=='shop')continue;const tx=c.x/TILE,ty=(c.y-2)/TILE;if(tx>x-.3&&tx<x+f.w+.3&&ty>y&&ty<y+f.h+.2)return false}
   return true;
 }
-function findSpot(f){const W=AREAS.shop.w;for(const y of [7,6,8,3,9]){for(let x=2;x+f.w<W-1;x++){if(spotOK(f,x,y))return [x,y]}}return null}
+function findSpot(f){if(f.wall)return findWallSpot(f);const W=AREAS.shop.w;for(const y of [7,6,8,3,9]){for(let x=2;x+f.w<W-1;x++){if(spotOK(f,x,y))return [x,y]}}return null}
+/* 벽 장식 자리: 창문·시계·키 큰 뒤쪽 가구를 피해서 */
+function findWallSpot(f){const W=AREAS.shop.w,B=wallBusy();
+  const H=movables().filter(o=>!o.wall&&!o.flat&&o.y<=3).map(o=>[o.x*TILE+2,(o.x+o.w)*TILE-2]),hit=(L,x)=>L.some(([a,b])=>x*TILE<b&&(x+f.w)*TILE>a);
+  for(const lv of [2,1])for(let x=1;x+f.w<W;x++){if(!spotOK(f,x,2))continue;if(lv>=1&&hit(H,x))continue;if(lv>=2&&hit(B,x))continue;return [x,2]}return null}
+function wallBusy(){const W=AREAS.shop.w*TILE,b=[[84,122],[212,250],[146,174]];if(S.up.d_wallshelf)b.push([174,210]);for(let x=290;x+34<W-16;x+=112)b.push([x-2,x+36]);return b}
+/* 기본 벽 선반·작은 액자 자리에 벽 장식을 걸면 기본 장식은 치워요(겹쳐 보이지 않게) */
+function wallCover(a,b){return S.decor.some(d=>d.wall&&!d.carried&&d.x*TILE<b&&(d.x+d.w)*TILE>a)}
+function wallFlags(){if(!S.decor||!S.up)return;const f=wallCover(176,208),s2=wallCover(46,80);
+  if(!!S.up.wfHide!==f){if(f)S.up.wfHide=true;else delete S.up.wfHide;BG_CACHE={}}if(!!S.up.wsHide!==s2){if(s2)S.up.wsHide=true;else delete S.up.wsHide;BG_CACHE={}}}
+/* ---------- 가구 들고 다니기: 가구 앞에서 행동 버튼 길게 → 들기, 행동 → 내려놓기, 닫기 → 제자리 ----------
+   가게 밖(마을·언덕·캠퍼스·텃밭)에도 놓을 수 있어요. 가게 설비와 벽 장식은 가게 안에서만. */
+function odecChanged(){ODEC_V++;if(typeof CNAV!=='undefined')CNAV=null;BG_CACHE={};bump()}
+function carryList(c){if(c.area==='shop')return movables();if(OUT_AREAS.includes(c.area))return odec(c.area).filter(d=>!d.carried);return []}
+function furnAny(c){const [dx,dy]=DIRV[c.dir]||[0,1];const fx=c.x+dx*12,fy=c.y-3+dy*12;
+  for(const f of carryList(c)){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}return null}
+function placeSpotO(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),Math.round(cy/TILE-f.h/2)]}
+function spotOKO(area,f,x,y){const A=AREAS[area];if(x<1||y<1||x+f.w>A.w-1||y+f.h>A.h-1)return false;
+  for(let yy=y;yy<y+f.h;yy++)for(let xx=x;xx<x+f.w;xx++)for(const [ox,oy] of [[4,4],[12,4],[4,12],[12,12]])if(solid(area,xx*TILE+ox,yy*TILE+oy))return false;
+  for(const o of odec(area)){if(o===f||o.carried||(f.walk&&o.walk))continue;if(!f.walk&&!o.walk&&x<o.x+o.w&&x+f.w>o.x&&y<o.y+o.h&&y+f.h>o.y)return false}
+  for(const c of S.chars){if(c.area!==area)continue;const tx=c.x/TILE,ty=(c.y-2)/TILE;if(!f.walk&&tx>x-.3&&tx<x+f.w+.3&&ty>y&&ty<y+f.h+.2)return false}return true}
+function carrySpot(c){const f=c.carry;if(c.area==='shop'){const p=placeSpot(c,f);return [p[0],p[1],spotOK(f,p[0],p[1])]}
+  if(!OUT_AREAS.includes(c.area)||f.type||f.wall)return [0,0,false];const p=placeSpotO(c,f);return [p[0],p[1],spotOKO(c.area,f,p[0],p[1])]}
+function pickUp(c,f){if(!f||S.chars.some(o=>o.carry===f))return;if(S.chars.some(o=>o.rest&&o.rest.deco===f)){toast(c.i,'누군가 앉아 있어요');return}
+  f.carried=true;c.carry=f;sfx('tap');if(!S.decor.includes(f))odecChanged();toast(c.i,'들었어요. 놓을 곳에서 행동 버튼, 취소는 닫기 버튼')}
+function listOf(f){if(S.decor.includes(f))return S.decor;for(const a of OUT_AREAS){const L=odec(a);if(L.includes(f))return L}return null}
+function placeCarry(c){const f=c.carry;const [x,y,ok]=carrySpot(c);
+  if(!ok){toast(c.i,f.type&&c.area!=='shop'?'가게 설비는 가게 안에서만 옮길 수 있어요':f.wall&&c.area!=='shop'?'벽 장식은 가게 벽에만 걸 수 있어요':!OUT_AREAS.includes(c.area)&&c.area!=='shop'?'여기에는 놓을 수 없어요':'여기에는 놓을 수 없어요. 조금 옮겨 보세요');return}
+  if(!f.type){const from=listOf(f),to=c.area==='shop'?S.decor:odec(c.area);if(from!==to){if(from)from.splice(from.indexOf(f),1);to.push(f)}}
+  f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('tap');saveMid&&saveMid()}
+function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();toast(c.i,'제자리에 두었어요')}
+function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
+function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(n=>!S.chars.some(o=>o!==c&&o.rest&&o.rest.deco===d&&o.rest.seat===n));
+  if(seat===undefined){toast(c.i,S0.lie?'돗자리가 꽉 찼어요':'자리가 꽉 찼어요');return}
+  if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?9:-9);c.y=(d.y+d.h/2)*TILE+5;c.dir='down';c.face=c.ang=0;toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
+  const off=S0.n>1?(seat?.5:-.5):0;c.rest={bench:{x:d.x+(d.w-1)/2+off,y:d.y,up:false},seat:0,start:S.t,deco:d};c.rest.seat=seat;c.x=(d.x+d.w/2+off)*TILE;c.y=(d.y+1)*TILE-3;c.dir='down';c.face=c.ang=0}
 function toggleEdit(){
   if(S.phase!=='play')return;
   S.edit=!S.edit;
@@ -133,14 +173,17 @@ function doAction(i){
   if(c.modal){if(c.modal.type==='talk'){if(talkSkip(i))return;if(c.modal.choose)return;talkNext(i)}return}
   const now=performance.now();if(now-(c.lastAct||0)<300)return;c.lastAct=now;sfx('tap');
   if(c.waterT>0)return;
+  if(c.carry){placeCarry(c);return}
   if(S.edit&&c.area==='shop'){
-    if(c.carry){const f=c.carry,[x,y]=placeSpot(c,f);if(!spotOK(f,x,y)){toast(i,'여기에는 놓을 수 없어요');return}f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};return}
     const f=furnAt(c);if(!f){toast(i,'옮길 가구 앞에 서 주세요');return}
     if(S.chars.some(o=>o.carry===f))return;
     f.carried=true;c.carry=f;return;
   }
   if(c.rest){standUp(c);return}
-  const s=targetOf(c);
+  const s=targetOf(c),fa=furnAny(c);
+  /* 가구 앞: 짧게 누르면 앉기·눕기, 길게 누르면 들기(손을 뗄 때 결정 — update에서 처리) */
+  if(s&&s.type==='seat'){if(fa===s.deco){c.pend={t:now,seat:s.deco};return}sitOn(c,s.deco);return}
+  if(!s&&fa){c.pend={t:now};return}
   if(!s){toast(i,'가까이에 쓸 수 있는 게 없어요');return}
   switch(s.type){
     case 'npc':{const w=s.walker;w.talking=true;w.dir=faceTo(w,c);
@@ -230,7 +273,7 @@ function evaluate(b,o){
   comp*=Math.max(.75,1-.04*extra);
   const f=avg(b.stems.map(s=>s.f));const wilted=b.stems.filter(s=>s.f<WILT).length;
   const fresh=(.55+.45*clamp(f/85,0,1))*Math.max(.5,1-.1*wilted);
-  const hyd=.9+.1*avg(b.stems.map(s=>s.hyd)),cut=.95+.05*avg(b.stems.map(s=>s.cut)),wrapF=b.paper===o.paper?1.05:.95;
+  const hyd=.9+.1*avg(b.stems.map(s=>s.hyd)),cut=.95+.05*avg(b.stems.map(s=>s.cut)),wrapF=isBasket(b)||b.paper===o.paper?1.05:.95;
   const q=clamp(comp*fresh*hyd*cut*wrapF,.2,1.1);
   return {q,stars:q>=.93?3:q>=.72?2:1};
 }
@@ -238,10 +281,10 @@ function settleOrder(cu,o,b,how){
   const ev=evaluate(b,o);
   const late=Math.max(0,S.t-o.time),disc=o.urgent?0:Math.min(.5,.1*Math.floor(late/30));bump();
   const sty=styleScore(b),tip=(b.card?Math.round(o.price*.05):0)+Math.round(o.price*.04*sty);
-  const price=Math.round((o.price*ev.q*(1-disc)+tip)/100)*100;
+  const price=Math.round((o.price*ev.q*(1-disc)+tip)/100)*100+(isBasket(b)?5000:0);
   S.money+=price;o.status='delivered';sfx('coin');
   const lines=['정말 예뻐요! 꼭 다시 올게요.','마음에 들어요, 고마워요.','음… 생각했던 거랑은 조금 달라요.'];
-  const rec={o,price,disc,ev,b,tip,how,sty,line:sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
+  const rec={o,price,disc,ev,b,tip,how,sty,line:isBasket(b)&&ev.stars>=2?pick(['꽃바구니라니! 너무 예뻐요. 두고두고 볼게요.','바구니에 담으니까 꽃이 더 화사해 보여요!','와, 꽃바구니! 받는 사람이 정말 좋아하겠어요.']):sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
   S.stats.rev.push(rec);
   cu.bouquet=b;leave(cu);
   return rec;
@@ -301,10 +344,13 @@ function reserveOffer(k){
 /* ---------- 길찾기(마을·북쪽 길): 주민·손님·고양이가 화단·물·나무·건물을 돌아서 걸어가게 ----------
    타일 격자(1칸=16)에서 A* 로 길을 찾고, 직선으로 갈 수 있는 구간은 줄여서 자연스럽게 걷게 해요. */
 const NAV={};
-function navGrid(area){let N=NAV[area];const now=performance.now();if(N&&now-N.t<15000)return N;
+/* 길찾기 격자는 가구·설비가 바뀔 때만 다시 만들어요(1초마다 가볍게 확인) — 예전엔 15초마다 통째로 다시 만들어서 잠깐씩 멈칫했어요 */
+function navSig(area){const A=AREAS[area];let s=A.w*7+A.h;for(const d of DECOR[area]||[]){if(d.walk)continue;s=(s*31+(d.carried?7:d.x*13+d.y*101+d.w*3))|0}
+  for(const t of S.stList){if(t.area!==area)continue;s=(s*31+(t.carried?3:t.x*17+t.y*29+(t.on?5:0)+(owned(t)?11:0)))|0}return s}
+function navGrid(area){let N=NAV[area];const now=performance.now();if(N){if(now-N.chk<1000)return N;N.chk=now;const sg=navSig(area);if(sg===N.sig)return N}
   const A=AREAS[area],w=A.w,h=A.h,g=new Uint8Array(w*h);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){let b=0;for(const oy of [1.5,8,14.5]){for(const ox of [2,8,14])if(solid(area,x*TILE+ox,y*TILE+oy)){b=1;break}if(b)break}g[y*w+x]=b}
-  N=NAV[area]={t:now,w,h,g};return N}
+  N=NAV[area]={chk:now,sig:navSig(area),w,h,g};return N}
 function navFree(N,x,y){return x>=0&&y>=0&&x<N.w&&y<N.h&&!N.g[y*N.w+x]}
 function navNear(N,x,y){if(navFree(N,x,y))return [x,y];for(let r=1;r<8;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(navFree(N,x+dx,y+dy))return [x+dx,y+dy]}return null}
 function navSight(N,x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/5);for(let k=1;k<n;k++){const x=x0+(x1-x0)*k/n,y=y0+(y1-y0)*k/n;for(const [ox,oy] of [[-4,-2],[4,-2],[-4,2],[4,2]])if(!navFree(N,Math.floor((x+ox)/TILE),Math.floor((y+oy)/TILE)))return false}return true}
@@ -312,20 +358,30 @@ function navRoute(area,sx,sy,tx,ty){
   const N=navGrid(area);const s=navNear(N,Math.floor(sx/TILE),Math.floor(sy/TILE)),e0=[Math.floor(tx/TILE),Math.floor(ty/TILE)],e=navNear(N,e0[0],e0[1]);if(!s||!e)return null;
   const end=(e[0]===e0[0]&&e[1]===e0[1]&&!solid(area,tx,ty-1)&&!solid(area,tx,ty-4)&&!solid(area,tx-4,ty-2)&&!solid(area,tx+4,ty-2))?[tx,ty]:[(e[0]+.5)*TILE,(e[1]+.5)*TILE];
   if(navSight(N,sx,sy,end[0],end[1]))return {pts:[],end};
-  const W=N.w,si=s[1]*W+s[0],ei=e[1]*W+e[0],gs=new Float32Array(W*N.h).fill(1e9),from=new Int32Array(W*N.h).fill(-1),open=[si],inO=new Uint8Array(W*N.h);gs[si]=0;inO[si]=1;
-  const hh=i=>{const x=i%W,y=(i/W)|0,dx=Math.abs(x-e[0]),dy=Math.abs(y-e[1]);return Math.max(dx,dy)+.41*Math.min(dx,dy)};let it=0;
-  while(open.length&&it++<8000){let bi=0,bf=1e9;for(let j=0;j<open.length;j++){const f=gs[open[j]]+hh(open[j]);if(f<bf){bf=f;bi=j}}const cur=open[bi];open.splice(bi,1);inO[cur]=0;if(cur===ei)break;
+  const W=N.w,si=s[1]*W+s[0],ei=e[1]*W+e[0],B=astarBufs(W*N.h),gen=B.gen,gs=B.g,from=B.from,st=B.stamp,cl=B.closed;
+  const hh=i=>{const x=i%W,y=(i/W)|0,dx=Math.abs(x-e[0]),dy=Math.abs(y-e[1]);return Math.max(dx,dy)+.41*Math.min(dx,dy)};
+  const HI=B.hi,HF=B.hf;HI.length=0;HF.length=0;
+  const push=(i,f)=>{let k=HI.length;HI.push(i);HF.push(f);while(k>0){const p=(k-1)>>1;if(HF[p]<=f)break;HI[k]=HI[p];HF[k]=HF[p];k=p}HI[k]=i;HF[k]=f};
+  const pop=()=>{const top=HI[0],li=HI.pop(),lf=HF.pop();const n=HI.length;if(n){let k=0;while(true){let c=2*k+1;if(c>=n)break;if(c+1<n&&HF[c+1]<HF[c])c++;if(HF[c]>=lf)break;HI[k]=HI[c];HF[k]=HF[c];k=c}HI[k]=li;HF[k]=lf}return top};
+  gs[si]=0;st[si]=gen;from[si]=-1;push(si,hh(si));let it=0;
+  while(HI.length&&it++<8000){const cur=pop();if(cl[cur]===gen)continue;cl[cur]=gen;if(cur===ei)break;
     const cx=cur%W,cy=(cur/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx,ny=cy+dy;if(!navFree(N,nx,ny))continue;if(dx&&dy&&(!navFree(N,cx+dx,cy)||!navFree(N,cx,cy+dy)))continue;
-      const ni=ny*W+nx,ng=gs[cur]+(dx&&dy?1.414:1);if(ng<gs[ni]){gs[ni]=ng;from[ni]=cur;if(!inO[ni]){open.push(ni);inO[ni]=1}}}}
-  if(from[ei]<0&&ei!==si)return null;
+      const ni=ny*W+nx;if(cl[ni]===gen)continue;const ng=gs[cur]+(dx&&dy?1.414:1);if(st[ni]!==gen||ng<gs[ni]){gs[ni]=ng;st[ni]=gen;from[ni]=cur;push(ni,ng+hh(ni))}}}
+  if(st[ei]!==gen&&ei!==si)return null;
   const tiles=[];for(let i=ei;i!==si&&i>=0;i=from[i])tiles.push(i);tiles.reverse();
   const raw=tiles.map(i=>[(i%W+.5)*TILE,(((i/W)|0)+.5)*TILE]);raw[raw.length-1]=end;
-  const pts=[];let px=sx,py=sy,k=0;while(k<raw.length){let j=raw.length-1;while(j>k&&!navSight(N,px,py,raw[j][0],raw[j][1]))j--;pts.push(raw[j]);[px,py]=raw[j];k=j+1}
+  /* 곧게 갈 수 있는 구간은 줄여요(앞에서부터 보이는 데까지) */
+  const pts=[];let px=sx,py=sy,k=0;while(k<raw.length){let j=k;while(j+1<raw.length&&navSight(N,px,py,raw[j+1][0],raw[j+1][1]))j++;pts.push(raw[j]);[px,py]=raw[j];k=j+1}
   pts.pop();return {pts,end}}
+/* 길찾기용 배열은 장소 크기별로 한 번만 만들어 다시 써요(매번 새로 만들면 메모리 정리 때문에 끊겨요) */
+const ASTAR={};function astarBufs(n){let b=ASTAR[n];if(!b)b=ASTAR[n]={g:new Float32Array(n),from:new Int32Array(n),stamp:new Uint32Array(n),closed:new Uint32Array(n),gen:0,hi:[],hf:[]};
+  b.gen++;if(b.gen>4e9){b.stamp.fill(0);b.closed.fill(0);b.gen=1}return b}
+/* 한 프레임에 새 길찾기는 몇 번만(여러 명이 한꺼번에 길을 찾을 때 멈칫하지 않게) */
+let NAV_BUDGET=4;
 function stepToward(k,dt,spd){
   if(!k.path||!k.path.length)return true;
   if(k._nav){const tg=k.path[0],key=tg[0].toFixed(1)+','+tg[1].toFixed(1);
-    if(k._rk!==key){const r=navRoute(k._nav,k.x,k.y,tg[0],tg[1]);if(!r){k.path.shift();return !k.path.length}k._route=r.pts;k.path[0]=r.end;k._rk=r.end[0].toFixed(1)+','+r.end[1].toFixed(1)}
+    if(k._rk!==key){if(NAV_BUDGET<=0)return false;NAV_BUDGET--;const r=navRoute(k._nav,k.x,k.y,tg[0],tg[1]);if(!r){k.path.shift();return !k.path.length}k._route=r.pts;k.path[0]=r.end;k._rk=r.end[0].toFixed(1)+','+r.end[1].toFixed(1)}
     if(k._route&&k._route.length){const [wx,wy]=k._route[0];const dx=wx-k.x,dy=wy-k.y,d=Math.hypot(dx,dy),st=spd*dt;
       if(d<=st){k.x=wx;k.y=wy;k._route.shift()}else{k.x+=dx/d*st;k.y+=dy/d*st}
       if(d>.1)k.dir=Math.abs(dx)>Math.abs(dy)*1.8?(dx>0?'right':'left'):Math.abs(dy)>Math.abs(dx)*1.8?(dy>0?'down':'up'):(dy>0?(dx>0?'dr':'dl'):(dx>0?'ur':'ul'));
@@ -489,6 +545,7 @@ function turnToward(c,dt){const d=angDiff(c.ang,c.face);const st=26*dt;c.ang+=Ma
 
 /* ---------- update ---------- */
 function update(dtReal){
+  NAV_BUDGET=4;
   const dt=dtReal*S.speed,dMin=dt/REAL_PER_MIN,hours=dMin/60;
   S.t+=dMin;
   forEachGroup((arr,water,mult)=>{decayStems(arr,hours,water,mult);if(water)arr.forEach(s=>s.hyd=Math.min(1,s.hyd+dMin/HYDRATE_MIN))});
@@ -510,7 +567,7 @@ function update(dtReal){
       if(d.area!==c.area)continue;
       const hit=d.edge==='right'?(c.x>=d.x&&c.y>=d.y0&&c.y<=d.y1):d.edge==='left'?(c.x<=d.x&&c.y>=d.y0&&c.y<=d.y1):(c.x>=d.x0&&c.x<=d.x1&&(d.edge==='bottom'?c.y>=d.y:c.y<=d.y));
       if(hit){
-        if(c.carry){if(d.edge==='right')c.x-=4;else if(d.edge==='left')c.x+=4;else c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
+        if(c.carry&&(S.edit||c.carry.type||c.carry.wall)){if(d.edge==='right')c.x-=4;else if(d.edge==='left')c.x+=4;else c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
         const o=S.chars[1-c.i];
         c.area=d.to;sfx('door');c.x=d.sx+(o.area===d.to&&Math.abs(o.x-d.sx)<10&&Math.abs(o.y-d.sy)<10?12:0);c.y=d.sy;c.dir=d.dir;c.face=c.ang=DIR_ANG[d.dir];c.fade=1;c.vx=c.vy=0;break;
       }
@@ -519,6 +576,12 @@ function update(dtReal){
   const [a,b]=S.chars;
   if(a.area===b.area&&!a.rest&&!b.rest){const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<11){const p=(11-d)/2||.5,nx=d?dx/d:1,ny=d?dy/d:0;moveChar(a,-nx*p,-ny*p);moveChar(b,nx*p,ny*p)}}
   S.puffs.forEach(q=>q.t+=dtReal);S.puffs=S.puffs.filter(q=>q.t<.5);
+  /* 행동 버튼 길게 누르기 → 가구 들기 / 짧게 → 앉기 */
+  S.chars.forEach((c,i)=>{if(!c.pend)return;if(c.modal){c.pend=null;return}
+    if(actHeld(i)){if(performance.now()-c.pend.t>=700){const f=furnAny(c);c.pend=null;if(f)pickUp(c,f)}}
+    else{const p=c.pend;c.pend=null;if(p.seat)sitOn(c,p.seat);else toast(i,'행동 버튼을 길게 누르면 가구를 들 수 있어요')}});
+  S._wf=(S._wf||0)+dtReal;if(S._wf>.5){S._wf=0;wallFlags()}
+  S._gc=(S._gc||0)+dtReal;if(S._gc>3){S._gc=0;giftCatchUp()}
   updateCustomers(dt);updateWalkers(dt);
   S.calls.forEach(k=>{if(k.state==='wait'&&S.t>=k.t)k.state='ring';if(k.state==='ring'&&S.t>k.t+k.dur)k.state='missed'});
   if(ringingCall()&&performance.now()-AU.lastRing>1600&&S.chars.some(c=>c.area==='shop')){AU.lastRing=performance.now();sfx('ring')}
@@ -528,15 +591,26 @@ function update(dtReal){
 }
 
 /* ---------- input ---------- */
+/* 행동 버튼을 누르고 있는지(키보드·조이콘·화면 버튼) — 가구 들기(길게 누르기)에 써요 */
+const ACTH=[{kb:false,tch:false},{kb:false,tch:false}];
+function actHeld(i){return ACTH[i].kb||ACTH[i].tch||(typeof PADACT!=='undefined'&&PADACT[i])}
+function kbSlot(e){const code=e.code,kc=e.keyCode;if(kc===33||kc===34)return S.active;{const h=bindHit(kc);if(h)return h.fn==='act'?(S.mode==='solo'?S.active:h.p):-1}
+  for(const p of [0,1]){const b=(SET.keys&&SET.keys[p]||{}).act;if(b&&b.t==='k'&&b.c===code)return S.mode==='solo'?S.active:p}
+  if(S.mode==='solo')return ['Space','Enter','KeyE'].includes(code)?S.active:-1;if(code==='Space'||code==='KeyF')return 0;if(code==='Enter'||code==='Slash')return 1;return -1}
+addEventListener('keyup',e=>{const s=kbSlot(e);if(s>=0)ACTH[s].kb=false;else if(e.keyCode===33||e.keyCode===34)ACTH[S.active].kb=false});
+addEventListener('blur',()=>ACTH.forEach(h=>{h.kb=false;h.tch=false}));
+addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('.act');if(b){const s=S.mode==='solo'?S.active:+b.dataset.slot;if(ACTH[s])ACTH[s].tch=true}},true);
+['pointerup','pointercancel'].forEach(ev=>addEventListener(ev,()=>ACTH.forEach(h=>h.tch=false),true));
 const JOY=[{x:0,y:0},{x:0,y:0}];
 const KEYS=new Set();
 addEventListener('keydown',e=>{
   if(VOLKEYS.includes(e.keyCode))return;
+  {const k=kbSlot(e);if(k>=0)ACTH[k].kb=true}
   {const h=bindHit(e.keyCode);if(h){e.preventDefault();const now=performance.now(),rep=e.repeat||(KB_HELD[e.keyCode]&&now-KB_HELD[e.keyCode]<140);KB_HELD[e.keyCode]=now;doBind(h.p,h.fn,rep);return}}
   const actKey=e.keyCode===13||e.keyCode===33||e.keyCode===34;
   {const nav={37:'left',38:'up',39:'right',40:'down'}[e.keyCode];const ctx=navContext(S.active);if(ctx&&(nav||actKey)){e.preventDefault();if(e.repeat&&actKey)return;if(nav)navMove(ctx,nav);else navPress(ctx);return}}
   if((e.keyCode===33||e.keyCode===34)&&S.phase==='play'){e.preventDefault();if(!e.repeat)doAction(S.active);return}
-  if(e.keyCode===461||e.key==='Escape'||e.key==='GoBack'||e.key==='BrowserBack'){e.preventDefault();const ctx=navContext(S.active);if(ctx)navBack(ctx);else if(S.phase==='play')togglePause();return}
+  if(e.keyCode===461||e.key==='Escape'||e.key==='GoBack'||e.key==='BrowserBack'){e.preventDefault();const cc=S.chars&&S.chars[S.active];if(S.phase==='play'&&cc&&cc.carry&&!cc.modal&&!(S.edit&&cc.area==='shop')){cancelCarry(cc);return}const ctx=navContext(S.active);if(ctx)navBack(ctx);else if(S.phase==='play')togglePause();return}
   if(e.repeat&&['Space','Enter','KeyE','KeyF','Slash'].includes(e.code))return;
   KEYS.add(e.code);
   if(S.phase!=='play')return;
