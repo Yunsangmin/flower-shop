@@ -145,18 +145,18 @@ function spotOKO(area,f,x,y){const A=AREAS[area];if(x<1||y<1||x+f.w>A.w-1||y+f.h
 function carrySpot(c){const f=c.carry;if(c.area==='shop'){const p=placeSpot(c,f);return [p[0],p[1],spotOK(f,p[0],p[1])]}
   if(!OUT_AREAS.includes(c.area)||f.type||f.wall)return [0,0,false];const p=placeSpotO(c,f);return [p[0],p[1],spotOKO(c.area,f,p[0],p[1])]}
 function pickUp(c,f){if(!f||S.chars.some(o=>o.carry===f))return;if(S.chars.some(o=>o.rest&&o.rest.deco===f)){toast(c.i,'누군가 앉아 있어요');return}
-  f.carried=true;c.carry=f;sfx('tap');if(!S.decor.includes(f))odecChanged();toast(c.i,'들었어요. 놓을 곳에서 행동 버튼, 취소는 닫기 버튼')}
+  f.carried=true;c.carry=f;sfx('lift');if(!S.decor.includes(f))odecChanged();toast(c.i,'들었어요. 놓을 곳에서 행동 버튼, 취소는 닫기 버튼')}
 function listOf(f){if(S.decor.includes(f))return S.decor;for(const a of OUT_AREAS){const L=odec(a);if(L.includes(f))return L}return null}
 function placeCarry(c){const f=c.carry;const [x,y,ok]=carrySpot(c);
   if(!ok){toast(c.i,f.type&&c.area!=='shop'?'가게 설비는 가게 안에서만 옮길 수 있어요':f.wall&&c.area!=='shop'?'벽 장식은 가게 벽에만 걸 수 있어요':!OUT_AREAS.includes(c.area)&&c.area!=='shop'?'여기에는 놓을 수 없어요':'여기에는 놓을 수 없어요. 조금 옮겨 보세요');return}
   if(!f.type){const from=listOf(f),to=c.area==='shop'?S.decor:odec(c.area);if(from!==to){if(from)from.splice(from.indexOf(f),1);to.push(f)}}
-  f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('tap');saveMid&&saveMid()}
-function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();toast(c.i,'제자리에 두었어요')}
+  f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('thud');saveMid&&saveMid()}
+function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();sfx('thud');toast(c.i,'제자리에 두었어요')}
 function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
 function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(n=>!S.chars.some(o=>o!==c&&o.rest&&o.rest.deco===d&&o.rest.seat===n));
   if(seat===undefined){toast(c.i,S0.lie?'돗자리가 꽉 찼어요':'자리가 꽉 찼어요');return}
-  if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?9:-9);c.y=(d.y+d.h/2)*TILE+5;c.dir='down';c.face=c.ang=0;toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
-  const off=S0.n>1?(seat?.5:-.5):0;c.rest={bench:{x:d.x+(d.w-1)/2+off,y:d.y,up:false},seat:0,start:S.t,deco:d};c.rest.seat=seat;c.x=(d.x+d.w/2+off)*TILE;c.y=(d.y+1)*TILE-3;c.dir='down';c.face=c.ang=0}
+  if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?9:-9);c.y=(d.y+d.h/2)*TILE+5;c.dir='down';c.face=c.ang=0;sfx('sit');toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
+  const off=S0.n>1?(seat?.5:-.5):0;c.rest={bench:{x:d.x+(d.w-1)/2+off,y:d.y,up:false},seat:0,start:S.t,deco:d};c.rest.seat=seat;c.x=(d.x+d.w/2+off)*TILE;c.y=(d.y+1)*TILE-3;c.dir='down';c.face=c.ang=0;sfx('sit')}
 function toggleEdit(){
   if(S.phase!=='play')return;
   S.edit=!S.edit;
@@ -200,7 +200,7 @@ function doAction(i){
         if(!ks.length){toast(i,'꽃시장 모종 가게에서 모종을 사 오세요');return}
         if(new Set(ks.map(k=>c.bag[k].t)).size>1){openModal(i,{type:'plant',st:s.id});return}
         plantSeed(c,s,ks[0]);return}
-      if(plotReady(P)){if(!bagAdd(i,{kind:'bunch',t:P.t,stems:Array.from({length:5},()=>stem(P.t,SEED_PRICE[P.t])),trim:false})){toast(i,'가방이 꽉 찼어요');return}s.plot=null;toast(i,`${FL[P.t].name} 5송이를 수확했어요`);return}
+      if(plotReady(P)){if(!bagAdd(i,{kind:'bunch',t:P.t,stems:Array.from({length:5},()=>stem(P.t,SEED_PRICE[P.t])),trim:false})){toast(i,'가방이 꽉 찼어요');return}s.plot=null;sfx('harvest');toast(i,`${FL[P.t].name} 5송이를 수확했어요`);return}
       if(!P.watered){waterOne(c,s);return}
       toast(i,'오늘은 물을 흠뻑 줬어요. 내일이면 더 자라 있을 거예요');return;
     }
@@ -211,7 +211,7 @@ function doAction(i){
     case 'bench':{
       const seat=[0,1].find(n=>!S.chars.some(o=>o.rest&&o.rest.bench===s&&o.rest.seat===n));
       if(seat===undefined){toast(i,'벤치가 꽉 찼어요');return}
-      c.rest={bench:s,seat,start:S.t};c.x=(s.x+.5+seat)*TILE;c.y=(s.y+1)*TILE-3;if(s.up){c.dir='up';c.face=c.ang=Math.PI;c.y=(s.y+1)*TILE-1}else{c.dir='down';c.face=c.ang=0}return;
+      c.rest={bench:s,seat,start:S.t};c.x=(s.x+.5+seat)*TILE;c.y=(s.y+1)*TILE-3;if(s.up){c.dir='up';c.face=c.ang=Math.PI;c.y=(s.y+1)*TILE-1}else{c.dir='down';c.face=c.ang=0}sfx('sit');if(s.view&&S.t>=420)setTimeout(()=>{if(c.rest&&c.rest.bench===s)sfx('sunset')},700);return;
     }
     case 'field':toast(i,'나중에 여기서 꽃을 키울 수 있어요');return;
     case 'storage':case 'shelf':case 'bucket':case 'dryer':case 'pickup':case 'display':
@@ -248,7 +248,7 @@ function doAction(i){
   }
 }
 function faceTo(w,c){const dx=c.x-w.x,dy=c.y-w.y;return Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')}
-function plantSeed(c,s,k){const it=c.bag[k];s.plot={t:it.t,prog:0,watered:false,wetAt:0};if(S.stList.some(sp=>sp.on&&sprCover(sp).includes(s)))s.plot.watered=true;it.n--;if(it.n<=0)c.bag[k]=null;toast(c.i,`${FL[it.t].name} 모종을 심었어요. 물을 주면 빨리 자라요`)}
+function plantSeed(c,s,k){const it=c.bag[k];s.plot={t:it.t,prog:0,watered:false,wetAt:0};if(S.stList.some(sp=>sp.on&&sprCover(sp).includes(s)))s.plot.watered=true;it.n--;if(it.n<=0)c.bag[k]=null;sfx('plant');toast(c.i,`${FL[it.t].name} 모종을 심었어요. 물을 주면 빨리 자라요`)}
 function waterOne(c,s){sfx('water');s.plot.watered=true;s.plot.wetAt=performance.now()+250;c.waterT=.9;c.vx=c.vy=0}
 function sprCover(sp){return S.stList.filter(p=>p.type==='plot'&&p.x<sp.x+2&&p.x+p.w>sp.x-1&&p.y<sp.y+2&&p.y+p.h>sp.y-1)}
 function sprinkle(sp){if(S.phase==='play')sfx('water');bump();let n=0;sprCover(sp).forEach(p=>{if(p.plot&&!plotReady(p.plot)){p.plot.watered=true;p.plot.wetAt=performance.now()+300;n++}});sp.sprayAt=performance.now();return n}
@@ -282,7 +282,7 @@ function settleOrder(cu,o,b,how){
   const late=Math.max(0,S.t-o.time),disc=o.urgent?0:Math.min(.5,.1*Math.floor(late/30));bump();
   const sty=styleScore(b),tip=(b.card?Math.round(o.price*.05):0)+Math.round(o.price*.04*sty);
   const price=Math.round((o.price*ev.q*(1-disc)+tip)/100)*100+(isBasket(b)?5000:0);
-  S.money+=price;o.status='delivered';sfx('coin');
+  S.money+=price;o.status='delivered';sfx('coin');setTimeout(()=>sfx('star'+ev.stars),320);
   const lines=['정말 예뻐요! 꼭 다시 올게요.','마음에 들어요, 고마워요.','음… 생각했던 거랑은 조금 달라요.'];
   const rec={o,price,disc,ev,b,tip,how,sty,line:isBasket(b)&&ev.stars>=2?pick(['꽃바구니라니! 너무 예뻐요. 두고두고 볼게요.','바구니에 담으니까 꽃이 더 화사해 보여요!','와, 꽃바구니! 받는 사람이 정말 좋아하겠어요.']):sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
   S.stats.rev.push(rec);

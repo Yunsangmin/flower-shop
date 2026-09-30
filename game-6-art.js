@@ -771,6 +771,9 @@ function drawCat(g,c){
   g.restore();catHearts(g,c);
 }
 function catHearts(g,c){const hs=(performance.now()-(c.hearts||0))/1000;if(hs<2.2||c.talking){for(let k=0;k<3;k++){const p=((hs*.8+k/3)%1);g.globalAlpha=1-p;const hx=c.x-3+k*3,hy=c.y-14-p*10;el(g,hx-.6,hy,.8,.8,'#E0708C');el(g,hx+.6,hy,.8,.8,'#E0708C');poly(g,[hx-1.4,hy+.2,hx+1.4,hy+.2,hx,hy+1.8],'#E0708C');g.globalAlpha=1}}}
+/* 강아지 하트: 말을 걸면 2초쯤 강아지 머리 위로 하트가 뿅뿅 */
+function dogHeartOn(d){return d&&d.hearts&&performance.now()-d.hearts<2200}
+function dogHearts(g,d){if(!dogHeartOn(d))return;const hs=(performance.now()-d.hearts)/1000;for(let k=0;k<3;k++){const p=((hs*.8+k/3)%1);g.globalAlpha=1-p;const hx=d.x-3+k*3,hy=d.y-10-p*9;el(g,hx-.6,hy,.8,.8,'#E0708C');el(g,hx+.6,hy,.8,.8,'#E0708C');poly(g,[hx-1.4,hy+.2,hx+1.4,hy+.2,hx,hy+1.8],'#E0708C');g.globalAlpha=1}}
 function drawDog(g,d){
   const dir=d.dir,flip=dir==='left'||dir==='ul'||dir==='dl',sw=d.mv?Math.sin(d.walk*1.4):0,c=d.col,dk=mix(c,'#1E1622',.28),lt=mix(c,'#FFFFFF',.18),t=performance.now()/1000;
   const black=c==='#2A2626',chest=black?'#F4F1EC':mix(c,'#FFFFFF',.55),collar=d.collar||(black?'#D8534F':'#5E9BD6');

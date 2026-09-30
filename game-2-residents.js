@@ -182,8 +182,8 @@ function mainTalk(i,w){
 }
 function storyDone(i,k){S.callQuiet=S.t+45;S.callNext=S.t+rnd(60,140);const b=bondOf(k);b.ch++;b.chDay=S.day;if(b.h<BOND_MAX)b.h++;bump();saveMid()}
 function storyEffect(i,k,e){
-  if(e.gift){toastAll(e.gift+' ♥');sfx('buy');giftGive(e.gift);return} // 선물 → 진짜 아이템(game-11-story.js)
-  if(e.order){const T=STORY_ORDERS[e.order];if(!T)return;const o=genOrder({title:T.title,text:T.text,req:{...T.req},paper:T.paper,price:T.price},T.time,S.day+1);o.name=T.name;o.story=e.order;S.tomorrow.push(o);toastAll(`${T.name}의 특별 예약이 내일 ${clock(T.time)}에 잡혔어요`);sfx('ring')}
+  if(e.gift){toastAll(e.gift+' ♥');sfx('gift');giftGive(e.gift);return} // 선물 → 진짜 아이템(game-11-story.js)
+  if(e.order){const T=STORY_ORDERS[e.order];if(!T)return;const o=genOrder({title:T.title,text:T.text,req:{...T.req},paper:T.paper,price:T.price},T.time,S.day+1);o.name=T.name;o.story=e.order;S.tomorrow.push(o);toastAll(`${T.name}의 특별 예약이 내일 ${clock(T.time)}에 잡혔어요`);sfx('order')}
 }
 /* 이야기가 준비되면 메인 주민이 먼저 부르지 않고 혼잣말 말풍선을 띄워요(가서 말을 걸면 이야기 시작) */
 const MONO={

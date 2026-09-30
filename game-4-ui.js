@@ -199,8 +199,14 @@ function openModal(i,m){
   const c=S.chars[i];c.modal=m;c.vx=c.vy=0;
   const el=modalEl(i);el.dataset.t=performance.now();
   el.className='modal open '+(S.mode==='solo'?'center':(i===0?'left':'right'))+(m.type==='talk'?' talk':'');
-  renderModal(i);updateControlVisibility();if(m.type!=='talk')sfx('open');
+  renderModal(i);updateControlVisibility();if(m.type!=='talk')sfx('open');else talkOpenSfx(m);
 }
+/* 대화 시작 소리: 동물은 하트 뿅뿅 + 울음소리, 이야기는 반짝, 그리고 첫 대사의 감정 */
+function talkOpenSfx(m){const w=m.walker;if(!w)return;const now=performance.now();
+  if(w.kind==='cat'){w.hearts=now;sfx('meow');setTimeout(()=>sfx('hearts'),250)}
+  else if(w.dog){w.dog.hearts=now;sfx('woof');setTimeout(()=>sfx('hearts'),300)}
+  const ani=w.kind==='cat'||!!w.dog;if(m.story)setTimeout(()=>sfx('story'),ani?750:0);
+  if(!m.choose)talkMoodSfx(m.line,m.story?(ani?1500:800):ani?800:90)}
 function closeModal(i){
   const c=S.chars[i];if(!c)return;const m=c.modal;if(!m)return;
   if(m.type==='phone'&&m.call.state==='talk')m.call.state='missed';
@@ -432,20 +438,20 @@ function talkPrep(i,m){if(!m.pages)m.pages=[m.line||''];if(m.page==null)m.page=0
   const P=m.pages[m.page];if(P==null){m.line='';m.choose=null;return}
   if(typeof P==='object'&&P.ask){m.choose=P;m.line=fillTxt(P.ask,i,m.key)}else{m.choose=null;m.line=fillTxt(String(P),i,m.key)}}
 function talkNext(i){const c=S.chars[i],m=c.modal;if(!m||m.type!=='talk')return;if(m.choose)return;
-  m.page++;m.shown=0;talkPrep(i,m);if(m.page>=m.pages.length){talkEnd(i);return}renderModal(i)}
+  m.page++;m.shown=0;talkPrep(i,m);if(m.page>=m.pages.length){talkEnd(i);return}if(!m.choose)talkMoodSfx(m.line);renderModal(i)}
 function talkEnd(i){const m=S.chars[i].modal;if(!m)return;const w=m.walker;
   if(m.story&&m.key&&!m._fin){m._fin=1;storyDone(i,m.key)}
-  closeModal(i);sfx('close')}
+  closeModal(i);sfx(m.story?'storyEnd':'close')}
 function talkChoose(i,k){const m=S.chars[i].modal;if(!m||!m.choose)return;const P=m.choose,o=P.opts[+k];if(!o)return;
-  if(P.key&&m.key)bondOf(m.key).mem[P.key]=o[0];m.pages.splice(m.page+1,0,...o[1]);m.choose=null;m.page++;m.shown=0;talkPrep(i,m);sfx('tap');renderModal(i)}
+  if(P.key&&m.key)bondOf(m.key).mem[P.key]=o[0];m.pages.splice(m.page+1,0,...o[1]);m.choose=null;m.page++;m.shown=0;talkPrep(i,m);sfx('pick');if(!m.choose)talkMoodSfx(m.line);renderModal(i)}
 function talkTypeStep(i,m){const el=modalEl(i);const L=m.line||'';const a=el.querySelector('.tshown'),b=el.querySelector('.talktext .ghost'),n=el.querySelector('.talknext');
   if(a)a.textContent=L.slice(0,m.shown);if(b)b.textContent=L.slice(m.shown);if(n)n.style.opacity=m.shown>=L.length?1:0}
 function startTalkType(i){const c=S.chars[i],m=c.modal;if(!m||m.type!=='talk')return;const L=m.line||'';if(m.raf)cancelAnimationFrame(m.raf);if(m.shown>=L.length)return;
   let last=performance.now(),acc=0,k=0;const step=now=>{if(c.modal!==m)return;acc+=(now-last)/1000*34;last=now;
     const add=Math.floor(acc);if(add>0){acc-=add;const was=m.shown;m.shown=Math.min(L.length,m.shown+add);for(let j=was;j<m.shown;j++){if(L[j]!==' '&&(k++%2===0))sfx('blip')}talkTypeStep(i,m)}
-    if(m.shown<L.length)m.raf=requestAnimationFrame(step);else{m.raf=null;if(m.choose)renderModal(i)}};
+    if(m.shown<L.length)m.raf=requestAnimationFrame(step);else{m.raf=null;if(m.choose){renderModal(i);sfx('choice')}}};
   m.raf=requestAnimationFrame(step)}
-function talkSkip(i){const m=S.chars[i].modal;if(m&&m.type==='talk'&&(m.shown||0)<(m.line||'').length){m.shown=m.line.length;if(m.raf)cancelAnimationFrame(m.raf);m.raf=null;talkTypeStep(i,m);if(m.choose)renderModal(i);return true}return false}
+function talkSkip(i){const m=S.chars[i].modal;if(m&&m.type==='talk'&&(m.shown||0)<(m.line||'').length){m.shown=m.line.length;if(m.raf)cancelAnimationFrame(m.raf);m.raf=null;talkTypeStep(i,m);if(m.choose){renderModal(i);sfx('choice')}return true}return false}
 function onModalClick(i,e){
   const t=e.target.closest('[data-a]');if(!t)return;
   if(performance.now()-(+modalEl(i).dataset.t||0)<450)return;
@@ -528,7 +534,7 @@ function onModalClick(i,e){
       let o=orderById(W.orderId);if(o&&o.status!=='pending')o=null;let auto=false;
       if(!o){const taken=Object.entries(S.works).filter(([k])=>k!==m.st).map(([,w])=>w.orderId);o=bestOrderFor(W.stems,taken);auto=!!o}
       if(o)o.status='crafted';
-      bagAdd(i,{kind:'bouquet',orderId:o?o.id:null,stems:W.stems,wrapped:false});S.works[m.st]={orderId:null,stems:[]};closeModal(i);
+      bagAdd(i,{kind:'bouquet',orderId:o?o.id:null,stems:W.stems,wrapped:false});S.works[m.st]={orderId:null,stems:[]};closeModal(i);sfx('tie');
       toast(i,auto?`${o.name}님 예약과 꽃이 똑같아서 ${o.name}님 꽃다발로 묶었어요. 포장대로 가져가세요`:o?`${o.name}님 꽃다발을 묶었어요. 포장대로 가져가세요`:'묶었어요. 포장대로 가져가세요');
     }
   }
@@ -540,7 +546,7 @@ function onModalClick(i,e){
     if(a==='shape'){m.shape=v;renderModal(i)}
     if(a==='card'){m.card=!m.card;renderModal(i)}
     if(a==='wrap'){const b=bag[m.slot],bk=SHAPES[m.shape||'cone']&&SHAPES[m.shape||'cone'].basket;if(bk&&S.money<5000){toast(i,'꽃바구니 재료비 5,000원이 모자라요');return}
-      if(bk){S.money-=5000;S.stats.spent=(S.stats.spent||0)+5000}b.wrapped=true;b.paper=m.paper;b.ribbon=m.ribbon;b.pat=bk?'plain':(m.pat||'plain');b.shape=m.shape||'cone';b.card=m.card;m.step='done';renderModal(i)}
+      if(bk){S.money-=5000;S.stats.spent=(S.stats.spent||0)+5000}b.wrapped=true;b.paper=m.paper;b.ribbon=m.ribbon;b.pat=bk?'plain':(m.pat||'plain');b.shape=m.shape||'cone';b.card=m.card;m.step='done';sfx('wrap');renderModal(i)}
   }
   else if(m.type==='counter'&&a==='rsv'){const k=S.customers[+v];if(!k)return;k.talking=true;k.offer=reserveOffer(k);c.modal=null;openModal(i,{type:'booking',walker:k});return}
   else if(m.type==='counter'&&a==='give'){
@@ -562,7 +568,7 @@ function onModalClick(i,e){
   }
   else if(m.type==='phone'||m.type==='booking'){
     const f=m.type==='phone'?m.call.offer:m.walker.offer;
-    if(a==='accept'){
+    if(a==='accept'){sfx('order');
       if(v==='today'&&f.today){const o=genOrder(f.tpl,f.today,S.day);o.name=f.name;S.orders.push(o);S.orders.sort((x,y)=>x.time-y.time);hudKey='';toast(i,`오늘 ${clock(f.today)} 예약을 받았어요`)}
       else{const o=genOrder(f.tpl,f.time,S.day+1);o.name=f.name;S.tomorrow.push(o);toast(i,`내일 ${clock(f.time)} 예약을 받았어요`)}}
     if(a==='accept'||a==='decline'){if(m.type==='phone')m.call.state='done';else{m.walker.offer=null;if(m.walker.kind==='reserve'){m.walker.talking=false;leave(m.walker)}}closeModal(i)}
@@ -629,7 +635,7 @@ function endDay(){
   if(S.phase!=='play')return;
   [0,1].forEach(closeModal);$('#orderPop').className='';
   S.orders.forEach(o=>{if(o.status==='pending'||o.status==='crafted'){o.status='cancelled';S.stats.cancel.push(o)}});
-  S.phase='settle';$('#hud').style.display='none';updateControlVisibility();
+  S.phase='settle';sfx('dayend');$('#hud').style.display='none';updateControlVisibility();
   const st=S.stats;const rev=st.rev.reduce((a,r)=>a+r.price,0);const dayNo=S.day;const tmr=S.tomorrow.slice();
   const gallery=st.rev.map(r=>`<figure>${bouquetSVG(r.b.stems,{paper:r.b.paper,ribbon:r.b.ribbon,pat:r.b.pat,shape:r.b.shape,card:r.b.card,wrapped:true})}<figcaption>${esc(r.o.title)}<br><span class="stars">${'★'.repeat(r.ev.stars)}</span></figcaption></figure>`).join('');
   const cancel=st.cancel.map(o=>esc(o.title)).join(', ');

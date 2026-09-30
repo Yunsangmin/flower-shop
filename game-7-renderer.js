@@ -521,8 +521,8 @@ function prSyncChars(area){
   S.walkers.forEach(w=>{if(w.hidden||wArea(w)!==area||!inView(w.x,w.y))return;
     const r=prRec('w'+prOid(w));prBegin(r);prBody(r,area,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit,w.y+(w.dz||0));prEnd(r);
     if(w.dog){const d=w.dog,rd=prRec('g'+prOid(d));prBegin(rd);const hx=w.x+(DIRV[w.dir][0]>=0?5:-5),hy=w.y-12;
-      const x0=Math.min(hx,d.x-12)-4,y0=Math.min(hy,d.y-16)-4,x1=Math.max(hx,d.x+12)+4,y1=Math.max(hy,d.y+4)+4;
-      prLive(rd,'dog',area,[x0,y0,x1-x0,y1-y0],d.y,g=>{g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d)},[d.dir,d.mv?Math.floor(d.walk*1.4/.9):'s',Math.floor(PR.now/125)%16,Math.round((hx-x0)*2),Math.round((hy-y0)*2),Math.round((d.x-x0)*2),Math.round((d.y-y0)*2)].join());prEnd(rd)}}); // 강아지는 바뀔 때만 다시 그려요
+      const hon=dogHeartOn(d),x0=Math.min(hx,d.x-12)-4,y0=Math.min(hy,d.y-(hon?22:16))-4,x1=Math.max(hx,d.x+12)+4,y1=Math.max(hy,d.y+4)+4;
+      prLive(rd,'dog',area,[x0,y0,x1-x0,y1-y0],d.y,g=>{g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d);if(hon)dogHearts(g,d)},[d.dir,d.mv?Math.floor(d.walk*1.4/.9):'s',Math.floor(PR.now/125)%16,hon?'h':'',Math.round((hx-x0)*2),Math.round((hy-y0)*2),Math.round((d.x-x0)*2),Math.round((d.y-y0)*2)].join());prEnd(rd)}}); // 강아지는 바뀔 때만 다시 그려요
   /* 운동장 공 */
   if(area==='town'&&S.ball){const [bx,by,bh]=ballPos(S.ball);const r=prRec('ball');prBegin(r);
     const sh=Math.round(2.6*(1-bh/40)*4)/4,yy=by-10-bh;

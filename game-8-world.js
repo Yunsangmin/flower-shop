@@ -736,7 +736,7 @@ function drawWorldV(g,area){
   }})});
   S.customers.forEach(k=>{if((k.area||'shop')!==area||!inView(k.x,k.y))return;ents.push({y:k.y,draw:()=>{drawChar(g,k.x,k.y,k.pal,k.dir,k.walk,k.state==='move'&&!k.talking,false);if(k.bouquet)drawItemV(g,k.bouquet,k.x,k.y-11)}})});
   S.walkers.forEach(w=>{if(w.hidden||wArea(w)!==area||!inView(w.x,w.y))return;ents.push({y:w.y+(w.dz||0),draw:()=>drawChar(g,w.x,w.y+(w.yo||0),w.pal,w.dir,w.walk,!!w.mv&&!w.sit,false,w.throwT>0,!!w.sit)});
-    if(w.dog){const d=w.dog;ents.push({y:d.y,draw:()=>{const [hx,hy]=[w.x+(DIRV[w.dir][0]>=0?5:-5),w.y-12];g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d)}})}});
+    if(w.dog){const d=w.dog;ents.push({y:d.y,draw:()=>{const [hx,hy]=[w.x+(DIRV[w.dir][0]>=0?5:-5),w.y-12];g.strokeStyle='#C65C79';g.lineWidth=.45;g.beginPath();g.moveTo(hx,hy);g.quadraticCurveTo((hx+d.x)/2,Math.max(hy,d.y)+2,d.x+(d.dir==='left'?-3:3),d.y-6);g.stroke();drawDog(g,d);dogHearts(g,d)}})}});
   allCats().forEach(k=>{if(k.area===area&&inView(k.x,k.y))ents.push({y:k.y,draw:()=>drawCat(g,k)})});
   if(area==='shop'&&S.edit)S.chars.forEach(c=>{if(!c.carry||c.area!=='shop')return;const f=c.carry,[x,y]=placeSpot(c,f),ok=spotOK(f,x,y);ents.push({y:9999,draw:()=>{const ox=f.x,oy=f.y;f.x=x;f.y=y;g.globalAlpha=.6;if(f.type)drawStationV(g,f);else drawDecor(g,f);g.globalAlpha=1;f.x=ox;f.y=oy;rr(g,x*TILE,y*TILE,f.w*TILE,f.h*TILE,2);g.strokeStyle=ok?'rgba(127,192,106,.95)':'rgba(224,112,140,.95)';g.lineWidth=1.4;g.setLineDash([3,2]);g.stroke();g.setLineDash([])}})});
   ents.sort((a,b)=>a.y-b.y).forEach(e=>e.draw());

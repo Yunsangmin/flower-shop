@@ -3,7 +3,7 @@
    (파일은 index.html 에 적힌 순서대로 불러와요. 앞 파일의 함수·변수를 뒤 파일이 이어서 씀) */
 /* ---------- sound ---------- */
 const AU={ctx:null,music:null,sfx:null,next:0,step:0,timer:null,lastRing:0};
-/* 배경음악: music 폴더의 mp3 파일(아침·낮 / 바깥 / 저녁)을 부드럽게 넘기며 틀어요.
+/* 배경음악: music 폴더의 mp3 파일을 게임 시각에 따라 부드럽게 넘기며 틀어요(시간표는 아래 MUSIC_TIMES).
    자연 소리(바람·새소리·물소리·풀벌레)는 코드로 만들어요. */
 const BGM={amb:null,noise:null,wind:null,water:null,birdT:0,crkT:0};
 function audioInit(){
@@ -24,32 +24,63 @@ function tone(f,t,d,type,vol,dest,att){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(att||.012));g.gain.exponentialRampToValueAtTime(.0005,t+d);
   o.connect(g);g.connect(dest||AU.sfx);o.start(t);o.stop(t+d+.05);return o;
 }
+/* 효과음용 짧은 소리 조각 */
+function glide(f0,f1,t,d,type,vol,dest){const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d*.8);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0005,t+d);o.connect(g);g.connect(dest||AU.sfx);o.start(t);o.stop(t+d+.05);return o}
+let SFX_NZ=null;
+function nz(t,d,ftype,f,q,vol,f1){const c=AU.ctx;if(!SFX_NZ){const n=c.sampleRate,b=c.createBuffer(1,n,n),x=b.getChannelData(0);for(let k=0;k<n;k++)x[k]=Math.random()*2-1;SFX_NZ=b}
+  const s=c.createBufferSource();s.buffer=SFX_NZ;const fl=c.createBiquadFilter();fl.type=ftype;fl.frequency.setValueAtTime(f,t);if(f1)fl.frequency.exponentialRampToValueAtTime(f1,t+d);fl.Q.value=q||1;
+  const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+Math.min(.02,d*.2));g.gain.exponentialRampToValueAtTime(.0005,t+d);
+  s.connect(fl);fl.connect(g);g.connect(AU.sfx);s.start(t,Math.random()*.5);s.stop(t+d+.05)}
 function bgmNoise(c,sec){const n=Math.floor(c.sampleRate*sec),b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=last*3.5}return b}
 function bgmLoop(c,type,f,q){const s=c.createBufferSource();s.buffer=BGM.noise;s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(BGM.amb);s.start();return {g,fl}}
+/* ================= 배경음악 시간표 (여기만 고치면 돼요) =================
+   - 게임 속 시계 시각에 따라 곡이 바뀌어요(장소와는 상관없어요). 바뀔 때 3초쯤 부드럽게 넘어가요.
+   - MUSIC_FILES : 곡 이름과 파일 위치.  'morning':'music/morning.mp3'  처럼 적어요.
+   - MUSIC_TIMES : ['시작 시각', '곡 이름'].  시각은 게임 시계 기준 'HH:MM'(24시간), 위에서부터 이른 순서로.
+                   각 곡은 다음 줄의 시각 직전까지 나와요. 마지막 곡은 하루가 끝날 때(저녁 7시)까지.
+   - 곡 추가 예: music 폴더에 lunch.mp3 를 올리고
+        MUSIC_FILES 에  lunch:'music/lunch.mp3',  를 넣고
+        MUSIC_TIMES 에  ['12:00','lunch'],  를 시각 순서에 맞게 끼워 넣어요.
+   - 파일이 없거나 못 불러오면 그 시간에는 조용해요(1분 뒤 다시 시도). */
+const MUSIC_FILES={
+  morning:'music/morning.mp3',
+  evening:'music/evening.mp3'
+};
+const MUSIC_TIMES=[
+  ['09:00','morning'],   // 오전 9시 ~ 오후 3시 전
+  ['15:00','evening']    // 오후 3시 ~ 하루 끝
+];
+/* 'HH:MM' → 게임 속 분(오전 9시=0) */
+const MUSIC_AT=MUSIC_TIMES.map(([hm,k])=>{const [h,m]=String(hm).split(':').map(Number);return [(h||0)*60+(m||0)-540,k]}).sort((a,b)=>a[0]-b[0]);
+function musicAt(t){let k=MUSIC_AT.length?MUSIC_AT[0][1]:null;for(const [st,n] of MUSIC_AT){if(t>=st)k=n;else break}return k}
+/* 자연 소리용 분위기(바깥·저녁 등). 배경음악 곡 고르기와는 따로예요 */
 function bgmMood(){const area=S.chars&&S.chars[0]?S.chars.map(c=>c.area):['shop'];const t=S.phase==='play'?S.t:120;
   const out=area.some(a=>a!=='shop'&&a!=='supply'),eve=t>=450,morn=t<150,north=area.includes('north'),market=area.includes('market'),campus=area.includes('campus')||area.includes('farm');
-  return {out,eve,morn,north,market,campus,song:eve?'evening':(campus||market)?'bossa':'morning'}}
-const MUSIC_FILES={morning:'music/morning.mp3',bossa:'music/outside.mp3',evening:'music/evening.mp3'};
+  return {out,eve,morn,north,market,campus,song:musicAt(t)}}
 const MP={cur:null,tracks:{},failAt:{}};
 function mpTrack(k){let t=MP.tracks[k];if(t)return t;const c=AU.ctx;
   const a=new Audio();a.loop=true;a.preload='auto';a.crossOrigin='anonymous';
-  t={a,k,src:null,gain:c.createGain(),ok:true};t.gain.gain.value=0;
+  t={a,k,src:null,gain:c.createGain(),ok:true,idle:0};t.gain.gain.value=0;
   try{t.src=c.createMediaElementSource(a);t.src.connect(t.gain);t.gain.connect(AU.music)}catch(e){t.ok=false}
-  a.addEventListener('error',()=>{t.bad=true;MP.failAt[k]=performance.now()});
+  a.addEventListener('error',()=>{if(!a.getAttribute('src'))return;t.bad=true;MP.failAt[k]=performance.now()});
   a.src=MUSIC_FILES[k];MP.tracks[k]=t;return t}
+/* 안 쓰는 곡은 1분 뒤 메모리에서 비워요(곡이 많아져도 한 번에 1~2곡분만 차지) */
+function mpRelease(k){const t=MP.tracks[k];if(!t)return;try{t.a.pause();t.a.removeAttribute('src');t.a.load()}catch(e){}
+  try{t.src&&t.src.disconnect();t.gain.disconnect()}catch(e){}delete MP.tracks[k]}
 function mpPlay(t){if(!t.a.paused)return;const p=t.a.play();if(p&&p.catch)p.catch(()=>{t.needTap=true})}
 function schedMusic(){
   if(!AU.ctx)return;const c=AU.ctx,now=c.currentTime,on=SET.music>0;
-  let want=null;try{want=bgmMood().song}catch(e){want='morning'}
-  if(!MUSIC_FILES[want])want='morning';
+  let want=null;try{want=bgmMood().song}catch(e){want=null}
+  if(want&&!MUSIC_FILES[want])want=null;
   // 못 불러온 곡은 1분 뒤에 다시 시도
-  const bad=MP.tracks[want]&&MP.tracks[want].bad;if(bad&&performance.now()-(MP.failAt[want]||0)>60000){const t=MP.tracks[want];t.bad=false;t.a.src=MUSIC_FILES[want]+'?r='+Date.now();t.a.load()}
-  if(on&&want!==MP.cur){MP.cur=want;const t=mpTrack(want);if(t.ok&&!t.bad){if(t.a.ended||t.a.paused)try{t.a.currentTime=0}catch(e){}mpPlay(t)}}
+  const bad=want&&MP.tracks[want]&&MP.tracks[want].bad;if(bad&&performance.now()-(MP.failAt[want]||0)>60000){const t=MP.tracks[want];t.bad=false;t.a.src=MUSIC_FILES[want]+'?r='+Date.now();t.a.load()}
+  if(on&&want&&want!==MP.cur){MP.cur=want;const t=mpTrack(want);if(t.ok&&!t.bad){if(t.a.ended||t.a.paused)try{t.a.currentTime=0}catch(e){}mpPlay(t)}}
   for(const k in MP.tracks){const t=MP.tracks[k],act=on&&k===MP.cur&&!t.bad;
     t.gain.gain.setTargetAtTime(act?1:0,now,act?1.2:.9);
-    if(act){if(t.a.paused)mpPlay(t)}
-    else if(!t.a.paused&&t.gain.gain.value<.01){t.a.pause()}}
-  if(!on)MP.cur=null;
+    if(act){t.idle=0;if(t.a.paused)mpPlay(t)}
+    else{if(!t.a.paused&&t.gain.gain.value<.01){t.a.pause()}if(t.a.paused){t.idle+=.25;if(t.idle>60)mpRelease(k)}}}
+  if(!on||!want)MP.cur=null;
 }
 /* 첫 터치·버튼 전에는 브라우저가 소리를 막아서, 막혔던 곡은 다음 입력 때 다시 틀어요 */
 ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{for(const k in MP.tracks){const t=MP.tracks[k];if(t.needTap&&k===MP.cur){t.needTap=false;mpPlay(t)}}},{passive:true}));
@@ -88,8 +119,53 @@ function sfx(name){
     case 'ring':[0,.12,.24,.36].forEach(d=>tone(1200,t+d,.08,'square',.06));break;
     case 'no':tone(330,t,.15,'triangle',.2);tone(262,t+.08,.18,'triangle',.18);break;
     case 'nav':tone(1200,t,.04,'sine',.1);break;
+    /* --- 동물 --- */
+    case 'hearts':[0,.22,.44].forEach((d,k)=>glide(700+k*120,1500+k*160,t+d,.13,'sine',.13));break; // 하트 뿅뿅뿅
+    case 'meow':{const c=AU.ctx,o=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(620,t);o.frequency.linearRampToValueAtTime(900,t+.12);o.frequency.exponentialRampToValueAtTime(540,t+.36);
+      f.type='bandpass';f.frequency.setValueAtTime(1100,t);f.frequency.linearRampToValueAtTime(1700,t+.12);f.frequency.linearRampToValueAtTime(900,t+.36);f.Q.value=4;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.05);g.gain.linearRampToValueAtTime(.07,t+.24);g.gain.exponentialRampToValueAtTime(.0005,t+.4);o.connect(f);f.connect(g);g.connect(AU.sfx);o.start(t);o.stop(t+.45);break}
+    case 'woof':[0,.17].forEach(d=>{glide(360,190,t+d,.11,'triangle',.16);nz(t+d,.08,'bandpass',700,2,.1)});break;
+    /* --- 이야기·대화 --- */
+    case 'story':tone(784,t,.5,'sine',.1);tone(1175,t+.1,.6,'sine',.08);tone(1568,t+.2,.7,'sine',.05);break;           // 이야기 시작(반짝)
+    case 'storyEnd':[523,659,784,1047].forEach((f,k)=>tone(f,t+k*.07,.9-k*.1,'sine',.09));break;                           // 이야기 한 막 끝
+    case 'choice':tone(1319,t,.18,'sine',.09);tone(1760,t+.07,.22,'sine',.07);break;                                     // 선택지 등장
+    case 'pick':tone(988,t,.1,'triangle',.14);tone(1319,t+.06,.16,'triangle',.12);break;                                  // 선택지 고름
+    case 'gift':[1047,1319,1568,2093,1568,2093].forEach((f,k)=>tone(f,t+k*.085,.45,'sine',.1));break;                    // 선물(오르골)
+    case 'order':nz(t,.12,'highpass',3000,.7,.08);nz(t+.14,.1,'highpass',3200,.7,.07);tone(1568,t+.3,.5,'sine',.1);break; // 사각사각 적고 딩
+    case 'yay':[784,988,1175,1568].forEach((f,k)=>tone(f,t+k*.05,.3,'triangle',.1));tone(2093,t+.22,.4,'sine',.06);break; // 신남·축하
+    case 'giggle':[0,.09,.18].forEach((d,k)=>glide(900-k*60,1200-k*60,t+d,.07,'sine',.08));break;                        // 헤헤
+    case 'sniff':tone(659,t,.5,'sine',.07);tone(587,t+.22,.55,'sine',.06);tone(494,t+.44,.8,'sine',.06);break;            // 뭉클·눈물
+    case 'heartbeat':[0,.14,.6,.74].forEach((d,k)=>tone(k%2?70:85,t+d,.14,'sine',.35));break;                            // 두근두근
+    case 'sigh':nz(t,.6,'bandpass',900,1.2,.07,380);break;                                                               // 하아…
+    case 'hmm':tone(392,t,.35,'sine',.07);tone(370,t+.18,.4,'sine',.05);break;                                           // 머뭇…
+    case 'surprise':glide(600,1400,t,.14,'sine',.1);tone(1760,t+.12,.2,'sine',.07);break;                               // 깜짝
+    /* --- 가게 일 --- */
+    case 'ok':tone(1047,t,.18,'sine',.12);tone(1568,t+.08,.3,'sine',.1);break;                                           // 튜토리얼 단계 완료
+    case 'tie':nz(t,.18,'bandpass',2200,1.5,.12,1400);tone(1319,t+.2,.25,'sine',.08);break;                              // 끈 묶기
+    case 'wrap':nz(t,.12,'highpass',2500,.6,.1);nz(t+.13,.16,'highpass',2000,.6,.09);[1175,1568,2093].forEach((f,k)=>tone(f,t+.3+k*.06,.3,'sine',.07));break; // 부스럭 + 반짝
+    case 'star3':[1047,1319,1568,2093].forEach((f,k)=>tone(f,t+k*.07,.4,'triangle',.09));break;
+    case 'star2':tone(1047,t,.3,'triangle',.08);tone(1319,t+.08,.35,'triangle',.07);break;
+    case 'star1':tone(523,t,.3,'sine',.07);tone(494,t+.12,.35,'sine',.06);break;
+    case 'lift':glide(300,700,t,.14,'sine',.1);nz(t,.12,'bandpass',1200,1,.04);break;                                   // 가구 들기
+    case 'thud':tone(140,t,.16,'sine',.3);nz(t,.07,'lowpass',900,1,.08);tone(210,t+.01,.08,'triangle',.08);break;         // 가구 내려놓기
+    case 'sit':nz(t,.18,'lowpass',600,1,.12,250);tone(180,t,.12,'sine',.12);break;                                       // 폭신
+    case 'plant':nz(t,.15,'lowpass',500,1,.16);tone(120,t,.12,'sine',.18);break;                                          // 흙 톡
+    case 'harvest':[880,1175,1480,1760].forEach((f,k)=>tone(f,t+k*.06,.3,'sine',.1));break;                             // 수확
+    case 'sunset':[392,494,587,784].forEach((f,k)=>tone(f,t+k*.18,1.6-k*.2,'sine',.06));break;                           // 노을
+    case 'dayend':[523,659,784,1047,784,1047].forEach((f,k)=>tone(f,t+k*.13,.8,'sine',.08));break;                       // 하루 끝
   }
 }
+
+/* 이야기 대사 속 감정 표현을 읽어서 짧은 효과음을 붙여요(한 장에 하나만) */
+const TALK_MOODS=[
+  [/!!|축하|확정|결혼해|결혼식|해냈|붙었|합격|최고예요/,'yay'],
+  [/울었|울컥|눈물|훌쩍|울어|울고|울먹/,'sniff'],
+  [/헤헤|히히|하하|호호|깔깔|키득|웃었|웃으며|웃어요|웃음/,'giggle'],
+  [/두근|떨려|떨리|떨렸|설레|심장/,'heartbeat'],
+  [/하아|휴우|한숨/,'sigh'],
+  [/!\?|\?!|깜짝|엥\?|어\?/,'surprise'],
+  [/^…|^\.\.\./,'hmm']];
+function talkMoodSfx(line,delay){if(!line)return;for(const [re,n] of TALK_MOODS){if(re.test(line)){setTimeout(()=>sfx(n),delay||90);return}}}
 
 /* ---------- gamepad ---------- */
 const GP={pads:{},calib:null,ctxFocus:{},repeat:{}};
