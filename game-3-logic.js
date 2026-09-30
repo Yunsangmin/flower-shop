@@ -39,6 +39,7 @@ function resumeMid(m){
   buildControls();S.phase='intro';$('#hud').style.display='none';updateControlVisibility();
   showScreen(`<div class="sheet" style="width:min(32.9rem,94vw)"><h1 style="font-size:1.71rem">${S.day}일차 · ${clock(S.t)}</h1><p class="sub">저장된 곳부터 이어서 해요.</p><div class="opts"><button class="btn primary" id="goResumeDay">이어서 하기</button></div></div>`);
   $('#goResumeDay').onclick=()=>{hideScreen();S.phase='play';$('#hud').style.display='flex';buildControls()};
+  prepGate('#goResumeDay',b=>{if(AUTO_RESUME&&b){AUTO_RESUME=false;b.click()}});
 }
 
 /* ---------- freshness ---------- */
@@ -441,11 +442,16 @@ function updateWalkers(dt){
   if(!inRec&&yard.length){S.swingOcc=[false,false];S.ball=null}
   if(yard.length)updateBall(dt,yard);
   S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main&&!w.cRole);if(w)w.offer={tpl:pick(TEMPLATES),time:pick(SLOTS),name:w.name,until:S.t+70}}});
+  const obs=new Set(S.chars.map(c=>c.area));
+  /* 같은 장소여도 두 사람 모두에게서 화면 두 개 넘게 멀리 있는 주민(넓은 캠퍼스)은 가끔만 계산 */
+  const farAll=w=>{const a=wArea(w);if(!WIDE_AREAS[a])return false;for(const c of S.chars)if(c.area===a&&Math.abs(c.x-w.x)<30*TILE&&Math.abs(c.y-w.y)<20*TILE)return false;return true};
   S.walkers.forEach(w=>{
     w._nav=w.follow||w.zone==='yard'?null:wArea(w);
     if(w._nav&&!w._chk&&!w.hidden){w._chk=1;const N=navGrid(w._nav),tx=Math.floor(w.x/TILE),ty=Math.floor(w.y/TILE);if(!navFree(N,tx,ty)){const q=navNear(N,tx,ty);if(q){w.x=(q[0]+.5)*TILE;w.y=(q[1]+.5)*TILE;w.tx=w.x;w.ty=w.y;if(w.dog){w.dog.x=w.x-8;w.dog.y=w.y}}}}
+    /* 아무도 없는 장소의 주민은 0.1초에 한 번만 몰아서 계산해요(안 보이니 차이 없음, TV 계산량 크게 감소) */
+    let wdt=dt;if(!w.follow&&!w.talking&&(!obs.has(wArea(w))||farAll(w))){w._acc=(w._acc||0)+dt;if(w._acc<.1)return;wdt=w._acc;w._acc=0}else if(w._acc){wdt+=w._acc;w._acc=0}
     const px=w.x,py=w.y,dpx=w.dog?w.dog.x:0,dpy=w.dog?w.dog.y:0;
-    walkerStep(w,dt);
+    walkerStep(w,wdt);
     w.mv=Math.hypot(w.x-px,w.y-py)>.02;if(w.dog)w.dog.mv=Math.hypot(w.dog.x-dpx,w.dog.y-dpy)>.02;
   });
   if(S.walkers.some(w=>w.dead))S.walkers=S.walkers.filter(w=>!w.dead);

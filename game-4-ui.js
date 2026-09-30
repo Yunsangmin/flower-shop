@@ -630,7 +630,13 @@ function showIntro(){
     <p class="hint" style="margin-top:0.62rem">오늘 시세 (한 단 5송이): ${TYPES.map(t=>`${FL[t].name} ${won(S.prices[t])}`).join(', ')}<br>가진 돈: ${won(S.money)}${stockLine()}</p>
     <div class="opts"><button class="btn primary" id="goDay">가게 문 열기</button></div></div>`);
   $('#goDay').onclick=()=>{hideScreen();S.phase='play';$('#hud').style.display='flex';buildControls();try{document.documentElement.requestFullscreen?.().catch(()=>{})}catch(_){}};
+  prepGate('#goDay');
 }
+/* 아침 준비: 장소 바닥 그림을 미리 그리는 동안 버튼을 잠깐 '준비 중…'으로 (끝나면 원래대로) */
+function prepGate(sel,then){const b=$(sel);if(!b)return;const txt=b.textContent;b.disabled=true;b.textContent='준비 중…';
+  const t0=performance.now();
+  prPrebake(()=>{const bb=$(sel);if(bb){bb.disabled=false;bb.textContent=txt;try{if(navContext&&navContext(S.active))bb.focus()}catch(e){}}if(then)then(bb)});
+  setTimeout(()=>{const bb=$(sel);if(bb&&bb.disabled){bb.disabled=false;bb.textContent=txt}},20000)} // 혹시 몰라 20초 뒤엔 무조건 풀어요
 function endDay(){
   if(S.phase!=='play')return;
   [0,1].forEach(closeModal);$('#orderPop').className='';

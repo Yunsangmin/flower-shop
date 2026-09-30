@@ -674,7 +674,10 @@ function cStep(w,dt){
       if(cGo(w,dt,13)){w.wait=rnd(2,5);const G=pick(CLAB),d=cDoor(G);const p=Math.hypot(d[0]-w.x,d[1]-w.y)<30*T?cSpot(d[0]/T,d[1]/T+3,4,[1,2,5,6,8]):cSpot(w.x/T,w.y/T,20);if(p){w.tx=p[0];w.ty=p[1]}}return}
   }
 }
-{const _up=update;update=function(dt){_up(dt);if(S.phase!=='play'||!S.walkers)return;cSportsUpdate(dt);cPicnic(dt);
+{const _up=update;update=function(dt){_up(dt);if(S.phase!=='play'||!S.walkers)return;
+  /* 캠퍼스에 아무도 없으면 운동·피크닉·길 점검은 0.1초에 한 번만 몰아서 계산해요 */
+  if(!S.chars.some(c=>c.area==='campus')){S._cAcc=(S._cAcc||0)+dt;if(S._cAcc<.1)return;dt=S._cAcc;S._cAcc=0}else if(S._cAcc){dt+=S._cAcc;S._cAcc=0}
+  cSportsUpdate(dt);cPicnic(dt);
   const chk=(S._cChk=(S._cChk||0)+1)%20===0;
   for(const w of S.walkers){if(w.zone!=='campus'||!w.cRole||w.follow||w.sport||w.cRole==='picnic')continue;if(chk&&!w.hidden&&!cFree(w.x/TILE,(w.y-2)/TILE)){const q=cNearFree(w.x/TILE,w.y/TILE,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE;w.tx=w.x;w.ty=w.y;w._route=null;w._rk=null}}const key=w.tx+','+w.ty;if(w._cT===key)continue;
     if(Math.hypot(w.tx-w.x,w.ty-w.y)>26*TILE){const p=cSpot(w.x/TILE,w.y/TILE,22);if(p){w.tx=p[0];w.ty=p[1]}}w._cT=w.tx+','+w.ty}}}
