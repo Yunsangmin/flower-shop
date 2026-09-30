@@ -18,7 +18,9 @@ const PR={on:false,game:null,sc:null,bgCam:null,cams:[],scr:null,R:1,frame:0,now
   fps:60,texN:0,bakes:0,cbakes:0,bgMs:0,bgN:0,chunkMs:0,preQ:null,preDone:null,camR:[null,null],camA:[null,null]};
 const OIDS=new WeakMap();let OIDN=0;
 function prOid(o){let v=OIDS.get(o);if(v==null){v=++OIDN;OIDS.set(o,v)}return v}
-function prRound(k,v){return typeof v==='number'?(Math.abs(v)>=2?Math.round(v):Math.round(v*20)/20):v}
+/* 그림 이름표용 숫자 반올림. 꽃 싱싱함(f)·물 먹은 정도(hyd)는 눈에 띄게 바뀔 때만 다시 그리도록 크게 반올림
+   (예전엔 싱싱함이 1만 줄어도 냉장고·물통·카운터를 통째로 다시 구워서, 꽃이 많은 가게에서 1~2초마다 다시 굽기가 일어났어요) */
+function prRound(k,v){if(typeof v!=='number')return v;if(k==='f')return Math.round(v/5)*5;if(k==='hyd')return v>=.99?1:Math.round(v*4)/4;if(k==='dryT'||k==='wetAt')return Math.round(v/10)*10;return Math.abs(v)>=2?Math.round(v):Math.round(v*20)/20}
 function prCol(c){
   if(typeof c!=='string')return [0xffffff,1];c=c.trim();
   if(c[0]==='#'){let h=c.slice(1);if(h.length===3)h=h.split('').map(x=>x+x).join('');return [parseInt(h.slice(0,6),16),h.length>=8?parseInt(h.slice(6,8),16)/255:1]}
@@ -181,7 +183,8 @@ function prBakeStatic(rec,area,drawFn,B,scO){
   BAKE={timed:false,ax:0,ay:0,fx,onChar:(a)=>{chars.push(a);next()}};
   try{drawFn(px.P)}catch(e){console.error(e)}
   const timed=BAKE.timed;BAKE=null;RENDER_SCALE=oldRS;VIEW=oldV;
-  layers.forEach(e=>{e.t.refresh();if(!timed)prShrink(e)});PR.bakes++;
+  const hot=rec.bt&&PR.now-rec.bt<60000; // 1분 안에 다시 구운 그림(시계·꽃 든 설비 등)은 종이를 비우지 않고 그대로 다시 써요(매번 새로 만들지 않게)
+  layers.forEach(e=>{e.t.refresh();if(!timed&&!hot)prShrink(e)});PR.bakes++;
   // 남는 예전 층 정리
   for(let i=layers.length;i<(rec.nl||0);i++)prTexDel(rec.id+'|'+i);
   rec.nl=layers.length;rec.layers=layers;rec.vchars=chars;rec.fx=fx;rec.timed=timed;rec.B=B;rec.sc=sc;rec.bt=PR.now;rec.scO=scO;
@@ -640,7 +643,9 @@ function prSyncDyn(area){
   const fr=prRec('F|'+area);prBegin(fr);
   if(area==='shop'){
     const W=AREAS.shop.w*TILE;
-    prDynLayer(area,'top',[Math.floor(S.t),S.style,JSON.stringify(S.up),W,prBakeScale(area)].join('|'),[0,-4,W,32],-2.5e6,g=>shopDynamic(g));
+    /* 윗벽(창문 하늘색·조명)은 10분마다, 벽시계만 1분마다 작게 다시 구워요 */
+    prDynLayer(area,'top',[Math.floor(S.t/10),S.style,JSON.stringify(S.up),W,prBakeScale(area)].join('|'),[0,-4,W,32],-2.5e6,g=>{SHOP_CLOCK='face';try{shopDynamic(g)}finally{SHOP_CLOCK=null}});
+    prDynLayer(area,'clock',[Math.floor(S.t),prBakeScale(area)].join('|'),[148,0,24,24],-2.5e6+1,g=>{SHOP_CLOCK='hands';try{shopDynamic(g)}finally{SHOP_CLOCK=null}});
   }else if(area==='market'){
     const W=AREAS.market.w*TILE;
     prDynLayer(area,'lights',[Math.round(lampAt(S.t)*40),W,prBakeScale(area)].join('|'),[0,0,W,18],-2.5e6,g=>marketDynamic(g));
