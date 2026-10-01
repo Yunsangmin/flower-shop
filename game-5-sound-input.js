@@ -201,22 +201,32 @@ function slotOf(gp){
 const PADVEC=[[0,0],[0,0]];let TOUCH_MODE=false;
 /* ---- 조이콘 배치: 스틱 방향은 실측값 기준 (가로로 쥔 조이콘) ---- */
 function isCombo(id){return /l\s*\+\s*r|200e/i.test(id)}
-function stickVec(x,y){const m=Math.hypot(x,y);if(m<.28)return [0,0];const k=Math.min(1,(m-.28)/.62)/m;return [x*k,y*k]}
+function stickVec(x,y){const m=Math.hypot(x,y);if(m<.3)return [0,0];const k=Math.min(1,(m-.3)/.6)/m;let vx=x*k,vy=y*k;
+  /* 거의 똑바로 밀었으면(축에서 12도 안쪽) 똑바로 가게 → 원하지 않는 비스듬한 방향 줄이기 */
+  const a=Math.atan2(vy,vx),q=Math.round(a/(Math.PI/2))*(Math.PI/2);if(Math.abs(a-q)<.21){const r=Math.hypot(vx,vy);vx=Math.cos(q)*r;vy=Math.sin(q)*r;if(Math.abs(vx)<1e-6)vx=0;if(Math.abs(vy)<1e-6)vy=0}
+  return [vx,vy]}
+/* 스틱 쏠림(손을 떼도 가운데로 정확히 안 돌아오는 것) 보정: 손을 뗀 위치를 조이콘마다 천천히 따라가 기억해 두고 빼 줘요 */
+function stickC(st,k,x,y){if(!st)return [x,y];const C=st.ctr||(st.ctr={});let c=C[k];const m=Math.hypot(x,y);
+  if(!c){c=C[k]=m<.45?[x,y]:[0,0]}
+  const dx=x-c[0],dy=y-c[1];if(Math.hypot(dx,dy)<.22&&m<.5){c[0]+=dx*.03;c[1]+=dy*.03}
+  return [x-c[0],y-c[1]]}
 function sideSlot(side){const sw=!!SET.swapSides;return side==='L'?(sw?1:0):(sw?0:1)}
-function padUnits(gp){
-  const ax=gp.axes,duo=S.mode==='duo',id=gp.id;
+function padUnits(gp,st){
+  /* 이 게임은 늘 둘이 각자 하나씩 쥐어요 → 메인 화면·처음 메뉴에서도 처음부터 '가로로 하나씩'으로 읽어요(예전엔 게임 시작 전엔 방향이 돌아가 있었어요) */
+  const ax=gp.axes,duo=S.mode!=='solo'||S.phase!=='play',id=gp.id; // 게임 밖(메인 화면·메뉴)에선 늘 둘이 하나씩
+  const sv=(k,x,y)=>{const c=stickC(st,k,x,y);return stickVec(c[0],c[1])};
   if(isCombo(id)){
     if(duo)return [
-      {side:'L',slot:sideSlot('L'),vec:stickVec(ax[1]||0,-(ax[0]||0)),btn:{act:[12,13,14,15],back:[8,4,6],menu:[10],swap:[]}},
-      {side:'R',slot:sideSlot('R'),vec:stickVec(-(ax[3]||0),ax[2]||0),btn:{act:[0,1,2,3],back:[9,5,7],menu:[11],swap:[]}}];
-    return [{side:'LR',slot:S.active,vec:stickVec(ax[0]||0,ax[1]||0),btn:{act:[1,3],back:[0],menu:[9,8],swap:[2,4,5]}}];
+      {side:'L',slot:sideSlot('L'),vec:sv('L',ax[1]||0,-(ax[0]||0)),btn:{act:[12,13,14,15],back:[8,4,6],menu:[10],swap:[]}},
+      {side:'R',slot:sideSlot('R'),vec:sv('R',-(ax[3]||0),ax[2]||0),btn:{act:[0,1,2,3],back:[9,5,7],menu:[11],swap:[]}}];
+    return [{side:'LR',slot:S.active,vec:sv('LR',ax[0]||0,ax[1]||0),btn:{act:[1,3],back:[0],menu:[9,8],swap:[2,4,5]}}];
   }
   const sd=isJoy(id)?joySide(id):null;
-  if(sd&&duo)return [{side:sd,slot:sideSlot(sd),vec:sd==='L'?stickVec(ax[1]||0,-(ax[0]||0)):stickVec(-(ax[1]||0),ax[0]||0),btn:{act:[0,1,2,3,12,13,14,15],back:[8,9],menu:[10,11,16],swap:[]}}];
-  const m=autoMap(gp);return [{side:'X',slot:duo?slotOf(gp):S.active,vec:stickVec(ax[0]||0,ax[1]||0),btn:{act:m.act,back:m.back,menu:m.menu,swap:m.swap}}];
+  if(sd&&duo)return [{side:sd,slot:sideSlot(sd),vec:sd==='L'?sv(sd,ax[1]||0,-(ax[0]||0)):sv(sd,-(ax[1]||0),ax[0]||0),btn:{act:[0,1,2,3,12,13,14,15],back:[8,9],menu:[10,11,16],swap:[]}}];
+  const m=autoMap(gp);return [{side:'X',slot:duo?slotOf(gp):S.active,vec:sv('X',ax[0]||0,ax[1]||0),btn:{act:m.act,back:m.back,menu:m.menu,swap:m.swap}}];
 }
 function applyPadBinds(gp,u){
-  const p=u.slot,K=SET.keys[S.mode==='duo'?p:(u.side==='R'?1:0)]||{},own={};let any=false;
+  const p=u.slot,K=SET.keys[(S.mode!=='solo'||S.phase!=='play')?p:(u.side==='R'?1:0)]||{},own={};let any=false;
   for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='p'&&b.id===gp.id){own[fn]=[b.b];any=true}}
   if(!any)return u.btn;const out={act:[],back:[],menu:[],swap:[]};Object.assign(out,own);return out;
 }
@@ -254,16 +264,22 @@ function pollPads(dt){
     const any=arr=>arr.some(k=>pressed(k)&&!st.prev[k]);
     if(gp.buttons.some(b=>b.pressed)&&TOUCH_MODE){TOUCH_MODE=false;updateControlVisibility()}
     if(GP.calib&&GP.calib.id===gp.id){calibStep(gp,st);st.prev=gp.buttons.map(b=>b.pressed);continue}
-    for(const u of padUnits(gp)){
-      const slot=u.slot,v=u.vec,B=applyPadBinds(gp,u),ctx=navContext(slot),dk=u.side;
+    /* 블루투스 신호가 멈추면(TV가 마지막 스틱 값을 계속 들고 있음) 0.4초 뒤 멈춘 것으로 봐요 → 손을 뗐는데 계속 가는 것 방지 */
+    /* 단, 조이콘이 값이 그대로여도 신호를 계속 보내는 TV에서만 써요(그렇지 않은 TV에선 스틱을 꾹 밀고 있을 때 멈춰 버리니까) */
+    const nowT=performance.now(),axs=gp.axes.join(',');if(gp.timestamp!==st.ts){if(st.ts!=null&&axs===st.axs)st.tsOK=(st.tsOK||0)+1;st.ts=gp.timestamp;st.tsT=nowT}st.axs=axs;
+    const stale=st.tsOK>10&&nowT-(st.tsT||nowT)>400;
+    for(const u of padUnits(gp,st)){
+      const slot=u.slot,v=stale?[0,0]:u.vec,B=applyPadBinds(gp,u),ctx=navContext(slot),dk=u.side;
       if(ctx){
         const d=Math.hypot(v[0],v[1])>.5?(Math.abs(v[0])>Math.abs(v[1])?(v[0]>0?'right':'left'):(v[1]>0?'down':'up')):null;
         if(d&&d!==st.dir[dk]){st.dir[dk]=d;st.hold[dk]=0;navMove(ctx,d)}else if(d){st.hold[dk]=(st.hold[dk]||0)+dt;if(st.hold[dk]>.38){st.hold[dk]=.26;navMove(ctx,d)}}else st.dir[dk]=null;
         if(any(B.act))navPress(ctx);else if(any(B.back))navBack(ctx);else if(any(B.menu))navMenu();
       }else{
-        /* 두 조이콘을 함께 움직일 때 신호가 한 순간 0으로 끊기는 경우를 보정(최대 2프레임) */
+        /* 신호가 아주 잠깐(0.05초 이내) 0으로 끊기는 경우만 보정 — 예전엔 2프레임이라 TV가 느릴 때 손을 떼도 미끄러졌어요 */
         let vv=v;const pm=st.lv&&st.lv[dk]?Math.hypot(st.lv[dk][0],st.lv[dk][1]):0;st.lv=st.lv||{};st.hz=st.hz||{};
-        if(vv[0]===0&&vv[1]===0&&pm>.6&&(st.hz[dk]||0)<2){st.hz[dk]=(st.hz[dk]||0)+1;vv=st.lv[dk]}else{st.hz[dk]=0;st.lv[dk]=vv}
+        if(!stale&&vv[0]===0&&vv[1]===0&&pm>.6&&st.hz[dk]==null){st.hz[dk]=nowT;vv=st.lv[dk]}
+        else if(!stale&&vv[0]===0&&vv[1]===0&&pm>.6&&nowT-st.hz[dk]<50){vv=st.lv[dk]}
+        else{st.hz[dk]=null;st.lv[dk]=vv}
         PADVEC[slot]=[PADVEC[slot][0]+vv[0],PADVEC[slot][1]+vv[1]];
         if(B.act.some(k=>pressed(k)))PADACT[slot]=true;
         if(any(B.act))doAction(slot);
