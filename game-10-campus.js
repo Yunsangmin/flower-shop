@@ -563,7 +563,7 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
 {const _pp=propV;propV=function(g,p,st,hw,t,back){if(p.prop==='coffee'){if(back)return;const x=hw+st-1,y=-50;rr(g,x-3,y-2,7,10,1.5,'#F4EFE6');rr(g,x-3,y+1,7,4,.8,'#8A5A3C');rr(g,x-3.5,y-3.5,8,2,1,'#FFFFFF');return}return _pp(g,p,st,hw,t,back)}}
 {const _mw=makeWalkers;makeWalkers=function(){_mw();const W=[];
   // 학부생 무리(학과별 3~4명, 에너지 넘침) — 스포츠과학과는 키 크고 탄탄하게
-  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,4); // TV 메모리를 위해 학과 무리 6→4if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
+  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,4);/* TV 메모리를 위해 학과 무리 6→4 */if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
   depts.forEach(dp=>{const n=3+(Math.random()<.5?1:0);let lead=null;for(let k=0;k<n;k++){const sp=dp==='스포츠과학과';const w=cNew('student',sp?Math.random()<.35:Math.random()<.5,sp?SPORTY():{},k?'ugf':'ug');w.dept=dp;w.lineI=k;if(k){w.lead=lead;w.slot=k;w.x=lead.x+rnd(-8,8);w.y=lead.y+rnd(-8,8)}else lead=w;W.push(w)}});
   // 혼자 다니는 학생(기계·컴공·물리·수학 — 남학생, 안경, 큰 가방)
   for(let k=0;k<3;k++){const w=cNew('student',false,{acc:'glasses',pack:true,packC:pick(['#3E4A5C','#5A5A5A','#2F4A3A']),tee:pick(['#8C9AA8','#6E7A6A','#9A8C7A','#5A6A80']),expr:'calm'},'nerd');w.dept=DEPT_NERD[k%4];W.push(w)}

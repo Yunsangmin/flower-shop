@@ -349,10 +349,14 @@ const NAV={};
 /* 길찾기 격자는 가구·설비가 바뀔 때만 다시 만들어요(1초마다 가볍게 확인) — 예전엔 15초마다 통째로 다시 만들어서 잠깐씩 멈칫했어요 */
 function navSig(area){const A=AREAS[area];let s=A.w*7+A.h;for(const d of DECOR[area]||[]){if(d.walk)continue;s=(s*31+(d.carried?7:d.x*13+d.y*101+d.w*3))|0}
   for(const t of S.stList){if(t.area!==area)continue;s=(s*31+(t.carried?3:t.x*17+t.y*29+(t.on?5:0)+(owned(t)?11:0)))|0}return s}
-function navGrid(area){let N=NAV[area];const now=performance.now();if(N){if(now-N.chk<1000)return N;N.chk=now;const sg=navSig(area);if(sg===N.sig)return N}
-  const A=AREAS[area],w=A.w,h=A.h,g=new Uint8Array(w*h);
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let b=0;for(const oy of [1.5,8,14.5]){for(const ox of [2,8,14])if(solid(area,x*TILE+ox,y*TILE+oy)){b=1;break}if(b)break}g[y*w+x]=b}
-  N=NAV[area]={chk:now,sig:navSig(area),w,h,g};return N}
+function navRows(area,g,w,y0,y1){for(let y=y0;y<y1;y++)for(let x=0;x<w;x++){let b=0;for(const oy of [1.5,8,14.5]){for(const ox of [2,8,14])if(solid(area,x*TILE+ox,y*TILE+oy)){b=1;break}if(b)break}g[y*w+x]=b}}
+/* 가구가 바뀌면 길 지도를 한 번에 다시 만들지 않고 계산 한 번에 4줄씩 나눠 만들어요(그동안은 예전 지도를 써요) — 한꺼번에 만들면 TV에서 0.1초쯤 멈칫했어요 */
+let NAV_TICK=0;
+function navGrid(area){let N=NAV[area];const now=performance.now();
+  if(N&&N.next){const nx=N.next;if(nx.tick!==NAV_TICK){nx.tick=NAV_TICK;const y1=Math.min(N.h,nx.y+4);navRows(area,nx.g,N.w,nx.y,y1);nx.y=y1;if(nx.y>=N.h){N.g=nx.g;N.sig=nx.sig;N.next=null}}return N}
+  if(N){if(now-N.chk<1000)return N;N.chk=now;const sg=navSig(area);if(sg===N.sig)return N;N.next={sig:sg,g:new Uint8Array(N.w*N.h),y:0,tick:-1};return N}
+  const A=AREAS[area],w=A.w,h=A.h,g=new Uint8Array(w*h);navRows(area,g,w,0,h);
+  N=NAV[area]={chk:now,sig:navSig(area),w,h,g,next:null};return N}
 function navFree(N,x,y){return x>=0&&y>=0&&x<N.w&&y<N.h&&!N.g[y*N.w+x]}
 function navNear(N,x,y){if(navFree(N,x,y))return [x,y];for(let r=1;r<8;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;if(navFree(N,x+dx,y+dy))return [x+dx,y+dy]}return null}
 function navSight(N,x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/5);for(let k=1;k<n;k++){const x=x0+(x1-x0)*k/n,y=y0+(y1-y0)*k/n;for(const [ox,oy] of [[-4,-2],[4,-2],[-4,2],[4,2]])if(!navFree(N,Math.floor((x+ox)/TILE),Math.floor((y+oy)/TILE)))return false}return true}
@@ -552,7 +556,7 @@ function turnToward(c,dt){const d=angDiff(c.ang,c.face);const st=26*dt;c.ang+=Ma
 
 /* ---------- update ---------- */
 function update(dtReal){
-  NAV_BUDGET=4;
+  NAV_BUDGET=4;NAV_TICK++;
   const dt=dtReal*S.speed,dMin=dt/REAL_PER_MIN,hours=dMin/60;
   S.t+=dMin;
   forEachGroup((arr,water,mult)=>{decayStems(arr,hours,water,mult);if(water)arr.forEach(s=>s.hyd=Math.min(1,s.hyd+dMin/HYDRATE_MIN))});

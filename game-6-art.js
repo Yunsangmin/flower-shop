@@ -174,17 +174,20 @@ function themeArt(it){const s=itemArt({...it,_plain:1});const d=STYLES[it.styleS
     return s.replace('</svg>',add+'</svg>')}
 /* 새 옷·가구 그림: 실제 캐릭터·가구 그림을 작게 찍어서 써요(한 번 그리면 기억) */
 const ART_CACHE={};
+/* 창(HTML)에 넣는 작은 그림은 긴 데이터 글자 대신 짧은 주소(blob:)로 — 상점 창을 다시 그릴 때 글자 수가 수십 분의 1로 줄어 TV에서 빨라져요 */
+function artURL(cv){let d='';try{d=cv.toDataURL('image/png')}catch(e){return ''}
+  try{const bin=atob(d.slice(d.indexOf(',')+1)),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const u=URL.createObjectURL(new Blob([a],{type:'image/png'}));cv.width=cv.height=1;return u}catch(e){return d}}
 function wearArt(cat,val){const key=cat+'|'+val;if(ART_CACHE[key])return ART_CACHE[key];
   const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');
   const o={};o[cat]=val;const p=palFromOutfit(PAL[1],o);const up=['hat','pin','glasses'].includes(cat);
   g.save();if(up){g.translate(64,226);g.scale(6,6)}else if(cat==='bag'){g.translate(56,118);g.scale(2.9,2.9)}else{g.translate(64,122);g.scale(2.8,2.8)}
   try{drawChar(g,0,0,p,cat==='bag'?.5:0,0,false,false,false,false)}catch(e){console.error(e)}g.restore();
-  const url=cv.toDataURL();ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
+  const url=artURL(cv);ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
 function decorArt(t,w,h,wall){const key='d|'+t;if(ART_CACHE[key])return ART_CACHE[key];
   const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');const d={t,w,h,x:0,y:0,wall};
   const top=wall?0:(PR_DEB[t]?-PR_DEB[t][1]:2),pw=w*TILE,ph=wall?20:h*TILE+top,sc=Math.min(110/Math.max(pw,1),110/Math.max(ph,1),4.2);
   g.save();g.translate(64-pw*sc/2,wall?64+20*sc:64+ph*sc/2-h*TILE*sc);g.scale(sc,sc);try{DECOR_DRAW[t](g,d,0,0,pw,h*TILE)}catch(e){console.error(e)}g.restore();
-  const url=cv.toDataURL();ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${wall?'<rect x="6" y="6" width="52" height="40" rx="6" fill="'+curStyle().wall+'"/>':''}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
+  const url=artURL(cv);ART_CACHE[key]=`<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${wall?'<rect x="6" y="6" width="52" height="40" rx="6" fill="'+curStyle().wall+'"/>':''}<image href="${url}" x="0" y="0" width="64" height="64"/></svg>`;return ART_CACHE[key]}
 /* ---------- time of day ---------- */
 const SKY=[[0,'#F7D6C4'],[60,'#BFE0F4'],[330,'#A8D6F3'],[450,'#F4CFA0'],[520,'#F0A98E'],[565,'#C98FA8'],[600,'#4E4F86']];
 function lerpKeys(keys,t){for(let k=0;k<keys.length-1;k++){const [t0,c0]=keys[k],[t1,c1]=keys[k+1];if(t<=t1)return mix(c0,c1,(t-t0)/(t1-t0))}return keys[keys.length-1][1]}
@@ -341,7 +344,7 @@ const FART_CACHE=new Map();
 function flowerURL(t,w,seed){const wb=Math.round(w*6)/6,key=t+'|'+wb+'|'+(seed||0);let u=FART_CACHE.get(key);if(u)return u;
   const cv=document.createElement('canvas');cv.width=cv.height=112;const g=cv.getContext('2d');
   flowerArt(g,t,56,t==='freesia'?60:56,t==='hydrangea'?46:t==='gyp'?50:44,wb,seed);
-  try{u=cv.toDataURL('image/png')}catch(e){u=''}FART_CACHE.set(key,u);return u}
+  u=artURL(cv);FART_CACHE.set(key,u);return u}
 
 const FART_K={rose:.6,tulip:.66,freesia:.62,hydrangea:1.05,gyp:.8};
 function flowerHead(g,t,x,y,s,f,dried){

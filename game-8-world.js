@@ -300,7 +300,7 @@ function drawDecor(g,d){
       rr(g,x+1,y+2,w-2,h-4,3,'#F7D9DF');for(let k=0;k<4;k++){g.fillStyle='rgba(255,255,255,.55)';g.fillRect(x+3+k*7.5,y+3,3.5,h-6)}
       el(g,x+w/2,y+h/2,4,2.4,'#FFFFFF');el(g,x+w/2,y+h/2-1.2,2.2,1.4,'#F2C27A');el(g,x+w/2-7,y+h/2+1,1.6,1,'#FFFFFF');el(g,x+w/2+7,y+h/2+1,1.6,1,'#FFFFFF');
       for(let k=0;k<3;k++)flowerHead(g,TYPES[k],x+w/2-3+k*3,y+h/2-4,1.8,100);break}
-    case 'swing':{const tN=NOW();ln(g,x+2,y+14,x+8,y-14,'#C9695A',1.2);ln(g,x+14,y+14,x+8,y-14,'#C9695A',1.2);ln(g,x+w-14,y+14,x+w-8,y-14,'#C9695A',1.2);ln(g,x+w-2,y+14,x+w-8,y-14,'#C9695A',1.2);ln(g,x+8,y-14,x+w-8,y-14,'#9C4E4A',1.4);
+    case 'swing':{const tN=(S.swingOcc||[]).some(Boolean)?NOW():0;/* 아무도 안 탈 땐 멈춰 있는 그네(매 순간 다시 굽지 않게) */ln(g,x+2,y+14,x+8,y-14,'#C9695A',1.2);ln(g,x+14,y+14,x+8,y-14,'#C9695A',1.2);ln(g,x+w-14,y+14,x+w-8,y-14,'#C9695A',1.2);ln(g,x+w-2,y+14,x+w-8,y-14,'#C9695A',1.2);ln(g,x+8,y-14,x+w-8,y-14,'#9C4E4A',1.4);
       [x+w*.3,x+w*.7].forEach((sx,k)=>{const [ex,ey]=swingSeat(d,k,tN);ln(g,sx-2,y-14,ex-2,ey,'#8A7B74',.4);ln(g,sx+2,y-14,ex+2,ey,'#8A7B74',.4);rr(g,ex-3.5,ey-1,7,2,.8,'#F2C27A')});break}
     case 'slide':{shadow(g,x+w/2,y+15,w/2,2);ln(g,x+4,y+14,x+4,y-16,'#E3A04A',1.2);ln(g,x+9,y+14,x+9,y-16,'#E3A04A',1.2);for(let yy=-12;yy<14;yy+=5)ln(g,x+4,y+yy,x+9,y+yy,'#E3A04A',.8);rr(g,x+2,y-18,10,3,1,'#7FA7C9');poly(g,[x+9,y-16,x+13,y-16,x+w,y+12,x+w-5,y+12],'#7FA7C9');break}
     case 'lamp':{shadow(g,x+8,y+15,3,1);g.fillStyle='#4E5A58';g.fillRect(x+7,y-22,2,37);rr(g,x+4,y-28,8,7,2,'#4E5A58');rr(g,x+5,y-27,6,5,1.5,mix('#FFF4D6','#FFD98A',lampAt(S.t)));el(g,x+8,y+14,3,1.2,'#4E5A58');break}
@@ -358,7 +358,8 @@ function drawSunsetScene(g,X,Y,W,H,who){
 /* ---------- trees & plants ---------- */
 function canopy(g,cx,cy,r,cols,seed){const q=seedRand(seed);el(g,cx+r*.15,cy+r*.2,r,r*.82,cols[0]);for(let k=0;k<9;k++){const a=q()*6.28,d=q()*r*.6;el(g,cx+Math.cos(a)*d-r*.1,cy+Math.sin(a)*d*.8-r*.15,r*(.38+q()*.2),r*(.32+q()*.18),cols[1+(k%(cols.length-1))])}el(g,cx-r*.35,cy-r*.45,r*.28,r*.2,'rgba(255,255,255,.16)')}
 const SPR={};let SPRN=0;
-function drawTreeCached(g,x,by,v,seed){const sc=Math.max(.5,Math.round(RENDER_SCALE*4)/4);const key=v+'|'+seed+'|'+sc;let c=SPR[key];if(!c){if(SPRN>160){for(const k in SPR)delete SPR[k];SPRN=0}c=document.createElement('canvas');c.width=Math.ceil(48*sc);c.height=Math.ceil(66*sc);const gg=c.getContext('2d');gg.setTransform(sc,0,0,sc,0,0);drawTree(gg,24,60,v,seed);SPR[key]=c;SPRN++}g.drawImage(c,x-24,by-60,48,66)}
+function drawTreeCached(g,x,by,v,seed){if(PR.on){drawTree(g,x,by,v,seed);return} /* 그림 엔진을 쓸 땐 나무를 어차피 한 번 구워 두므로, 따로 모아 두는 나무 종이(최대 30MB)는 안 만들어요 */
+  const sc=Math.max(.5,Math.round(RENDER_SCALE*4)/4);const key=v+'|'+seed+'|'+sc;let c=SPR[key];if(!c){if(SPRN>160){for(const k in SPR)delete SPR[k];SPRN=0}c=document.createElement('canvas');c.width=Math.ceil(48*sc);c.height=Math.ceil(66*sc);const gg=c.getContext('2d');gg.setTransform(sc,0,0,sc,0,0);drawTree(gg,24,60,v,seed);SPR[key]=c;SPRN++}g.drawImage(c,x-24,by-60,48,66)}
 function drawTree(g,x,by,v,seed){
   const q=seedRand(seed+3);
   if(v==='bush'){shadow(g,x,by-1,9,2.2);canopy(g,x,by-6,8,['#5E8C4E','#6FA35E','#7DB36A','#8CC077'],seed);for(let k=0;k<5;k++)el(g,x-6+q()*12,by-10+q()*6,1.1,1.1,['#F9C9D5','#FFFFFF','#F5CF4E'][k%3]);return}
