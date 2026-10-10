@@ -245,7 +245,7 @@ function padUnits(gp,st){
   const m=autoMap(gp);return [{side:'X',slot:duo?slotOf(gp):S.active,vec:sv('X',ax[0]||0,ax[1]||0),btn:{act:m.act,back:m.back,menu:m.menu,swap:m.swap}}];
 }
 function applyPadBinds(gp,u){
-  const p=u.slot,K=SET.keys[(S.mode!=='solo'||S.phase!=='play')?p:(u.side==='R'?1:0)]||{},own={};let any=false;
+  const p=u.slot,K=SET.keys[(S.mode!=='solo'||S.phase!=='play')?(SET.swapSides?1-p:p):(u.side==='R'?1:0)]||{},own={};let any=false;
   for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='p'&&b.id===gp.id){own[fn]=[b.b];any=true}}
   if(!any)return u.btn;const out={act:[],back:[],menu:[],swap:[]};Object.assign(out,own);return out;
 }

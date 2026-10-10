@@ -11,11 +11,13 @@ if(!SET.keys)SET.keys={0:{},1:{}};
 const KB_HELD={};const BIND={on:false,p:0,fi:0,seq:false,t0:0,msg:''};let bindNavT=[0,0];
 function bindLabel(b){if(!b)return '없음';return b.t==='p'?`${b.n||'패드'} 버튼 ${b.b}`:(b.n||('키 '+b.c))}
 function keyLabel(e){const m={13:'확인(Enter)',461:'뒤로',27:'Esc',32:'스페이스',33:'PageUp',34:'PageDown',37:'←',38:'↑',39:'→',40:'↓'};return (m[e.keyCode]||e.key||'키')+` (${e.keyCode})`}
-function bindHit(code){for(const p of [0,1]){const K=SET.keys[p]||{};for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='k'&&b.c===code)return {p,fn}}}return null}
+/* 키 지정 묶음 k(0·1)는 조이콘 한 짝에 붙어 있어요. '생민·수갱 자리 바꾸기'를 하면 묶음째 상대 캐릭터로 넘어가요(스틱·버튼·키 모두 같이) */
+function kOf(p){return (SET.swapSides&&(S.mode!=='solo'||S.phase!=='play'))?1-p:p}
+function bindHit(code){for(const k of [0,1]){const K=SET.keys[k]||{};for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='k'&&b.c===code)return {p:kOf(k),fn}}}return null}
 function hasPadBind(id){for(const p of [0,1]){const K=SET.keys[p]||{};for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='p'&&b.id===id)return true}}return false}
 function assignBind(val){
   for(const p of [0,1]){const K=SET.keys[p]||(SET.keys[p]={});for(const [fn] of BFN){const b=K[fn];if(b&&b.t===val.t&&(val.t==='k'?b.c===val.c:(b.id===val.id&&b.b===val.b)))delete K[fn]}}
-  (SET.keys[BIND.p]||(SET.keys[BIND.p]={}))[BFN_UI[BIND.fi][0]]=val;saveSettings();sfx('tap');
+  (SET.keys[kOf(BIND.p)]||(SET.keys[kOf(BIND.p)]={}))[BFN_UI[BIND.fi][0]]=val;saveSettings();sfx('tap');
   if(BIND.seq&&BIND.fi<BFN_UI.length-1){BIND.fi++;BIND.t0=performance.now();BIND.msg=''}else{BIND.on=false;BIND.msg='지정했어요'}
   if($('#keyBox'))renderKeys();
 }
@@ -32,7 +34,7 @@ function bindPoll(){
   for(const gp of padsList()){const st=GP.pads[padKey(gp)]||(GP.pads[padKey(gp)]={prev:[]});const k=gp.buttons.findIndex((b,i)=>b.pressed&&!st.prev[i]);st.prev=gp.buttons.map(b=>b.pressed);if(k>=0&&performance.now()-BIND.t0>250){assignBind({t:'p',id:gp.id,b:k,n:shortPad(gp.id)});return}}
 }
 function bindVec(p){
-  const K=SET.keys[p]||{},now=performance.now();let x=0,y=0;
+  const K=SET.keys[kOf(p)]||{},now=performance.now();let x=0,y=0;
   const held=b=>{if(!b)return false;if(b.t==='k')return KB_HELD[b.c]&&now-KB_HELD[b.c]<(KB_UP[b.c]?2500:220);const gp=padsList().find(g=>g.id===b.id);return !!(gp&&gp.buttons[b.b]&&gp.buttons[b.b].pressed)};
   if(held(K.up))y-=1;if(held(K.down))y+=1;if(held(K.left))x-=1;if(held(K.right))x+=1;
   if(x&&y){x*=Math.SQRT1_2;y*=Math.SQRT1_2}return [x,y];
@@ -47,19 +49,19 @@ function doBind(p,fn,rep){
   if(fn==='swap'){if(S.mode==='solo'&&!ctx)swapChar();return}
 }
 function padBindPoll(gp,st){
-  let used=false;for(const p of [0,1]){const K=SET.keys[p]||{};for(const [fn] of BFN){const b=K[fn];if(!b||b.t!=='p'||b.id!==gp.id)continue;used=true;const on=gp.buttons[b.b]&&gp.buttons[b.b].pressed;
+  let used=false;for(const k of [0,1]){const K=SET.keys[k]||{},p=kOf(k);for(const [fn] of BFN){const b=K[fn];if(!b||b.t!=='p'||b.id!==gp.id)continue;used=true;const on=gp.buttons[b.b]&&gp.buttons[b.b].pressed;
     if(on&&fn==='act'&&typeof PADACT!=='undefined')PADACT[S.mode==='solo'?S.active:p]=true;
     if(on&&!st.prev[b.b])doBind(p,fn,false);else if(on&&['up','down','left','right'].includes(fn))doBind(p,fn,true)}}
   return used;
 }
 function renderKeys(){
   const box=$('#keyBox');if(!box)return;
-  const col=p=>`<div><div class="lbl">${p?'수갱':'생민'} · ${p===sideSlot('L')?'왼쪽':'오른쪽'} 조이콘</div>${BFN_UI.map(([fn,n],fi)=>{const on=BIND.on&&BIND.p===p&&BIND.fi===fi;return `<div class="setrow"><span class="grow">${n}<br><small>${on?'<b style="color:#C65C79;font-weight:normal">지금 조이콘 버튼을 누르세요…</b>':esc(bindLabel((SET.keys[p]||{})[fn]))}</small></span><button class="btn small ${on?'primary':''}" data-bk="${p}|${fi}">${on?'대기 중':'지정'}</button></div>`}).join('')}
+  const col=p=>`<div><div class="lbl">${p?'수갱':'생민'} · ${p===sideSlot('L')?'왼쪽':'오른쪽'} 조이콘</div>${BFN_UI.map(([fn,n],fi)=>{const on=BIND.on&&BIND.p===p&&BIND.fi===fi;return `<div class="setrow"><span class="grow">${n}<br><small>${on?'<b style="color:#C65C79;font-weight:normal">지금 조이콘 버튼을 누르세요…</b>':esc(bindLabel((SET.keys[kOf(p)]||{})[fn]))}</small></span><button class="btn small ${on?'primary':''}" data-bk="${p}|${fi}">${on?'대기 중':'지정'}</button></div>`}).join('')}
     <div class="row"><button class="btn small soft" data-bseq="${p}">처음부터 차례로 지정</button><button class="btn small" data-bclr="${p}">지우기</button></div></div>`;
   box.innerHTML=`${BIND.msg?`<p class="req" style="color:#C65C79">${esc(BIND.msg)}</p>`:''}<div class="inv" style="height:auto">${col(0)}${col(1)}</div>`;
   box.querySelectorAll('[data-bk]').forEach(b=>b.onclick=()=>{const [p,fi]=b.dataset.bk.split('|').map(Number);Object.assign(BIND,{on:true,p,fi,seq:false,t0:performance.now(),msg:''});renderKeys()});
   box.querySelectorAll('[data-bseq]').forEach(b=>b.onclick=()=>{Object.assign(BIND,{on:true,p:+b.dataset.bseq,fi:0,seq:true,t0:performance.now(),msg:''});renderKeys()});
-  box.querySelectorAll('[data-bclr]').forEach(b=>b.onclick=()=>{SET.keys[+b.dataset.bclr]={};saveSettings();BIND.msg='지웠어요';renderKeys()});
+  box.querySelectorAll('[data-bclr]').forEach(b=>b.onclick=()=>{SET.keys[kOf(+b.dataset.bclr)]={};saveSettings();BIND.msg='지웠어요';renderKeys()});
 }
 function showKeys(){
   showScreen(`<div class="sheet" style="width:min(58.6rem,96vw)"><h1 style="font-size:1.57rem">조이콘 키 지정</h1>

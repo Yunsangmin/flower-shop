@@ -633,7 +633,7 @@ function update(dtReal){
 const ACTH=[{kb:false,tch:false},{kb:false,tch:false}];
 function actHeld(i){return ACTH[i].kb||ACTH[i].tch||(typeof PADACT!=='undefined'&&PADACT[i])}
 function kbSlot(e){const code=e.code,kc=e.keyCode;if(kc===33||kc===34)return S.active;{const h=bindHit(kc);if(h)return h.fn==='act'?(S.mode==='solo'?S.active:h.p):-1}
-  for(const p of [0,1]){const b=(SET.keys&&SET.keys[p]||{}).act;if(b&&b.t==='k'&&b.c===code)return S.mode==='solo'?S.active:p}
+  for(const k of [0,1]){const b=(SET.keys&&SET.keys[k]||{}).act;if(b&&b.t==='k'&&b.c===code)return S.mode==='solo'?S.active:kOf(k)}
   if(S.mode==='solo')return ['Space','Enter','KeyE'].includes(code)?S.active:-1;if(code==='Space'||code==='KeyF')return 0;if(code==='Enter'||code==='Slash')return 1;return -1}
 addEventListener('keyup',e=>{const s=kbSlot(e);if(s>=0)ACTH[s].kb=false;else if(e.keyCode===33||e.keyCode===34)ACTH[S.active].kb=false});
 addEventListener('blur',()=>ACTH.forEach(h=>{h.kb=false;h.tch=false}));
