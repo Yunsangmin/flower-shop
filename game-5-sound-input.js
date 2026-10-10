@@ -333,11 +333,22 @@ function curFocus(ctx){let b=ctx.el.querySelector('.gfocus');if(b&&b.offsetParen
 function navMove(ctx,dir){
   const items=navItems(ctx.el);if(!items.length)return;let cur=curFocus(ctx);
   if(!cur){setFocus(ctx,items.find(b=>b.dataset.a!=='close')||items[0]);sfx('nav');return}
-  const r=cur.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let best=null,bs=1e9;
-  for(const b of items){if(b===cur)continue;const q=b.getBoundingClientRect(),x=q.left+q.width/2,y=q.top+q.height/2,dx=x-cx,dy=y-cy;
-    let main,off;if(dir==='right'){main=dx;off=Math.abs(dy)}else if(dir==='left'){main=-dx;off=Math.abs(dy)}else if(dir==='down'){main=dy;off=Math.abs(dx)}else{main=-dy;off=Math.abs(dx)}
-    if(main<=4)continue;const sc=main+off*2.2;if(sc<bs){bs=sc;best=b}}
-  if(best){setFocus(ctx,best);sfx('nav')}
+  /* 16차: 칸 이동을 '같은 묶음 → 같은 쪽 판 → 창 전체' 순서로 찾아요.
+     · 가방·냉장고·작업대 칸(격자) 안에서는 위/아래가 바로 위·아래 칸으로(같은 줄 끝까지 갈 필요 없음)
+     · 격자 끝에서 더 가면 같은 쪽(왼쪽 가방 / 오른쪽 판) 안의 버튼으로, 거기도 없으면 반대쪽 판으로 넘어가요 */
+  const G=b=>b.closest('.grid,.shopgrid,.list,.row,.check'),P=b=>b.closest('.invL,.invR,.mg>div,.mbody,.sheet');
+  /* 상점 카드처럼 칸 안에 버튼이 있으면 '칸' 자리로 줄을 맞춰요(글자 줄 수가 달라 버튼 높이가 들쭉날쭉해도 같은 줄로) */
+  const R=b=>{const g=b.closest('.shopgrid');if(g){let n=b;while(n.parentElement&&n.parentElement!==g)n=n.parentElement;if(n.parentElement===g)return n.getBoundingClientRect()}return b.getBoundingClientRect()};
+  const r=R(cur),cx=r.left+r.width/2,cy=r.top+r.height/2,vert=dir==='up'||dir==='down';
+  const SD=b=>b.closest('.invL,.invR'),side=SD(cur);
+  const levels=[[G(cur),G],[P(cur),P],[side,SD],[null,null]];
+  for(const [box,fn] of levels){if(fn&&!box)continue;let best=null,bs=1e9;
+    for(const b of items){if(b===cur||(fn&&fn(b)!==box))continue;if(!fn&&vert&&side&&SD(b)&&SD(b)!==side)continue; /* 위·아래로는 반대쪽 판으로 넘어가지 않아요(머리글의 닫기 등만) */const q=R(b),x=q.left+q.width/2,y=q.top+q.height/2,dx=x-cx,dy=y-cy;
+      let main,off;
+      if(vert){main=dir==='down'?dy:-dy;off=Math.max(0,Math.abs(dx)-Math.max(r.width,q.width)*.45);if(main<=Math.min(r.height,q.height)*.4)continue} // 같은 줄은 건너뛰고, 같은 세로줄(겹치는 칸)을 먼저
+      else{main=dir==='right'?dx:-dx;off=Math.max(0,Math.abs(dy)-Math.max(r.height,q.height)*.45);if(main<=Math.min(r.width,q.width)*.4)continue}
+      const sc=main+off*(fn===G?3:2.2);if(sc<bs){bs=sc;best=b}}
+    if(best){setFocus(ctx,best);sfx('nav');return}}
 }
 function navPress(ctx){if(ctx.key.startsWith('m')&&S.chars[ctx.i].modal&&S.chars[ctx.i].modal.type==='talk'&&!S.chars[ctx.i].modal.choose){if(talkSkip(ctx.i))return;talkNext(ctx.i);return}let b=curFocus(ctx);if(!b){b=ctx.el.querySelector('button.primary:not([disabled])');if(!b){navMove(ctx,'down');return}}if(b.tagName==='INPUT'){b.focus();return}b.dispatchEvent(new MouseEvent('click',{bubbles:true}));if(ctx.key.startsWith('m'))modalEl(ctx.i).dataset.t=0}
 function navBack(ctx){
