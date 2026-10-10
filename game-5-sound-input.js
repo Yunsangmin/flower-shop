@@ -206,15 +206,34 @@ function stickVec(x,y){const m=Math.hypot(x,y);if(m<.3)return [0,0];const k=Math
   const a=Math.atan2(vy,vx),q=Math.round(a/(Math.PI/2))*(Math.PI/2);if(Math.abs(a-q)<.21){const r=Math.hypot(vx,vy);vx=Math.cos(q)*r;vy=Math.sin(q)*r;if(Math.abs(vx)<1e-6)vx=0;if(Math.abs(vy)<1e-6)vy=0}
   return [vx,vy]}
 /* 스틱 쏠림(손을 떼도 가운데로 정확히 안 돌아오는 것) 보정: 손을 뗀 위치를 조이콘마다 천천히 따라가 기억해 두고 빼 줘요 */
-function stickC(st,k,x,y){if(!st)return [x,y];const C=st.ctr||(st.ctr={});let c=C[k];const m=Math.hypot(x,y);
-  if(!c){c=C[k]=m<.45?[x,y]:[0,0]}
-  const dx=x-c[0],dy=y-c[1];if(Math.hypot(dx,dy)<.22&&m<.5){c[0]+=dx*.03;c[1]+=dy*.03}
+/* 16차: 예전엔 스틱을 살살 밀 때도 '가운데'가 따라 움직여서, 한동안 방향이 틀어졌다가 다시 돌아오는 일이 있었어요.
+   이제는 손을 놓고 값이 0.6초 이상 가만히 있을 때만, 시간 기준으로 천천히(약 1.5초) 따라가요. 가운데 보정은 최대 0.3까지만 */
+function stickC(st,k,x,y){if(!st)return [x,y];const C=st.ctr||(st.ctr={});let c=C[k];const m=Math.hypot(x,y),now=performance.now();
+  if(!c){c=C[k]=m<.3?[x,y,now,x,y]:[0,0,now,x,y]}
+  const moved=Math.hypot(x-c[3],y-c[4])>.04;c[3]=x;c[4]=y;if(moved||m>=.3)c[2]=now;
+  const dt=Math.min(.1,(now-(c[5]||now))/1000);c[5]=now;
+  if(now-c[2]>600&&m<.3){const a=1-Math.exp(-dt/1.5);c[0]+=(x-c[0])*a;c[1]+=(y-c[1])*a;const cm=Math.hypot(c[0],c[1]);if(cm>.3){c[0]*=.3/cm;c[1]*=.3/cm}}
   return [x-c[0],y-c[1]]}
+/* 움직이기 시작은 0.3, 멈추는 건 0.22 아래로 내려갈 때(경계에서 갔다 멈췄다 반복 방지)
+   + 한 번만 튀는 엉뚱한 방향(블루투스 잡음)은 0.06초 동안 확인한 뒤에 따라가요 */
+function stickVec2(st,k,x,y){if(!st)return stickVec(x,y);const H=st.hy||(st.hy={});const h=H[k]||(H[k]={on:false,v:[0,0],alt:null,altT:0});
+  const m=Math.hypot(x,y);if(!h.on&&m>=.3)h.on=true;else if(h.on&&m<.22)h.on=false;
+  if(!h.on){h.v=[0,0];h.alt=null;return h.v}
+  let v=stickVec(Math.max(m,.3001)===m?x:x*.3001/m,Math.max(m,.3001)===m?y:y*.3001/m);if(!v[0]&&!v[1])v=[x/m*.01,y/m*.01];
+  const pm=Math.hypot(h.v[0],h.v[1]);
+  if(pm>.4&&Math.hypot(v[0],v[1])>.4){const cos=(v[0]*h.v[0]+v[1]*h.v[1])/(pm*Math.hypot(v[0],v[1]));
+    if(cos<-.2){const now=performance.now();if(!h.alt){h.alt=now;INLOG.flip++;return h.v}if(now-h.alt<60)return h.v}}
+  h.alt=null;h.v=v;return v}
+/* 조작 기록: 버벅임이 '그림이 늦어서'인지 '조이콘 신호가 늦어서'인지 '방향이 튀어서'인지 나눠서 세요(설정 → 컨트롤러 진단에서 보여요) */
+const INLOG={since:Date.now(),gap150:0,gap400:0,maxGap:0,stale:0,flip:0,slowF:0,heldSlowF:0,last:''};
+try{const o=JSON.parse(localStorage.getItem('ourflowershop_input_log')||'null');if(o&&o.prev)INLOG.prevTxt=o.prev}catch(e){}
+function inlogTxt(){const mins=Math.max(1,(Date.now()-INLOG.since)/60000);return `${mins.toFixed(0)}분 동안 · 조이콘 신호 늦음(0.15초↑) ${INLOG.gap150}회 · 끊김(0.4초↑) ${INLOG.gap400}회 · 가장 긴 끊김 ${(INLOG.maxGap/1000).toFixed(2)}초 · 멈춤 처리 ${INLOG.stale}회 · 튀는 방향 걸러냄 ${INLOG.flip}회 · 느린 화면(0.1초↑) ${INLOG.slowF}회(스틱 미는 중 ${INLOG.heldSlowF}회)`}
+setInterval(()=>{try{localStorage.setItem('ourflowershop_input_log',JSON.stringify({prev:inlogTxt(),t:Date.now()}))}catch(e){}},30000);
 function sideSlot(side){const sw=!!SET.swapSides;return side==='L'?(sw?1:0):(sw?0:1)}
 function padUnits(gp,st){
   /* 이 게임은 늘 둘이 각자 하나씩 쥐어요 → 메인 화면·처음 메뉴에서도 처음부터 '가로로 하나씩'으로 읽어요(예전엔 게임 시작 전엔 방향이 돌아가 있었어요) */
   const ax=gp.axes,duo=S.mode!=='solo'||S.phase!=='play',id=gp.id; // 게임 밖(메인 화면·메뉴)에선 늘 둘이 하나씩
-  const sv=(k,x,y)=>{const c=stickC(st,k,x,y);return stickVec(c[0],c[1])};
+  const sv=(k,x,y)=>{const c=stickC(st,k,x,y);return stickVec2(st,k,c[0],c[1])};
   if(isCombo(id)){
     if(duo)return [
       {side:'L',slot:sideSlot('L'),vec:sv('L',ax[1]||0,-(ax[0]||0)),btn:{act:[12,13,14,15],back:[8,4,6],menu:[10],swap:[]}},
@@ -254,6 +273,7 @@ function updateOneCat(c,dt){
 }
 let PADACT=[false,false];
 function pollPads(dt){
+  if(dt>.1&&S.phase==='play'){INLOG.slowF++;if(Math.hypot(PADVEC[0][0],PADVEC[0][1])+Math.hypot(PADVEC[1][0],PADVEC[1][1])>.3)INLOG.heldSlowF++}
   let list=padsList();PADVEC[0]=[0,0];PADVEC[1]=[0,0];PADACT=[false,false];
   if(BIND.on){bindPoll();return}
   if(list.length)audioInit();
@@ -266,8 +286,11 @@ function pollPads(dt){
     if(GP.calib&&GP.calib.id===gp.id){calibStep(gp,st);st.prev=gp.buttons.map(b=>b.pressed);continue}
     /* 블루투스 신호가 멈추면(TV가 마지막 스틱 값을 계속 들고 있음) 0.4초 뒤 멈춘 것으로 봐요 → 손을 뗐는데 계속 가는 것 방지 */
     /* 단, 조이콘이 값이 그대로여도 신호를 계속 보내는 TV에서만 써요(그렇지 않은 TV에선 스틱을 꾹 밀고 있을 때 멈춰 버리니까) */
-    const nowT=performance.now(),axs=gp.axes.join(',');if(gp.timestamp!==st.ts){if(st.ts!=null&&axs===st.axs)st.tsOK=(st.tsOK||0)+1;st.ts=gp.timestamp;st.tsT=nowT}st.axs=axs;
-    const stale=st.tsOK>10&&nowT-(st.tsT||nowT)>400;
+    const nowT=performance.now(),axs=gp.axes.join(',');st.mpg=Math.max(st.mpg||0,nowT-(st.lp||nowT));st.lp=nowT;
+    if(gp.timestamp!==st.ts){if(st.ts!=null&&axs===st.axs)st.tsOK=(st.tsOK||0)+1;
+      /* 화면이 느려서 늦게 읽은 건 빼고(그동안 0.08초 안쪽으로 계속 읽었는데도 새 신호가 없었을 때만) 조이콘 신호 늦음으로 세요 */
+      if(st.tsOK>10&&st.tsT&&st.mpg<80){const gap=nowT-st.tsT;if(gap>150&&S.phase==='play'){INLOG.gap150++;if(gap>400)INLOG.gap400++;if(gap>INLOG.maxGap)INLOG.maxGap=gap}}st.ts=gp.timestamp;st.tsT=nowT;st.mpg=0}st.axs=axs;
+    const stale=st.tsOK>10&&nowT-(st.tsT||nowT)>400;if(stale&&!st.wasStale&&S.phase==='play')INLOG.stale++;st.wasStale=stale;
     for(const u of padUnits(gp,st)){
       const slot=u.slot,v=stale?[0,0]:u.vec,B=applyPadBinds(gp,u),ctx=navContext(slot),dk=u.side;
       if(ctx){
@@ -365,7 +388,7 @@ function diagRender(){dgPoll();const now=performance.now();if(now-diagT<120)retu
   const guide=`<div class="diag"><b>버튼 하나씩 테스트</b> ${DG.on?`<span style="color:#C65C79">지금 누를 것: ${DG_STEPS[DG.step]} (없으면 건너뛰기)</span>`:(DG.res.length?'완료! 이 화면을 찍어 보내 주세요':'시작 버튼을 눌러 주세요')}<br>${DG_STEPS.map((n,i)=>`${n}: ${DG.res[i]||(DG.on&&i===DG.step?'…':'-')}`).join(' · ')}</div>`;
   const pads=padsList();
   box.innerHTML=guide+(pads.length?pads.map(gp=>{const st=GP.pads[padKey(gp)]||{};const v=[0,0];const us=padUnits(gp);return `<div class="diag"><b>${esc(gp.id)}</b><br>번호 ${gp.index} · 방식 ${gp.mapping||'(없음)'} · 인식 ${esc(shortPad(gp.id))}<br>스틱 값: ${gp.axes.map((a,i)=>`${i}:${a.toFixed(2)}`).join('  ')}<br>눌린 버튼: ${gp.buttons.map((b,i)=>b.pressed?i:null).filter(x=>x!==null).join(', ')||'없음'}<br>게임이 읽은 방향: ${us.map(u=>`${u.side==='L'?'왼쪽 조이콘':u.side==='R'?'오른쪽 조이콘':'컨트롤러'}(${u.slot?'수갱':'생민'}) → ${u.vec.map(x=>x.toFixed(2)).join(', ')}`).join(' / ')}${S.mode==='duo'?'':' (혼자 모드 기준)'}</div>`}).join(''):'<p class="note" style="text-align:left">게임패드로 인식된 컨트롤러가 없어요. 조이콘 버튼을 한 번 눌러 보세요.</p>')+
-  `<div class="diag"><b>리모컨·키 입력</b><br>${KEYLOG.join(' / ')||'아직 없음'}</div><div class="diag"><small>${esc(navigator.userAgent)}</small></div>`}
+  `<div class="diag"><b>조작 기록 (이번 실행)</b><br>${inlogTxt()}${INLOG.prevTxt?`<br><small>지난 실행: ${esc(INLOG.prevTxt)}</small>`:''}</div><div class="diag"><b>리모컨·키 입력</b><br>${KEYLOG.join(' / ')||'아직 없음'}</div><div class="diag"><small>${esc(navigator.userAgent)}</small></div>`}
 function showDiag(){showScreen(`<div class="sheet" style="width:min(54.3rem,96vw)"><h1 style="font-size:1.57rem">컨트롤러 진단</h1><p class="sub">조이콘 버튼을 하나씩 누르고 스틱을 움직여 보세요. 이 화면을 사진으로 찍어 보내 주시면 맞춰 드릴게요.</p><div id="diagBox"></div><div class="opts"><button class="btn primary" id="dgStart">테스트 시작</button><button class="btn" id="dgSkip">건너뛰기</button><button class="btn" id="diagBack" data-back="1">돌아가기</button></div></div>`);
   $('#diagBack').onclick=()=>{DG.on=false;showSettings()};$('#dgStart').onclick=()=>{DG.on=true;DG.step=0;DG.res=[];DG.base=null;DG.cool=performance.now();diagT=0};$('#dgSkip').onclick=()=>{if(DG.on)dgRecord('반응 없음')}}
 addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!TOUCH_MODE){TOUCH_MODE=true;updateControlVisibility()}},{passive:true,capture:true});

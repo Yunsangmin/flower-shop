@@ -12,9 +12,9 @@ const SAVE_KEY='ourflowershop_save_v1';
 /* 미리보기 때 쓰던 복사본 저장 정리(진짜 저장은 건드리지 않음) */
 try{localStorage.removeItem('ourflowershop_save_v1_beta');localStorage.removeItem('ourflowershop_settings_v1_beta')}catch(e){}
 const AREAS={shop:{h:11},market:{w:22,h:11},supply:{w:14,h:10},town:{w:58,h:34},north:{w:58,h:22}};
-function shopLevel(){return S.up.exp3?3:S.up.exp2?2:S.up.exp1?1:0}
+const EXP_MAX=6;function shopLevel(){for(let n=EXP_MAX;n>0;n--)if(S.up['exp'+n])return n;return 0}
 Object.defineProperty(AREAS.shop,'w',{get:()=>18+4*shopLevel()});
-const GROW={tulip:3,freesia:3,gyp:2,rose:4,hydrangea:4};const SEED_PRICE={tulip:4000,freesia:3500,gyp:2500,rose:6000,hydrangea:5000};
+const GROW={tulip:3,freesia:3,gyp:2,rose:4,hydrangea:4,sunflower:4,ranunculus:4,peony:5};const SEED_PRICE={tulip:4000,freesia:3500,gyp:2500,rose:6000,hydrangea:5000,sunflower:5000,ranunculus:6500,peony:9000};
 const RIVER=[27,33];function walkCol(tx){return (tx>=24&&tx<=26)||(tx>=34&&tx<=36)}function bridgeRow(ty){return (ty>=6&&ty<=12)||(ty>=17&&ty<=18)||(ty>=24&&ty<=25)}
 
 const FL={
@@ -22,10 +22,16 @@ const FL={
   freesia:{name:'프리지아',decay:4,price:7500,dot:'#F5CF4E'},
   gyp:{name:'안개꽃',decay:3,price:5000,dot:'#FFFFFF'},
   rose:{name:'장미',decay:3.5,price:15000,dot:'#D9435E'},
-  hydrangea:{name:'수국',decay:6,price:12000,dot:'#9DB8E8'}
+  hydrangea:{name:'수국',decay:6,price:12000,dot:'#9DB8E8'},
+  /* 용품상점 '새 꽃'에서 거래를 시작해야 시장에 나와요(lock) */
+  sunflower:{name:'해바라기',decay:4,price:11000,dot:'#F2B731',lock:true},
+  ranunculus:{name:'라넌큘러스',decay:4.5,price:14000,dot:'#F29A86',lock:true},
+  peony:{name:'작약',decay:5,price:22000,dot:'#F2A9C0',lock:true}
 };
-const TYPES=['tulip','freesia','gyp','rose','hydrangea'];
-const LEAVES={tulip:3,freesia:2,gyp:4,rose:3,hydrangea:2};
+const TYPES=['tulip','freesia','gyp','rose','hydrangea','sunflower','ranunculus','peony'];
+function flOpen(t){return !FL[t]||!FL[t].lock||!!(S.up&&S.up['fl_'+t])}
+function openTypes(){return TYPES.filter(flOpen)}
+const LEAVES={tulip:3,freesia:2,gyp:4,rose:3,hydrangea:2,sunflower:3,ranunculus:2,peony:3};
 const PAPERS={
   pink:{name:'분홍',c:'#F4B6C4',d:'#E08FA4',l:'#FBDDE4'},
   yellow:{name:'노랑',c:'#F6DC86',d:'#E2BD55',l:'#FBEFC3'},
@@ -34,13 +40,41 @@ const PAPERS={
   lilac:{name:'라일락',c:'#D6C6EC',d:'#B5A0DA',l:'#EAE1F6'},
   mint:{name:'민트',c:'#BFE3D0',d:'#94C9AE',l:'#E1F3EA',extra:true},
   coral:{name:'코랄',c:'#F6B7A0',d:'#E3927A',l:'#FBDCD0',extra:true},
-  kraft:{name:'크라프트',c:'#D8B994',d:'#B8956C',l:'#EBD8C0',extra:true}
+  kraft:{name:'크라프트',c:'#D8B994',d:'#B8956C',l:'#EBD8C0',extra:true},
+  /* 파스텔 포장지 세트(papers3) */
+  peach:{name:'피치',c:'#F9C9AE',d:'#E8A585',l:'#FDE4D6',set:'papers3'},
+  blush:{name:'블러시',c:'#F2C4CE',d:'#D99AA8',l:'#F9E2E7',set:'papers3'},
+  sage:{name:'세이지',c:'#C5D3B4',d:'#9FB28A',l:'#E2E9D9',set:'papers3'},
+  butter:{name:'버터',c:'#F7E7A8',d:'#E2CB78',l:'#FCF3D3',set:'papers3'},
+  peri:{name:'페리윙클',c:'#C3C9EE',d:'#9CA3D8',l:'#E1E4F7',set:'papers3'},
+  ivory:{name:'아이보리',c:'#F7F1E3',d:'#DCD2BC',l:'#FFFCF4',set:'papers3'},
+  /* 깊은 색 포장지 세트(papers4) */
+  burgundy:{name:'버건디',c:'#8E3A4C',d:'#6B2536',l:'#B4606F',set:'papers4'},
+  navyp:{name:'네이비',c:'#3E4D78',d:'#2A3557',l:'#6A78A0',set:'papers4'},
+  forest:{name:'포레스트',c:'#4F7458',d:'#36553E',l:'#7A9A80',set:'papers4'},
+  mustard:{name:'머스터드',c:'#D6A93E',d:'#B0862A',l:'#E8C772',set:'papers4'},
+  charcoal:{name:'차콜',c:'#55525A',d:'#3A383F',l:'#807C86',set:'papers4'},
+  blackp:{name:'블랙',c:'#2E2B30',d:'#1A181C',l:'#56525A',set:'papers4'},
+  /* 특별 포장지 세트(papers5): 은은하게 빛나요 */
+  goldp:{name:'골드',c:'#E2C27A',d:'#B8954A',l:'#F5E4B5',set:'papers5',bg:'linear-gradient(135deg,#F5E4B5,#D8B25E 55%,#F2DDA0)'},
+  silverp:{name:'실버',c:'#CDD3D9',d:'#9CA5AE',l:'#EEF1F4',set:'papers5',bg:'linear-gradient(135deg,#F2F4F6,#AEB7C0 55%,#E4E8EC)'},
+  pearl:{name:'진주빛',c:'#F3EEF2',d:'#D3C8D2',l:'#FFFFFF',set:'papers5',bg:'linear-gradient(135deg,#FFFFFF,#EADFF0 50%,#E2EEF4)'},
+  rosegold:{name:'로즈골드',c:'#E7B6A4',d:'#C78E7A',l:'#F6DCD2',set:'papers5',bg:'linear-gradient(135deg,#F6DCD2,#D79A86 55%,#F0C9BA)'}
 };
+/* 포장지·무늬·리본 세트: extra(예전 세트)는 papers2/patterns2/ribbons2, 새 세트는 set 이름으로 열려요 */
+function wrapOpen(o,old){return o.set?!!S.up[o.set]:o.extra?!!S.up[old]:true}
 /* 포장지 무늬: 색과 어울리면 손님이 기뻐하고 팁을 조금 더 줘요 */
-const PATTERNS={plain:{name:'민무늬'},dot:{name:'물방울'},stripe:{name:'줄무늬'},check:{name:'체크'},lace:{name:'레이스',extra:true},news:{name:'영자신문',extra:true},sheer:{name:'투명 비닐',extra:true}};
-const PAT_GOOD={dot:['pink','yellow','mint','sky'],stripe:['sky','cream','mint','lilac'],check:['cream','coral','kraft','yellow'],lace:['pink','lilac','cream','sky'],news:['kraft','cream'],sheer:['sky','lilac','mint','pink','cream']};
-const PAT_LINE={dot:['물방울 무늬 너무 귀여워요! 받는 사람도 웃을 것 같아요.','동글동글 무늬가 꽃이랑 잘 어울려요!'],stripe:['줄무늬 포장이 깔끔하고 세련됐네요!','단정한 줄무늬라 선물하기 딱 좋아요.'],check:['체크무늬라 소풍 가는 기분이에요!','포근한 체크 포장, 감각 있으시네요.'],lace:['레이스라니… 너무 로맨틱해요!','레이스 테두리가 꽃을 더 우아하게 만들어 줘요.'],news:['영자신문 포장! 유럽 꽃집 같아요.','빈티지한 느낌이 너무 멋져요.'],sheer:['투명 포장이라 꽃이 반짝반짝 빛나 보여요!','비닐 한 겹이 이렇게 고급스러울 줄이야!']};
-const SHAPES={cone:{name:'기본 V자 포장'},round:{name:'둥근 부케'},cross:{name:'비대칭 크로스 포장'},box:{name:'꽃 상자'},rattan:{name:'라탄 꽃바구니',basket:true},white:{name:'흰색 꽃바구니',basket:true}};
+const PATTERNS={plain:{name:'민무늬'},dot:{name:'물방울'},stripe:{name:'줄무늬'},check:{name:'체크'},lace:{name:'레이스',extra:true},news:{name:'영자신문',extra:true},sheer:{name:'투명 비닐',extra:true},
+  heart:{name:'하트',set:'patterns3'},star:{name:'별',set:'patterns3'},daisy:{name:'작은 꽃',set:'patterns3'},gingham:{name:'깅엄',set:'patterns3'},
+  leaf:{name:'잎사귀',set:'patterns4'},music:{name:'악보',set:'patterns4'},wave:{name:'물결',set:'patterns4'},grid:{name:'모눈',set:'patterns4'},foil:{name:'금박 테두리',set:'patterns4'}};
+const PAT_GOOD={dot:['pink','yellow','mint','sky','peach','butter','navyp'],stripe:['sky','cream','mint','lilac','ivory','navyp'],check:['cream','coral','kraft','yellow','burgundy','mustard'],lace:['pink','lilac','cream','sky','blush','ivory','pearl'],news:['kraft','cream','ivory','charcoal'],sheer:['sky','lilac','mint','pink','cream','pearl','silverp'],
+  heart:['pink','blush','coral','burgundy','ivory'],star:['navyp','blackp','sky','peri','butter'],daisy:['sage','mint','yellow','butter','sky'],gingham:['sky','peach','sage','coral','yellow'],
+  leaf:['sage','forest','kraft','cream','ivory'],music:['ivory','cream','kraft','charcoal','blackp'],wave:['sky','peri','mint','navyp'],grid:['kraft','ivory','charcoal','silverp'],foil:['blackp','navyp','burgundy','forest','charcoal','pearl']};
+const PAT_LINE={dot:['물방울 무늬 너무 귀여워요! 받는 사람도 웃을 것 같아요.','동글동글 무늬가 꽃이랑 잘 어울려요!'],stripe:['줄무늬 포장이 깔끔하고 세련됐네요!','단정한 줄무늬라 선물하기 딱 좋아요.'],check:['체크무늬라 소풍 가는 기분이에요!','포근한 체크 포장, 감각 있으시네요.'],lace:['레이스라니… 너무 로맨틱해요!','레이스 테두리가 꽃을 더 우아하게 만들어 줘요.'],news:['영자신문 포장! 유럽 꽃집 같아요.','빈티지한 느낌이 너무 멋져요.'],sheer:['투명 포장이라 꽃이 반짝반짝 빛나 보여요!','비닐 한 겹이 이렇게 고급스러울 줄이야!'],
+  heart:['하트 무늬라니, 마음이 그대로 전해질 것 같아요!','사랑스러운 하트 포장 고마워요.'],star:['별 무늬가 밤하늘 같아요. 너무 낭만적이에요!','반짝반짝 별 포장, 받는 사람이 좋아하겠어요.'],daisy:['작은 꽃무늬까지! 꽃이 두 배로 많아 보여요.','들판 같은 포장이라 기분이 좋아요.'],gingham:['깅엄 체크라 피크닉 가는 느낌이에요!','포근하고 귀여운 포장이네요.'],
+  leaf:['잎사귀 무늬가 싱그러워요. 숲속 같아요!','초록 잎 포장이라 꽃이 더 살아 보여요.'],music:['악보 포장이라니, 노래가 들리는 것 같아요!','음악을 좋아하는 친구한테 딱이에요.'],wave:['물결 무늬가 시원하고 산뜻해요.','바다 느낌 포장, 너무 예뻐요!'],grid:['모눈 포장이 깔끔하고 모던해요.','심플한데 세련됐어요!'],foil:['금박 테두리라 정말 고급스러워요!','특별한 날에 딱 맞는 포장이에요.']};
+const SHAPES={cone:{name:'기본 V자 포장'},round:{name:'둥근 부케'},cross:{name:'비대칭 크로스 포장'},box:{name:'꽃 상자'},rattan:{name:'라탄 꽃바구니',basket:true},white:{name:'흰색 꽃바구니',basket:true},
+  hatbox:{name:'둥근 모자 상자',set:'shapes2',boxy:true},bag:{name:'종이 쇼핑백',set:'shapes2',boxy:true},tin:{name:'양철 버킷',set:'shapes2',basket:true}};
 function isBasket(b){return !!(b&&b.shape&&SHAPES[b.shape]&&SHAPES[b.shape].basket)}
 function styleScore(b){if(!b||!b.pat||b.pat==='plain')return 0;return (PAT_GOOD[b.pat]||[]).includes(b.paper)?2:1}
 const RIBBONS={
@@ -49,7 +83,9 @@ const RIBBONS={
   navy:{name:'남색',c:'#3A4C80',d:'#243059'},
   gold:{name:'금색',c:'#E1B656',d:'#B48C33'},
   lavender:{name:'라벤더',c:'#B9A2E0',d:'#8E76C0',extra:true},
-  green:{name:'초록',c:'#7FB070',d:'#5C8C50',extra:true}
+  green:{name:'초록',c:'#7FB070',d:'#5C8C50',extra:true},
+  peachr:{name:'피치',c:'#F6B49A',d:'#D98C70',set:'ribbons3'},mintr:{name:'민트',c:'#9FD8C4',d:'#72B39C',set:'ribbons3'},skyr:{name:'하늘',c:'#9CC5E8',d:'#6F9CC8',set:'ribbons3'},yellowr:{name:'노랑',c:'#F5D66A',d:'#D2AE3E',set:'ribbons3'},coralr:{name:'코랄',c:'#F29A86',d:'#CF7462',set:'ribbons3'},
+  red:{name:'빨강',c:'#D8434E',d:'#A82E38',set:'ribbons4'},burg:{name:'버건디',c:'#8A3346',d:'#61202F',set:'ribbons4'},black:{name:'검정',c:'#2E2B30',d:'#121014',set:'ribbons4'},silver:{name:'은색',c:'#CDD3D9',d:'#949DA6',set:'ribbons4'},twine:{name:'노끈',c:'#CBA978',d:'#9C7C4E',set:'ribbons4'}
 };
 const TEMPLATES=[
   {title:'장미 고백',text:'오늘 고백하려고요. 새빨간 장미로 부탁드려요.',req:{rose:7,gyp:3},paper:'cream',price:62000},
@@ -63,27 +99,58 @@ const TEMPLATES=[
   {title:'첫 출근 축하',text:'산뜻하고 기분 좋은 느낌으로요.',req:{freesia:4,gyp:3},paper:'sky',price:33000},
   {title:'고백 꽃다발',text:'튤립만으로 심플하게, 진심이 보이게요.',req:{tulip:7},paper:'cream',price:36000},
   {title:'집들이 선물',text:'노랗고 풍성하게 부탁드려요.',req:{freesia:6,gyp:4},paper:'yellow',price:41000},
-  {title:'감사 인사',text:'선생님께 드려요. 단정하고 예쁘게요.',req:{tulip:3,freesia:2,gyp:3},paper:'lilac',price:37000}
+  {title:'감사 인사',text:'선생님께 드려요. 단정하고 예쁘게요.',req:{tulip:3,freesia:2,gyp:3},paper:'lilac',price:37000},
+  {title:'해바라기 응원',text:'시험 보는 친구를 응원하고 싶어요. 해바라기로 밝게요!',req:{sunflower:3,gyp:3},paper:'yellow',price:46000},
+  {title:'여름 인사',text:'해바라기랑 프리지아로 쨍하게 부탁드려요.',req:{sunflower:2,freesia:3},paper:'sky',price:44000},
+  {title:'라넌큘러스 선물',text:'동글동글 라넌큘러스가 너무 좋아요. 사랑스럽게요.',req:{ranunculus:5,gyp:2},paper:'pink',price:58000},
+  {title:'봄 소풍',text:'라넌큘러스랑 튤립으로 봄 느낌 가득!',req:{ranunculus:3,tulip:3},paper:'mint',price:56000},
+  {title:'작약 꽃다발',text:'결혼식 날 신부에게 줄 거예요. 작약으로 풍성하게요.',req:{peony:3,gyp:4},paper:'cream',price:82000},
+  {title:'작약과 장미',text:'아내 생일이에요. 작약이랑 장미로 우아하게 부탁해요.',req:{peony:2,rose:3},paper:'lilac',price:86000}
 ];
+/* 아직 거래하지 않는 꽃이 들어간 주문은 빼고 골라요 */
+function tplPool(){return TEMPLATES.filter(t=>Object.keys(t.req).every(flOpen))}
 const STYLE_IDS={natural:'우드톤',minimal:'화이트톤'};
-const SHOP_CATS=[['equip','설비'],['tool','도구'],['wrap','포장재'],['deco','꾸미기'],['furn','가구'],['interior','인테리어'],['style','옷·치장'],['expand','가게 확장']];
+const SHOP_CATS=[['equip','설비'],['tool','도구'],['wrap','포장재'],['flower','새 꽃'],['deco','꾸미기'],['furn','가구'],['interior','인테리어'],['front','가게 외관'],['style','옷·치장'],['expand','가게 확장']];
 const STYLE={
-  glasses:{label:'안경',opts:[['horn','검은 뿔테 안경',15000],['gold','동그란 금테 안경',18000],['sun','동그란 선글라스',16000]]},
-  hat:{label:'모자',opts:[['beret','베레모',12000],['sunhat','밀짚모자',15000],['beanie','니트 비니',10000],['cap','야구 모자',10000],['bucket','린넨 버킷햇',14000],['crown','하루의 꽃 화관',0,'gift']]},
-  pin:{label:'머리핀·리본',opts:[['ribbon','리본 핀',6000],['flower','꽃 머리핀',8000],['band','헤어밴드',7000],['yflower','노란 꽃핀',8000],['pearl','진주 머리핀',0,'gift']]},
+  tee:{label:'상의',opts:[['#9FD8C4','민트 티셔츠',12000],['#F6B7A0','코랄 티셔츠',12000],['#F1E6D2','크림 티셔츠',12000],['#FFFFFF','흰 티셔츠',10000],['#F7E08A','레몬 티셔츠',12000],['#C9B8E8','라벤더 티셔츠',12000],
+    ['#3E4D78','네이비 티셔츠',12000],['#2E2B30','검정 티셔츠',12000],['#8C9A6A','올리브 티셔츠',12000],['#F4B6C4','분홍 티셔츠',12000],
+    ['stripe|#F7F4EC|#3E4D78','줄무늬 티 (남색)',16000],['stripe|#FBF3F0|#D8434E','줄무늬 티 (빨강)',16000],
+    ['knit|#EADBC0','크림 니트',22000],['knit|#B8C9A8','세이지 니트',22000],['knit|#C98E9C','로즈 니트',22000],['knit|#5E6A8A','네이비 니트',22000],
+    ['hood|#B9C3CF','회색 후드티',24000],['hood|#F2C9A0','살구 후드티',24000],['hood|#7F9C6E','초록 후드티',24000]]},
+  pants:{label:'하의',opts:[['#5A78A6','청바지',18000],['#8FAED0','연청 바지',18000],['#D8C4A0','베이지 면바지',16000],['#7D7A5A','카키 바지',16000],['#EEEAE0','흰 바지',16000],['#6B4E3D','브라운 코듀로이 바지',20000],
+    ['s:#3E4D78','남색 플리츠 스커트',20000],['s:#C9A88A','베이지 롱스커트',20000],['s:#7F9CC0','데님 스커트',20000],['s:#E8B4C0','분홍 스커트',20000]]},
+  dress:{label:'셔츠·원피스',opts:[['pink','벚꽃 원피스',22000],['sky','하늘 원피스',22000],['linen','린넨 원피스',24000],['navy','남색 원피스',24000],['stripe','줄무늬 셔츠',18000],['check','체크 셔츠',18000],['denim','데님 셔츠',20000]]},
   apron:{label:'앞치마',opts:[['#F4B6C4','분홍 앞치마',14000],['#A7C7A0','초록 앞치마',14000],['#6F8FB8','데님 앞치마',16000],['#C9B8E8','라벤더 앞치마',14000],['#F1E3C4','크림 린넨 앞치마',15000],['knit','순이 할머니의 꽃무늬 앞치마',0,'gift']]},
-  tee:{label:'티셔츠',opts:[['#9FD8C4','민트 티셔츠',12000],['#F6B7A0','코랄 티셔츠',12000],['#F1E6D2','크림 티셔츠',12000],['#FFFFFF','흰 티셔츠',10000],['#F7E08A','레몬 티셔츠',12000],['#C9B8E8','라벤더 티셔츠',12000]]},
-  dress:{label:'원피스·셔츠',opts:[['pink','벚꽃 원피스',22000],['sky','하늘 원피스',22000],['linen','린넨 원피스',24000],['navy','남색 원피스',24000],['stripe','줄무늬 셔츠',18000],['check','체크 셔츠',18000],['denim','데님 셔츠',20000]]},
-  bag:{label:'가방·꽃바구니',opts:[['leather','가죽 크로스백',16000],['canvas','캔버스 에코백',12000],['rattan','라탄 가방',20000],['basket','꽃바구니',18000],['pack','미니 백팩',15000],['kkami','민지의 까미 에코백',0,'gift'],['spring','봄 연구실 에코백',0,'gift']]}
+  shoes:{label:'신발',opts:[['#2E2B30','검정 구두',18000],['#8A5A3A','갈색 로퍼',20000],['#D8434E','빨간 운동화',16000],['#F2B6C6','분홍 운동화',16000],['#9CC5E8','하늘 운동화',16000],['#F2C230','노란 장화',18000],['#C9B08A','베이지 부츠',22000]]},
+  hat:{label:'모자',opts:[['beret','베레모',12000],['sunhat','밀짚모자',15000],['beanie','니트 비니',10000],['cap','야구 모자',10000],['bucket','린넨 버킷햇',14000],
+    ['beretN','남색 베레모',12000],['beanieG','회색 비니',10000],['beanieP','분홍 비니',10000],['capB','검정 야구 모자',10000],['capW','흰 야구 모자',10000],['fedora','페도라',20000],['visor','흰 썬캡',12000],['crown','하루의 꽃 화관',0,'gift']]},
+  glasses:{label:'안경',opts:[['horn','검은 뿔테 안경',15000],['gold','동그란 금테 안경',18000],['sun','동그란 선글라스',16000],['red','빨간 뿔테 안경',16000],['clear','투명테 안경',16000],['tort','호피 뿔테 안경',18000],['rose','분홍 선글라스',18000],['silver','은테 동그란 안경',18000]]},
+  pin:{label:'머리 장식',opts:[['ribbon','리본 핀',6000],['flower','꽃 머리핀',8000],['band','헤어밴드',7000],['yflower','노란 꽃핀',8000],['claw','집게핀',7000],['star','별 머리핀',7000],['scrunchie','곱창 밴드',6000],['bowP','진주 리본핀',9000],['pearl','진주 머리핀',0,'gift']]},
+  acc:{label:'액세서리',opts:[['pearlN','진주 목걸이',25000],['goldN','금 목걸이',28000],['bowR','빨간 나비넥타이',12000],['bowN','남색 나비넥타이',12000],['corsP','분홍 코르사주',10000],['corsW','흰 코르사주',10000],['scarfR','빨간 목도리',16000],['scarfC','크림 목도리',16000]]},
+  ear:{label:'귀걸이',opts:[['earP','진주 귀걸이',18000],['earG','금 귀걸이',18000],['earD','물방울 귀걸이',20000]]},
+  bag:{label:'가방',opts:[['leather','가죽 크로스백',16000],['canvas','캔버스 에코백',12000],['rattan','라탄 가방',20000],['basket','꽃바구니',18000],['pack','미니 백팩',15000],['yellow','노란 숄더백',18000],['blackmini','검정 미니백',20000],['denim','데님 에코백',14000],['bluepack','하늘 백팩',16000],['kkami','민지의 까미 에코백',0,'gift'],['spring','봄 연구실 에코백',0,'gift']]}
 };
+/* 옷장·상점에 보이는 칸 이름 */
+const STYLE_PART={tee:'상의',pants:'하의',dress:'셔츠·원피스',apron:'앞치마',shoes:'신발',hat:'모자',glasses:'안경',pin:'머리 장식',acc:'액세서리',ear:'귀걸이',bag:'가방'};
+const HATV={beretN:['beret','#3E4D78'],beanieG:['beanie','#9AA0A8'],beanieP:['beanie','#F2B6C6'],capB:['cap','#2E2B30'],capW:['cap','#EEEAE2']};
+const ACCV={pearlN:{neck:'pearl'},goldN:{neck:'gold'},bowR:{bow:'#C0463E'},bowN:{bow:'#3A4C80'},corsP:{corsage:'#F29AB0'},corsW:{corsage:'#FFFFFF'},scarfR:{scarf:'#C65C5C'},scarfC:{scarf:'#EFE4D0'}};
+const EARV={earP:'pearl',earG:'gold',earD:'drop'};
 const DRESS={pink:{c:'#F6C9D3',dress:1},sky:{c:'#BFD9EE',dress:1},linen:{c:'#EFE4D0',dress:1},navy:{c:'#3E4A6E',dress:1},stripe:{c:'#EEF3FA',shirt:'stripe',l:'#4A6A9A'},check:{c:'#F3DCCB',shirt:'check',l:'#B0473E'},denim:{c:'#7F9CC0',shirt:'denim'}};
-const BAGS={leather:{bag:true,bagC:'#9C6B4C'},canvas:{bag:true,bagC:'#EFE6D6',bagP:'#9DBB88'},rattan:{bag:true,bagC:'#C99A63'},basket:{prop:'basket'},pack:{pack:true,packC:'#E8A0A8'},kkami:{bag:true,bagC:'#F4EEE2',bagP:'#2A2626',bagP2:'#F29AB0'},spring:{bag:true,bagC:'#DDEBD4',bagP:'#F29AB0',bagP2:'#FFFFFF'}};
+const BAGS={yellow:{bag:true,bagC:'#E8C25A'},blackmini:{bag:true,bagC:'#2E2B30'},denim:{bag:true,bagC:'#7F9CC0',bagP:'#EFE6D6'},bluepack:{pack:true,packC:'#9CC5E8'},leather:{bag:true,bagC:'#9C6B4C'},canvas:{bag:true,bagC:'#EFE6D6',bagP:'#9DBB88'},rattan:{bag:true,bagC:'#C99A63'},basket:{prop:'basket'},pack:{pack:true,packC:'#E8A0A8'},kkami:{bag:true,bagC:'#F4EEE2',bagP:'#2A2626',bagP2:'#F29AB0'},spring:{bag:true,bagC:'#DDEBD4',bagP:'#F29AB0',bagP2:'#FFFFFF'}};
 const SHOP_ITEMS=[
   {id:'fridge',cat:'equip',name:'꽃 냉장고 업그레이드',desc:'냉장고에 넣어둔 꽃과 꽃다발이 절반 속도로 시들어요.',price:120000},
   {id:'bucket3',cat:'equip',name:'물올림 통 추가',desc:'물올림 통이 하나 더 생겨요.',price:30000},
   {id:'bucket4',cat:'equip',name:'물올림 통 하나 더',desc:'물올림 통이 또 하나 생겨요.',price:40000,need:'bucket3'},
   {id:'dryer',cat:'equip',name:'드라이플라워 건조대',desc:'꽃을 걸어두면 한 시간 뒤 드라이플라워가 돼요.',price:90000},
   {id:'pickup',cat:'equip',name:'자동 픽업대',desc:'포장한 예약 꽃다발을 올려두면 손님이 알아서 찾아가요.',price:150000},
+  {id:'pickup2',cat:'equip',name:'픽업대 넓히기 (4칸)',desc:'자동 픽업대에 꽃다발을 4개까지 올려둘 수 있어요.',price:120000,need:'pickup'},
+  {id:'pickup3',cat:'equip',name:'픽업대 넓히기 (6칸)',desc:'자동 픽업대가 6칸이 돼요.',price:220000,need:'pickup2'},
+  {id:'pickup4',cat:'equip',name:'픽업대 넓히기 (8칸)',desc:'자동 픽업대가 8칸이 돼요.',price:380000,need:'pickup3'},
+  {id:'fridge2',cat:'equip',name:'냉장고 칸 늘리기 (16칸)',desc:'꽃 냉장고가 16칸이 돼요.',price:90000},
+  {id:'fridge3',cat:'equip',name:'냉장고 칸 늘리기 (20칸)',desc:'꽃 냉장고가 20칸이 돼요.',price:180000,need:'fridge2'},
+  {id:'fridge4',cat:'equip',name:'냉장고 칸 늘리기 (24칸)',desc:'꽃 냉장고가 24칸이 돼요.',price:320000,need:'fridge3'},
+  {id:'xbucket',cat:'equip',name:'물올림 통 더 사기',desc:'물올림 통이 하나 더 생겨요. 여러 개 살 수 있고, 가게 밖에도 들고 나가 놓을 수 있어요.',price:40000,repeat:true,addSt:'bucket',max:10},
+  {id:'xdisplay',cat:'equip',name:'진열대 더 사기',desc:'진열대가 하나 더 생겨요. 가게 밖 마을에 두면 영업 시간에 지나가는 사람들이 사 가요.',price:70000,repeat:true,addSt:'display',max:6},
   {id:'craft2',cat:'equip',name:'작업대 추가',desc:'둘이 동시에 꽃다발을 만들 수 있어요.',price:80000},
   {id:'sprinkler',cat:'tool',name:'스프링클러',desc:'텃밭 사이 교차로에 설치하면 매일 아침 주변 밭에 물을 줘요. 여러 개 살 수 있어요.',price:45000,repeat:true,bag:true},
   {id:'bag2',cat:'tool',name:'가방 넓히기 (12칸)',desc:'두 사람 가방이 모두 12칸이 돼요.',price:60000},
@@ -91,6 +158,14 @@ const SHOP_ITEMS=[
   {id:'scissors',cat:'tool',name:'좋은 가위',desc:'사선 자르기 성공 구간이 넓어져요.',price:40000},
   {id:'papers2',cat:'wrap',name:'새 포장지 세트',desc:'민트, 코랄, 크라프트 포장지가 생겨요.',price:25000},
   {id:'ribbons2',cat:'wrap',name:'새 리본 세트',desc:'라벤더, 초록 리본이 생겨요.',price:15000},
+  {id:'papers3',cat:'wrap',name:'파스텔 포장지 세트',desc:'피치, 블러시, 세이지, 버터, 페리윙클, 아이보리 포장지가 생겨요.',price:35000},
+  {id:'papers4',cat:'wrap',name:'깊은 색 포장지 세트',desc:'버건디, 네이비, 포레스트, 머스터드, 차콜, 블랙 포장지가 생겨요.',price:45000},
+  {id:'papers5',cat:'wrap',name:'반짝이는 포장지 세트',desc:'골드, 실버, 진주빛, 로즈골드 포장지가 생겨요.',price:80000},
+  {id:'patterns3',cat:'wrap',name:'귀여운 무늬 세트',desc:'하트, 별, 작은 꽃, 깅엄 무늬가 생겨요.',price:30000},
+  {id:'patterns4',cat:'wrap',name:'감성 무늬 세트',desc:'잎사귀, 악보, 물결, 모눈, 금박 테두리 무늬가 생겨요.',price:50000},
+  {id:'ribbons3',cat:'wrap',name:'파스텔 리본 세트',desc:'피치, 민트, 하늘, 노랑, 코랄 리본이 생겨요.',price:20000},
+  {id:'ribbons4',cat:'wrap',name:'고급 리본 세트',desc:'빨강, 버건디, 검정, 은색 리본과 노끈이 생겨요.',price:30000},
+  {id:'shapes2',cat:'wrap',name:'새 포장 모양 세트',desc:'둥근 모자 상자, 종이 쇼핑백, 양철 버킷 모양이 생겨요. 양철 버킷은 바구니처럼 재료비 5,000원, 판매가 +5,000원이에요.',price:45000},
   {id:'basket',cat:'wrap',name:'꽃바구니 (라탄·흰색)',desc:'꽃다발을 라탄이나 흰색 바구니에 담을 수 있어요. 만들 때 5,000원이 더 들지만 판매가도 5,000원 올라가고, 누구나 좋아해요.',price:30000},
   {id:'patterns2',cat:'wrap',name:'고급 포장 무늬',desc:'레이스, 영자신문, 투명 비닐 포장이 생겨요.',price:18000},
   {id:'d_jute',cat:'deco',part:'바닥',name:'주트 러그',desc:'',price:28000,repeat:true,floor:{t:'rug_jute',w:4,h:2,flat:true,walk:true}},
@@ -106,21 +181,37 @@ const SHOP_ITEMS=[
   {id:'hanging',cat:'deco',part:'천장',name:'행잉 화분',desc:'천장에 초록 화분을 더 매달아요.',price:18000},
   {id:'lights',cat:'deco',part:'천장',name:'전구 조명',desc:'가게에 전구 줄을 달아요. 저녁이면 반짝여요.',price:22000},
   {id:'sign',cat:'deco',part:'가게 앞',name:'새 간판 달기',desc:'우리 꽃집 간판을 꽃으로 꾸미고 이름을 새로 정해요. 언제든 다시 살 수 있어요.',price:30000,repeat:true},
-  ...Object.entries(STYLE).flatMap(([k,v])=>v.opts.filter(o=>o[3]!=='gift').map(([val,name,price])=>({id:'st_'+k+'_'+val,cat:'style',name,desc:'가게 옷장에서 갈아입을 수 있어요. 둘 다 입을 수 있어요.',price,style:[k,val],part:{glasses:'얼굴',hat:'머리',pin:'머리',apron:'몸',tee:'몸',dress:'몸',bag:'소품'}[k]}))),
+  ...Object.entries(STYLE).flatMap(([k,v])=>v.opts.filter(o=>o[3]!=='gift').map(([val,name,price])=>({id:'st_'+k+'_'+val,cat:'style',name,desc:'가게 옷장에서 갈아입을 수 있어요. 둘 다 입을 수 있어요.',price,style:[k,val],part:STYLE_PART[k]}))),
   ...Object.keys(STYLE_IDS).map(k=>({id:'style_'+k,cat:'interior',name:STYLE_IDS[k],desc:'',price:300000,styleSet:k,repeat:true,part:'가게 전체'})),
+  {id:'fl_sunflower',cat:'flower',name:'해바라기 거래 시작',desc:'꽃시장에 해바라기 가판대가 생기고, 해바라기 주문 손님이 와요. 모종도 살 수 있어요.',price:150000},
+  {id:'fl_ranunculus',cat:'flower',name:'라넌큘러스 거래 시작',desc:'꽃시장에 라넌큘러스 가판대가 생기고, 비싼 라넌큘러스 주문이 들어와요.',price:280000,need:'fl_sunflower'},
+  {id:'fl_peony',cat:'flower',name:'작약 거래 시작',desc:'꽃시장에 작약 가판대가 생겨요. 작약 주문은 아주 비싸요.',price:450000,need:'fl_ranunculus'},
   {id:'exp1',cat:'expand',name:'가게 넓히기 1단계',desc:'가게 오른쪽 벽을 터서 바닥이 넓어져요. 넓어진 곳에 가구를 옮겨 놓을 수 있어요.',price:500000},
   {id:'exp2',cat:'expand',name:'가게 넓히기 2단계',desc:'가게가 한 번 더 넓어져요.',price:1200000,need:'exp1'},
-  {id:'exp3',cat:'expand',name:'가게 넓히기 3단계',desc:'가게가 가장 넓어져요.',price:2500000,need:'exp2'}
+  {id:'exp3',cat:'expand',name:'가게 넓히기 3단계',desc:'가게가 한 번 더 넓어져요.',price:2500000,need:'exp2'},
+  {id:'exp4',cat:'expand',name:'가게 넓히기 4단계',desc:'가게가 한 번 더 넓어져요.',price:4500000,need:'exp3'},
+  {id:'exp5',cat:'expand',name:'가게 넓히기 5단계',desc:'가게가 한 번 더 넓어져요.',price:8000000,need:'exp4'},
+  {id:'exp6',cat:'expand',name:'가게 넓히기 6단계',desc:'가게가 가장 넓어져요.',price:15000000,need:'exp5'}
 ];
+/* 가게 외관(상점 '가게 외관' 칸): 차양·벽·문 색은 하나를 골라 바꾸고(fr_awn/fr_wall/fr_door), 소품은 한 번 사면 계속 있어요 */
+const FRONT={awn:{label:'차양',def:'pink',opts:{pink:['분홍 줄무늬 차양','#F4B6C4','#D98E8E','#C97A7A'],mint:['민트 줄무늬 차양','#A9D8C4','#7FB8A0','#5F9A82'],navy:['남색 줄무늬 차양','#6A7FA8','#4E6290','#3E4D78'],yellow:['노랑 줄무늬 차양','#F6D978','#E2B84E','#C99A30'],green:['초록 줄무늬 차양','#8FBF7A','#6E9A5A','#557A44']}},
+  wall:{label:'벽',def:'pink',opts:{pink:['분홍 벽','#F8E1E4'],cream:['크림 벽','#F6EEDC'],sage:['세이지 벽','#DDE6D2'],sky:['하늘 벽','#DCE8F2'],brick:['붉은 벽돌 벽','#C98A72']}},
+  door:{label:'문',def:'wood',opts:{wood:['원목 문','#B98463'],green:['초록 문','#5F8A6A'],navy:['남색 문','#3E4D78'],white:['흰 문','#F2EEE6'],red:['빨간 문','#B8434E']}}};
+function frontOf2(k){const F=FRONT[k];const v=(S.up&&S.up['fr_'+k])||F.def;return F.opts[v]||F.opts[F.def]}
 /* 인테리어 테마(상점 '인테리어' 칸) · 가구(상점 '가구' 칸) · 벽 장식(상점 '꾸미기' 칸, 가게 뒤 벽에만) */
-const THEME_SHOP=[['vintage','빈티지 파리',300000],['pastel','파스텔',300000],['xmas','크리스마스',250000],['spring','벚꽃 봄',250000]];
+const THEME_SHOP=[['vintage','빈티지 파리',300000],['pastel','파스텔',300000],['xmas','크리스마스',250000],['spring','벚꽃 봄',250000],['forest','숲속 오두막',350000],['navyc','네이비 클래식',380000],['terra','테라코타',350000],['mono','모노 그레이',320000]];
 const FURN=[ // [그림 이름, 상품 이름, 가격, 가로칸, 세로칸, 바닥에 까는 것(밟고 지나감)]
   ['cafetable','카페 테이블 세트',38000,2,1],['flowercart','꽃 수레',52000,2,1],['bike','꽃바구니 자전거',45000,2,1],['bookshelf','원목 책장',34000,1,1],['record','레코드 플레이어',42000,1,1],
   ['catcushion','고양이 방석',20000,1,1],['candles','캔들 선반',16000,1,1],['armchair','벨벳 1인 소파',48000,1,1],['floorlamp','스탠드 조명',26000,1,1],['flowerbench','꽃 벤치',36000,2,1],
   ['cactus','선인장 삼총사',18000,1,1],['fiddle','떡갈고무나무',28000,1,1],['birdcage','새장 화분 스탠드',30000,1,1],['piano','업라이트 피아노',180000,2,1],['xmastree','크리스마스 트리',40000,1,1],
   ['sakura','벚꽃 나무 화분',45000,1,1],['rug_round','파스텔 원형 러그',30000,3,2,1],['rug_check','체크 러그',32000,4,2,1],
-  ['picnictable','피크닉 테이블',42000,2,1],['campchair','캠핑 의자',24000,1,1],['picnicmat','피크닉 돗자리',18000,3,2,1]];
-const WALLS=[['w_flowerart','꽃 그림 액자',18000,1],['w_pressed','압화 액자 세트',22000,2],['w_macrame','마크라메 벽걸이',20000,1],['w_garland','드라이플라워 가랜드',16000,2],['w_roundmirror','동그란 벽 거울',24000,1],['w_plantshelf','벽 선반 화분',24000,2]];
+  ['picnictable','피크닉 테이블',42000,2,1],['campchair','캠핑 의자',24000,1,1],['picnicmat','피크닉 돗자리',18000,3,2,1],
+  ['sofa2','패브릭 2인 소파',58000,2,1],['plantstand','3단 화분 스탠드',28000,1,1],['deskset','원목 책상 세트',46000,2,1],['aquarium','작은 어항',40000,1,1],['hangchair','라탄 행잉 체어',65000,1,1],
+  ['showcase','유리 꽃 쇼케이스',70000,1,1],['grandclock','원목 괘종시계',55000,1,1],['bigvase','대형 튤립 화병',16000,1,1],['beanbag','빈백 의자',22000,1,1],['lantern','라탄 플로어 랜턴',20000,1,1],['herbbox','허브 화분 상자',26000,2,1]];
+const WALLS=[['w_flowerart','꽃 그림 액자',18000,1],['w_pressed','압화 액자 세트',22000,2],['w_macrame','마크라메 벽걸이',20000,1],['w_garland','드라이플라워 가랜드',16000,2],['w_roundmirror','동그란 벽 거울',24000,1],['w_plantshelf','벽 선반 화분',24000,2],
+  ['w_neon','꽃 네온사인',45000,2],['w_tapestry','꽃 태피스트리',26000,2],['w_hat','밀짚모자 걸이',14000,1],['w_botanical','보태니컬 액자 세트',24000,2],['w_eucalyptus','유칼립투스 리스',18000,1],['w_menu','칠판 메뉴판',20000,2]];
+SHOP_ITEMS.push(...Object.entries(FRONT).flatMap(([k,F])=>Object.entries(F.opts).map(([v,o])=>({id:'fr'+k[0]+'_'+v,cat:'front',part:F.label,name:o[0]+(v===F.def?' (처음 모습)':''),desc:'',price:v===F.def?10000:k==='wall'?(v==='brick'?90000:60000):k==='awn'?40000:30000,repeat:true,front:[k,v]}))),
+  ...[['fr_boxes','창가 꽃상자 가득',35000],['fr_lamps','벽 랜턴 한 쌍',45000],['fr_ivy','담쟁이 넝쿨',30000],['fr_board','가게 앞 입간판',25000],['fr_bike','가게 앞 꽃자전거',50000],['fr_tile','가게 앞 타일 바닥',40000]].map(([id,n,p])=>({id,cat:'front',part:'소품',name:n,desc:'',price:p})));
 SHOP_ITEMS.push(...THEME_SHOP.map(([k,n,p])=>({id:'style_'+k,cat:'interior',name:n,desc:'',price:p,styleSet:k,repeat:true,part:'가게 전체'})),
   ...FURN.map(([t,n,p,w,h,flat])=>({id:'f_'+t,cat:'furn',part:n,name:n,desc:'',price:p,repeat:true,floor:flat?{t,w,h,flat:true,walk:true}:{t,w,h}})),
   ...WALLS.map(([t,n,p,w])=>({id:'f_'+t,cat:'deco',part:'벽 · '+n,name:n,desc:'',price:p,repeat:true,floor:{t,w,h:1,wall:true,walk:true}})));
@@ -171,7 +262,7 @@ const STATION_DEFS=[
   ['board','board','shop',15,4,1,1],['trash','trash','shop',16,4,1,1],
   ['counter','counter','shop',8,5,5,1],['phone','phone','shop',13,5,1,1],['pickup','pickup','shop',14,5,2,1,'pickup'],
   ['display','display','shop',1,7,3,1],
-  ['st_tulip','stall','market',2,2,3,1],['st_freesia','stall','market',6,2,3,1],['st_gyp','stall','market',10,2,3,1],['st_rose','stall','market',14,2,3,1],['st_hydrangea','stall','market',18,2,3,1],['seedstall','seedstall','market',15,8,3,1],
+  ['st_tulip','stall','market',2,2,3,1],['st_freesia','stall','market',6,2,3,1],['st_gyp','stall','market',10,2,3,1],['st_rose','stall','market',14,2,3,1],['st_hydrangea','stall','market',18,2,3,1],['st_sunflower','stall','market',5,6,3,1,'fl_sunflower'],['st_ranunculus','stall','market',9,6,3,1,'fl_ranunculus'],['st_peony','stall','market',13,6,3,1,'fl_peony'],['seedstall','seedstall','market',15,8,3,1],
   ['keeper','keeper','supply',5,3,4,1],
   ['bench1','bench','town',16,15,2,1],['bench2','bench','town',20,19,2,1],['bench3','bench','town',37,18,2,1],['bench4','bench','town',21,24,2,1],['bench5','bench','town',50,24,2,1],['bench6','bench','town',40,29,2,1],['rb1','bench','town',24,15,2,1],['rb2','bench','town',24,20,2,1],['rb3','bench','town',35,9+11,2,1],
   ...[[6,7],[14,7],[40,7],[48,7],[20,7]].map(([x,y],k)=>['nv'+k,'bench','north',x,y,2,1]),['nb1','bench','north',24,16,2,1],['nb2','bench','north',35,11,2,1],
@@ -220,6 +311,12 @@ const FACADES=[
   {t:'marketFront',x:37,w:12,door:42},{t:'house',x:49,w:5,c:'#D9DDF0'},{t:'house',x:54,w:3,c:'#F3D7D0'}
 ];
 const SLOTN={storage:12,shelf:2,bucket:2,dryer:2,pickup:2,display:6,counter:4};
+/* 업그레이드로 늘어나는 칸 수 */
+function slotN(type){if(type==='pickup')return S.up.pickup4?8:S.up.pickup3?6:S.up.pickup2?4:2;if(type==='storage')return S.up.fridge4?24:S.up.fridge3?20:S.up.fridge2?16:12;return SLOTN[type]}
+function resizeSlots(){S.stList.forEach(s=>{if(!s.slots)return;const n=slotN(s.type);while(s.slots.length<n)s.slots.push(null)})}
+/* 여러 개 살 수 있는 설비(물올림 통·진열대): S.up.n_bucket / S.up.n_display 개수만큼 'xbucket1'… 'xdisplay1'… 로 만들어요 */
+const XST={bucket:{w:1,h:1},display:{w:3,h:1}};
+function addXStation(type,n){const id='x'+type+n;if(S.st[id])return S.st[id];const o={id,type,area:'shop',home:'shop',x:2,y:7,w:XST[type].w,h:XST[type].h,item:null,slots:Array(slotN(type)).fill(null)};S.st[id]=o;S.stList.push(o);return o}
 const BAGN=8;
 function bagSize(){return S.up.bag3?16:S.up.bag2?12:8}
 function ensureBags(){const n=bagSize();S.bags.forEach(b=>{while(b.length<n)b.push(null)})}
@@ -229,11 +326,12 @@ function makeStations(){
   STATION_DEFS.forEach(([id,type,area,x,y,w,h,need])=>{
     const o={id,type,area,x,y,w,h,need,item:null};
     if(type==='stall')o.flower=id.slice(3);
-    if(SLOTN[type])o.slots=Array(SLOTN[type]).fill(null);
+    if(SLOTN[type])o.slots=Array(slotN(type)).fill(null);if(area==='shop')o.home='shop';
     if(type==='plot')o.plot=null;
     if(area==='north'&&id.startsWith('nv')){o.view=true;o.up=true}
     S.st[id]=o;S.stList.push(o);
   });
+  for(const t in XST){const n=(S.up&&S.up['n_'+t])||0;for(let k=1;k<=n;k++)addXStation(t,k)}
 }
 function stationsIn(area){return S.stList.filter(s=>s.area===area&&owned(s)&&!s.carried)}
 function doorGap(area,tx,ty){
@@ -307,7 +405,12 @@ function makeChar(i){
 function palOf(c){const p=palFromOutfit(PAL[c.i],S.outfit[c.i]||{});if(c.rest&&c.rest.lie){p.pose='lie';p.expr='sleepy'}return p}
 function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};
   if(o.apron==='knit'){p.apron='#F6D3DB';p.apronPat='flower'}
-  if(o.tee){p.tee=o.tee;p.teeSh=mix(o.tee,'#3B2F3F',.15)}
+  if(o.tee){const [a,b,c]=String(o.tee).split('|');if(b){p.top=a;p.tee=b;p.topL=c;p.num=null}else p.tee=o.tee;p.teeSh=mix(p.tee,'#3B2F3F',.15)}
+  if(o.pants){if(String(o.pants).startsWith('s:'))p.skirt=o.pants.slice(2);else p.pants=o.pants}
+  if(o.shoes)p.shoe=o.shoes;
+  if(o.hat&&HATV[o.hat]){p.hat=HATV[o.hat][0];p.hatC=HATV[o.hat][1]}
+  if(o.acc&&ACCV[o.acc])Object.assign(p,ACCV[o.acc]);
+  if(o.ear&&EARV[o.ear])p.ear=EARV[o.ear];
   const D=o.dress&&DRESS[o.dress];if(D){p.tee=D.c;p.teeSh=mix(D.c,'#3B2F3F',.15);p.num=null;if(D.dress){p.skirt=D.c;p.dress=1}else{p.shirt=D.shirt;if(D.l)p.shirtL=D.l}}
   const B=o.bag&&BAGS[o.bag];if(B)Object.assign(p,B);
   return p}
@@ -315,7 +418,7 @@ function stem(t,price){return {t,f:100,hyd:0,cut:0,trim:false,c:price/5}}
 function genOrder(tpl,time,day){return {id:S.nextId++,...tpl,req:{...tpl.req},name:pick(NAMES),time,status:'pending',arrived:false,day}}
 function rollPrices(){TYPES.forEach(t=>{S.prices[t]=Math.round(FL[t].price*rnd(.85,1.15)/100)*100})}
 function planCalls(){
-  S.calls=[100,280,410].map(base=>({t:base+Math.round(rnd(-10,10)),dur:40,state:'wait',offer:{tpl:pick(TEMPLATES),time:pick(SLOTS),name:pick(NAMES)}}));
+  S.calls=[100,280,410].map(base=>({t:base+Math.round(rnd(-10,10)),dur:40,state:'wait',offer:{tpl:pick(tplPool()),time:pick(SLOTS),name:pick(NAMES)}}));
   S.offers=[150+Math.round(rnd(-20,20)),340+Math.round(rnd(-20,20))];
 }
 const HAIRC=['#3B2A22','#6B4A3A','#1F1A1E','#8A5A3C','#B08560','#C9A06A','#5A3A2E','#2E2A3A'];

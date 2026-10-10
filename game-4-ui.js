@@ -4,7 +4,8 @@
 /* ---------- bouquet illustration (SVG) ---------- */
 let GID=0;
 function bouquetSVG(stems,o={}){
-  const SH=o.wrapped?(o.shape||'cone'):'cone',BK=SH==='rattan'||SH==='white',BOXY=BK||SH==='box';
+  const SH=o.wrapped?(o.shape||'cone'):'cone',BK=SH==='rattan'||SH==='white'||SH==='tin',BOXY=BK||SH==='box'||SH==='hatbox'||SH==='bag';
+  const BKC={rattan:['#C99A63','#A87A48','#E0BC88','#B8864F'],white:['#F6F3EC','#D2CABB','#FFFFFF','#E6E0D4'],tin:['#C9D1D7','#8F9BA5','#EEF2F4','#AAB4BC']}[SH];
   const P=BK?null:(o.paper?PAPERS[o.paper]:null),RB=o.ribbon?RIBBONS[o.ribbon]:null;
   const id='b'+(++GID);const bx=100,by=o.wrapped?182:172;
   const rr=seedRand(11+stems.length*37+(stems[0]?stems[0].t.length*7:0));
@@ -29,7 +30,9 @@ function bouquetSVG(stems,o={}){
     back=`<path d="${d} L100,150 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/>`}
   else if(P&&SH==='cross'){const gp=id+'p';defs.push(`<linearGradient id="${gp}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${P.l}"/><stop offset="1" stop-color="${P.c}"/></linearGradient>`);
     back=`<path d="M100,${by+12} L14,82 Q30,34 78,26 Q128,20 150,44 L176,96 Z" fill="url(#${gp})" stroke="${P.d}" stroke-width=".8" stroke-linejoin="round"/><path d="M100,${by+8} L40,56 M100,${by+8} L96,30" stroke="${P.d}" stroke-width=".6" opacity=".4"/>`}
-  else if(BK){const H=SH==='rattan'?['#C99A63','#A87A48','#E0BC88']:['#F6F3EC','#D9D2C4','#FFFFFF'];
+  else if(P&&SH==='hatbox'){back=`<ellipse cx="148" cy="112" rx="40" ry="13" transform="rotate(-28 148 112)" fill="${mix(P.c,P.d,.35)}" stroke="${P.d}" stroke-width=".8"/><ellipse cx="146" cy="110" rx="34" ry="9" transform="rotate(-28 146 110)" fill="${P.l}" opacity=".6"/><ellipse cx="100" cy="140" rx="60" ry="13" fill="${mix(P.d,'#3A2A1E',.25)}" opacity=".5"/>`}
+  else if(P&&SH==='bag'){back=`<path d="M70,132 C70,96 94,96 94,132" stroke="${P.d}" stroke-width="3.2" fill="none"/><path d="M106,132 C106,96 130,96 130,132" stroke="${P.d}" stroke-width="3.2" fill="none"/><path d="M46,132 L154,132 L154,142 L46,142Z" fill="${mix(P.c,P.d,.5)}"/>`}
+  else if(BK){const H=BKC;
     back=`<path d="M40,140 C38,60 162,60 160,140" stroke="${H[1]}" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M40,140 C38,60 162,60 160,140" stroke="${H[0]}" stroke-width="5.5" fill="none" stroke-linecap="round"/>`+
       `<ellipse cx="100" cy="137" rx="64" ry="14" fill="${H[1]}"/><ellipse cx="100" cy="139" rx="54" ry="9" fill="${mix(H[1],'#3A2A1E',.25)}" opacity=".55"/>`+[...Array(9)].map((_,k)=>{const t=(k+.5)/9,x=Math.pow(1-t,3)*40+3*Math.pow(1-t,2)*t*38+3*(1-t)*t*t*162+t*t*t*160,y=Math.pow(1-t,3)*140+3*Math.pow(1-t,2)*t*60+3*(1-t)*t*t*60+t*t*t*140;return `<path d="M${(x-2.5).toFixed(1)},${(y-2).toFixed(1)} l5,4" stroke="${H[2]}" stroke-width="1.1" opacity=".8"/>`}).join('')}
   else if(P&&SH==='box'){back=`<ellipse cx="100" cy="140" rx="62" ry="13" fill="${mix(P.c,P.d,.45)}"/><ellipse cx="100" cy="142" rx="54" ry="9" fill="${mix(P.d,'#3A2A1E',.3)}" opacity=".35"/>`}
@@ -58,6 +61,7 @@ function bouquetSVG(stems,o={}){
     if(s.t==='gyp')gypS+=imgHead('gyp',hx,hy-2+w*4,15,(rr()-.5)*40,w,Math.floor(rr()*8));
     else if(s.t==='tulip')heads+=imgHead('tulip',hx,hy+w*6,12,(hx-bx)*.35+dir*w*38,w);
     else if(s.t==='rose'||s.t==='hydrangea')heads+=fHeadSVG(s.t,hx,hy+w*6,s.t==='rose'?21:27,w,false);
+    else if(s.t==='sunflower'||s.t==='ranunculus'||s.t==='peony')heads+=fHeadSVG(s.t,hx,hy+w*6,s.t==='peony'?27:s.t==='sunflower'?26:21,w,false);
     else heads+=imgHead('freesia',hx+(hx>=bx?6:-6),hy-6+w*6,17,(hx>=bx?10:-60)+(rr()-.5)*20,w);
   });
   function tulipSVG(x,y,s,rot,w){
@@ -113,9 +117,15 @@ function bouquetSVG(stems,o={}){
   else if(P&&SH==='box'){
     flaps=`<path d="M38,140 Q100,158 162,140 L160,196 Q100,216 40,196 Z" fill="${P.c}" stroke="${P.d}" stroke-width=".9" stroke-linejoin="round"/>`;
     flapTop=[];front=flaps+`<path d="M38,140 Q100,158 162,140" stroke="${P.l}" stroke-width="2.4" fill="none"/><path d="M150,146 L150,200" stroke="#FFFFFF" stroke-width="3" opacity=".25"/>`}
-  else if(BK){const H=SH==='rattan'?['#C99A63','#A87A48','#E0BC88','#B8864F']:['#F6F3EC','#D2CABB','#FFFFFF','#E6E0D4'];
+  else if(P&&SH==='hatbox'){
+    flaps=`<path d="M40,140 L42,194 Q100,214 158,194 L160,140 Q100,158 40,140Z" fill="${P.c}" stroke="${P.d}" stroke-width=".9" stroke-linejoin="round"/>`;
+    flapTop=['M40,140 Q100,158 160,140'];front=flaps+`<path d="M38,140 Q100,160 162,140" stroke="${P.d}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M38,139 Q100,158 162,139" stroke="${P.l}" stroke-width="1.8" fill="none"/><path d="M146,150 L146,198" stroke="#FFFFFF" stroke-width="3" opacity=".22"/>`}
+  else if(P&&SH==='bag'){
+    flaps=`<path d="M42,136 L158,136 L152,208 L48,208Z" fill="${P.c}" stroke="${P.d}" stroke-width=".9" stroke-linejoin="round"/>`;
+    flapTop=['M42,136 Q100,136 158,136'];front=flaps+`<path d="M42,136 L158,136 L157,146 L43,146Z" fill="${P.l}" opacity=".75"/><path d="M60,146 L58,206 M140,146 L142,206" stroke="${P.d}" stroke-width=".7" opacity=".45"/><path d="M70,138 C70,104 94,104 94,138 M106,138 C106,104 130,104 130,138" stroke="${P.d}" stroke-width="3" fill="none" opacity=".9"/>`}
+  else if(BK){const H=BKC;
     let wv='';for(let y=148;y<200;y+=7){const q=(y-140)/60;wv+=`<path d="M${(34+q*14).toFixed(1)},${y} Q100,${y+12} ${(166-q*14).toFixed(1)},${y}" stroke="${H[1]}" stroke-width="1" fill="none" opacity=".7"/>`}
-    for(let x=46;x<156;x+=9)wv+=`<path d="M${x},142 Q${(100+(x-100)*.72).toFixed(1)},180 ${(100+(x-100)*.62).toFixed(1)},206" stroke="${H[3]}" stroke-width="1.6" fill="none" opacity=".75"/>`;
+    if(SH!=='tin')for(let x=46;x<156;x+=9)wv+=`<path d="M${x},142 Q${(100+(x-100)*.72).toFixed(1)},180 ${(100+(x-100)*.62).toFixed(1)},206" stroke="${H[3]}" stroke-width="1.6" fill="none" opacity=".75"/>`;
     defs.push(`<clipPath id="${id}bk"><path d="M32,138 Q34,204 100,208 Q166,204 168,138 Q100,156 32,138Z"/></clipPath>`);
     front=`<path d="M32,138 Q34,204 100,208 Q166,204 168,138 Q100,156 32,138Z" fill="${H[0]}" stroke="${H[1]}" stroke-width="1"/><g clip-path="url(#${id}bk)">${wv}</g><path d="M32,138 Q34,204 100,208 Q166,204 168,138" stroke="${H[1]}" stroke-width="1.2" fill="none"/><path d="M30,138 Q100,158 170,138" stroke="${H[1]}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M30,137 Q100,156 170,137" stroke="${H[2]}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".9"/>`}
   else if(P){
@@ -130,7 +140,8 @@ function bouquetSVG(stems,o={}){
       `<path d="M182,108 Q144,98 118,124" stroke="${P.l}" stroke-width="2" fill="none" opacity=".7"/>`+
       `<path d="M40,112 L96,196 M160,112 L104,196" stroke="${P.d}" stroke-width=".5" opacity=".4"/>`;
   }
-  if(o.wrapped&&RB&&SH==='box'){extra+=`<path d="M38,164 Q100,182 162,164 L162,172 Q100,190 38,172Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/><ellipse cx="90" cy="178" rx="11" ry="6" transform="rotate(-18 90 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="112" cy="178" rx="11" ry="6" transform="rotate(18 112 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="101" cy="179" r="3.6" fill="${RB.d}"/>`}
+  if(o.wrapped&&RB&&SH==='bag'){extra+=`<ellipse cx="74" cy="124" rx="8" ry="4.5" transform="rotate(-25 74 124)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="86" cy="124" rx="8" ry="4.5" transform="rotate(25 86 124)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="80" cy="125" r="2.8" fill="${RB.d}"/><path d="M79,127 q-3,9 -7,13 M81,127 q3,9 7,12" stroke="${RB.c}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`}
+  else if(o.wrapped&&RB&&(SH==='box'||SH==='hatbox')){extra+=`<path d="M38,164 Q100,182 162,164 L162,172 Q100,190 38,172Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/><ellipse cx="90" cy="178" rx="11" ry="6" transform="rotate(-18 90 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="112" cy="178" rx="11" ry="6" transform="rotate(18 112 178)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="101" cy="179" r="3.6" fill="${RB.d}"/>`}
   else if(o.wrapped&&RB&&BK){extra+=`<ellipse cx="152" cy="128" rx="9" ry="5" transform="rotate(-30 152 128)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><ellipse cx="166" cy="130" rx="9" ry="5" transform="rotate(30 166 130)" fill="${RB.c}" stroke="${RB.d}" stroke-width=".8"/><circle cx="159" cy="130" r="3.2" fill="${RB.d}"/><path d="M158,132 q-3,10 -8,16 M160,132 q4,10 8,15" stroke="${RB.c}" stroke-width="3" fill="none" stroke-linecap="round"/>`}
   else if(o.wrapped&&RB){
     extra+=`<path d="M100,194 C93,202 89,214 84,224 L90,222 L92,228 C96,214 98,204 101,196Z" fill="${RB.c}" stroke="${RB.d}" stroke-width=".7"/>`+
@@ -153,12 +164,13 @@ function bouquetSVG(stems,o={}){
     if(o.pat==='lace'){let sc='';flapTop.forEach(d=>{const m0=/M([\d.]+),([\d.]+) Q([\d.]+),([\d.]+) ([\d.]+),([\d.]+)(?: Q([\d.]+),([\d.]+) ([\d.]+),([\d.]+))?/.exec(d);if(!m0)return;const N=m0.slice(1).filter(v=>v!==undefined).map(Number);
       const segs=[[N[0],N[1],N[2],N[3],N[4],N[5]]];if(N.length>6)segs.push([N[4],N[5],N[6],N[7],N[8],N[9]]);
       segs.forEach(([x0,y0,cx,cy,x1,y1])=>{for(let u=0;u<=1.001;u+=.1){const x=(1-u)*(1-u)*x0+2*(1-u)*u*cx+u*u*x1,y=(1-u)*(1-u)*y0+2*(1-u)*u*cy+u*u*y1;sc+=`<circle cx="${x.toFixed(1)}" cy="${(y-1).toFixed(1)}" r="2.4" fill="#FFFFFF" stroke="${P.d}" stroke-width=".4" opacity=".95"/>`}})});frontOv+=sc}
+    if(o.pat==='foil')flapTop.forEach(d=>{frontOv+=`<path d="${d}" stroke="#E2C27A" stroke-width="3.2" fill="none"/><path d="${d}" stroke="#FFF4C8" stroke-width="1" fill="none" opacity=".9"/>`});
     if(o.pat==='sheer')frontOv+=`<g clip-path="url(#${id}cf)"><rect width="200" height="236" fill="#EAF6FF" opacity=".25"/><path d="M40,112 L90,190 M150,112 L112,180" stroke="#FFFFFF" stroke-width="3" opacity=".6"/></g>`;}
   return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="꽃다발 그림"><defs>${defs.join('')}</defs>${back}${backOv}${stemS}${leaves}${gypS}${heads}${topOv}${front}${frontOv}${extra}</svg>`;
 }
 
 function trimSVG(t,m){
-  const col=t==='tulip'?'#EE8FA7':t==='freesia'?'#F5CF4E':t==='rose'?'#D9435E':t==='hydrangea'?'#9DB8E8':'#FFFFFF';
+  const col=t==='tulip'?'#EE8FA7':t==='freesia'?'#F5CF4E':t==='rose'?'#D9435E':t==='hydrangea'?'#9DB8E8':FL[t]&&FL[t].lock?FL[t].dot:'#FFFFFF';
   const leaves=[];
   for(let k=0;k<m.leaves;k++){
     if(m.removed.includes(k))continue;
@@ -168,6 +180,7 @@ function trimSVG(t,m){
   }
   const headSvg=t==='tulip'?`<path d="M86,44 C84,24 96,16 100,20 C104,16 116,24 114,44 C110,54 90,54 86,44Z" fill="${col}" stroke="#C9506F"/>`:
     t==='freesia'?`<circle cx="100" cy="36" r="10" fill="${col}" stroke="#D9B23A"/><circle cx="100" cy="36" r="3" fill="#F0A33A"/><ellipse cx="118" cy="30" rx="4" ry="8" transform="rotate(50 118 30)" fill="#DCD77E"/>`:
+    FL[t]&&FL[t].lock?fHeadSVG(t,100,36,26,0,false):
     `<g fill="#fff" stroke="#DDD5C8">${[[92,34],[100,28],[108,34],[96,42],[104,42],[88,26],[112,26]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.2"/>`).join('')}</g>`;
   return `<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="150" width="200" height="30" fill="#EFE2D2"/><path d="M100,48 L100,176" stroke="#6E9A5A" stroke-width="4" stroke-linecap="round"/>${headSvg}${leaves.join('')}</svg>`;
 }
@@ -222,16 +235,19 @@ function reqCheck(o,stems){
   const cnt={};stems.forEach(s=>cnt[s.t]=(cnt[s.t]||0)+1);
   return `<div class="check">${Object.keys(o.req).map(t=>{const h=cnt[t]||0,r=o.req[t];return `<span class="${h>=r?'ok':''}">${FL[t].name} ${h}/${r}</span>`}).join('')}${Object.keys(cnt).filter(t=>!o.req[t]).map(t=>`<span>${FL[t].name} ${cnt[t]} (요청 외)</span>`).join('')}</div>`;
 }
-function shapeKeys(){return Object.keys(SHAPES).filter(k=>!SHAPES[k].basket||S.up.basket)}
+function shapeKeys(){return Object.keys(SHAPES).filter(k=>SHAPES[k].set?!!S.up[SHAPES[k].set]:(!SHAPES[k].basket||S.up.basket))}
 function shapeSwatch(k,paper){const P=PAPERS[paper]||PAPERS.pink,c=P.c,d=P.d;const I={
   cone:`<path d="M5,10 L15,27 L25,10 Q15,5 5,10Z" fill="${c}" stroke="${d}"/>`,
   round:`<circle cx="15" cy="12" r="10" fill="${P.l}" stroke="${d}" stroke-width=".7"/><path d="M5,14 Q15,20 25,14 L17,28 L13,28Z" fill="${c}" stroke="${d}"/>`,
   cross:`<path d="M4,8 Q14,6 24,16 L17,28 L14,28Z" fill="${c}" stroke="${d}"/><path d="M26,12 L16,28" stroke="${d}"/>`,
   box:`<ellipse cx="15" cy="12" rx="10" ry="3" fill="${d}"/><path d="M5,12 L5,24 Q15,28 25,24 L25,12 Q15,15 5,12Z" fill="${c}" stroke="${d}"/>`,
   rattan:`<path d="M6,14 C6,3 24,3 24,14" stroke="#A87A48" stroke-width="2" fill="none"/><path d="M4,14 Q5,27 15,27 Q25,27 26,14Z" fill="#C99A63" stroke="#A87A48"/>`,
-  white:`<path d="M6,14 C6,3 24,3 24,14" stroke="#D2CABB" stroke-width="2" fill="none"/><path d="M4,14 Q5,27 15,27 Q25,27 26,14Z" fill="#F6F3EC" stroke="#C9C0B0"/>`}[k]||'';
+  white:`<path d="M6,14 C6,3 24,3 24,14" stroke="#D2CABB" stroke-width="2" fill="none"/><path d="M4,14 Q5,27 15,27 Q25,27 26,14Z" fill="#F6F3EC" stroke="#C9C0B0"/>`,
+  hatbox:`<ellipse cx="22" cy="9" rx="7" ry="2.6" transform="rotate(-25 22 9)" fill="${d}"/><path d="M5,13 L5,24 Q15,28 25,24 L25,13 Q15,16 5,13Z" fill="${c}" stroke="${d}"/><path d="M5,13 Q15,16 25,13" stroke="${d}" stroke-width="1.6" fill="none"/>`,
+  bag:`<path d="M10,13 C10,6 14,6 14,13 M16,13 C16,6 20,6 20,13" stroke="${d}" stroke-width="1.2" fill="none"/><path d="M6,13 L24,13 L23,27 L7,27Z" fill="${c}" stroke="${d}"/>`,
+  tin:`<path d="M6,14 C6,3 24,3 24,14" stroke="#8F9BA5" stroke-width="1.4" fill="none"/><path d="M5,13 L7,27 L23,27 L25,13Z" fill="#C9D1D7" stroke="#8F9BA5"/><path d="M6,18 H24 M6.6,22 H23.4" stroke="#AAB4BC"/>`}[k]||'';
   return `<svg viewBox="0 0 30 30" width="100%" height="100%"><rect width="30" height="30" fill="#FFFBF5"/>${I}<circle cx="11" cy="9" r="2.4" fill="#EE8FA7"/><circle cx="17" cy="8" r="2.4" fill="#F5CF4E"/><circle cx="14" cy="12" r="2" fill="#FFFFFF" stroke="#DDD" stroke-width=".3"/></svg>`}
-function patKeys(){return Object.keys(PATTERNS).filter(k=>!PATTERNS[k].extra||S.up.patterns2)}
+function patKeys(){return Object.keys(PATTERNS).filter(k=>wrapOpen(PATTERNS[k],'patterns2'))}
 function patSwatch(k,paper){const P=PAPERS[paper]||PAPERS.pink,id='sw'+(++GID);return `<svg viewBox="0 0 30 30" width="100%" height="100%"><defs>${patDef(k,id,P)}</defs><rect width="30" height="30" rx="6" fill="${P.c}"/>${k==='plain'?'':`<rect width="30" height="30" rx="6" fill="url(#${id})"/>`}</svg>`}
 function patDef(k,id,P){const d=P.d;
   if(k==='dot')return `<pattern id="${id}" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.4" fill="#FFFFFF" opacity=".85"/><circle cx="7" cy="7" r="1.4" fill="#FFFFFF" opacity=".85"/></pattern>`;
@@ -240,9 +256,19 @@ function patDef(k,id,P){const d=P.d;
   if(k==='lace')return `<pattern id="${id}" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="2.6" fill="none" stroke="#FFFFFF" stroke-width=".7" opacity=".8"/><circle cx="5" cy="5" r=".8" fill="#FFFFFF" opacity=".8"/><circle cx="0" cy="0" r="1.1" fill="#FFFFFF" opacity=".7"/><circle cx="10" cy="10" r="1.1" fill="#FFFFFF" opacity=".7"/></pattern>`;
   if(k==='news')return `<pattern id="${id}" width="26" height="14" patternUnits="userSpaceOnUse"><rect width="26" height="14" fill="#F3EEE2" opacity=".62"/><path d="M1,2.5h11M14,2.5h10M1,5h9M12,5h12M1,7.5h12M15,7.5h9M1,10h10M13,10h11M1,12.5h8" stroke="#6B645A" stroke-width=".7" opacity=".55"/><rect x="1" y=".6" width="8" height="1.2" fill="#3F3A34" opacity=".45"/></pattern>`;
   if(k==='sheer')return `<pattern id="${id}" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)"><rect width="20" height="20" fill="#E8F4FC" opacity=".35"/><rect width="3" height="20" fill="#FFFFFF" opacity=".55"/></pattern>`;
+  const W='#FFFFFF';
+  if(k==='heart')return `<pattern id="${id}" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M3,3.2 c-.7,-1.3 -2.6,-.5 -1.6,1 L3,6 L4.6,4.2 c1,-1.5 -.9,-2.3 -1.6,-1Z" fill="${W}" opacity=".85"/><path d="M9,9.2 c-.7,-1.3 -2.6,-.5 -1.6,1 L9,12 L10.6,10.2 c1,-1.5 -.9,-2.3 -1.6,-1Z" fill="${d}" opacity=".45"/></pattern>`;
+  if(k==='star')return `<pattern id="${id}" width="13" height="13" patternUnits="userSpaceOnUse"><path d="M3.5,1 L4.3,3 L6.4,3.1 L4.8,4.4 L5.3,6.5 L3.5,5.3 L1.7,6.5 L2.2,4.4 L.6,3.1 L2.7,3Z" fill="${W}" opacity=".85"/><circle cx="10" cy="9.5" r=".9" fill="${W}" opacity=".8"/><circle cx="8" cy="12" r=".5" fill="${W}" opacity=".7"/></pattern>`;
+  if(k==='daisy')return `<pattern id="${id}" width="12" height="12" patternUnits="userSpaceOnUse"><g transform="translate(3.5 3.5)">${[0,1,2,3,4].map(q=>`<circle cx="${(Math.cos(q*1.2566)*1.4).toFixed(2)}" cy="${(Math.sin(q*1.2566)*1.4).toFixed(2)}" r="1.05" fill="${W}" opacity=".9"/>`).join('')}<circle r=".8" fill="#F5CF4E"/></g><g transform="translate(9.5 9)">${[0,1,2,3,4].map(q=>`<circle cx="${(Math.cos(q*1.2566)*1.1).toFixed(2)}" cy="${(Math.sin(q*1.2566)*1.1).toFixed(2)}" r=".8" fill="${W}" opacity=".75"/>`).join('')}<circle r=".55" fill="#F5CF4E"/></g></pattern>`;
+  if(k==='gingham')return `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="4" height="8" fill="${W}" opacity=".38"/><rect width="8" height="4" fill="${W}" opacity=".38"/><rect width="4" height="4" fill="${d}" opacity=".18"/></pattern>`;
+  if(k==='leaf')return `<pattern id="${id}" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M2,10 Q4,4 9,3 Q8,8 2,10Z" fill="#6E9A5A" opacity=".55"/><path d="M2,10 L8,4" stroke="${W}" stroke-width=".4" opacity=".6"/><path d="M9,13 Q11,9 14,8.5 Q13,12 9,13Z" fill="#88B271" opacity=".45"/></pattern>`;
+  if(k==='music')return `<pattern id="${id}" width="24" height="16" patternUnits="userSpaceOnUse"><rect width="24" height="16" fill="#FBF7EE" opacity=".35"/><path d="M0,3h24M0,5h24M0,7h24M0,9h24M0,11h24" stroke="#5A544C" stroke-width=".3" opacity=".5"/><ellipse cx="5" cy="9" rx="1.3" ry="1" fill="#3F3A34" opacity=".6"/><path d="M6.2,9 V3.5" stroke="#3F3A34" stroke-width=".4" opacity=".6"/><ellipse cx="15" cy="7" rx="1.3" ry="1" fill="#3F3A34" opacity=".6"/><path d="M16.2,7 V2 L19,3" stroke="#3F3A34" stroke-width=".4" fill="none" opacity=".6"/></pattern>`;
+  if(k==='wave')return `<pattern id="${id}" width="14" height="8" patternUnits="userSpaceOnUse"><path d="M0,4 Q3.5,1 7,4 T14,4" stroke="${W}" stroke-width="1" fill="none" opacity=".75"/></pattern>`;
+  if(k==='grid')return `<pattern id="${id}" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0,.3H7M.3,0V7" stroke="${W}" stroke-width=".5" opacity=".6"/></pattern>`;
+  if(k==='foil')return `<pattern id="${id}" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r=".7" fill="#E6C77A" opacity=".8"/><circle cx="13" cy="12" r=".6" fill="#E6C77A" opacity=".7"/></pattern>`;
   return ''}
-function paperKeys(){return Object.keys(PAPERS).filter(k=>!PAPERS[k].extra||S.up.papers2)}
-function ribbonKeys(){return Object.keys(RIBBONS).filter(k=>!RIBBONS[k].extra||S.up.ribbons2)}
+function paperKeys(){return Object.keys(PAPERS).filter(k=>wrapOpen(PAPERS[k],'papers2'))}
+function ribbonKeys(){return Object.keys(RIBBONS).filter(k=>wrapOpen(RIBBONS[k],'ribbons2'))}
 function offerHTML(f){
   const t=f.tpl;
   return `<p class="req">“${esc(t.text)}”<br>${esc(t.title)} · ${won(t.price)}</p>${reqCheck({req:t.req},[])}
@@ -302,7 +328,7 @@ function renderModal(i){
   if(m.type==='box'){
     const st=S.st[m.st];const [title,desc]=BOX[st.type];
     h=head(i,title)+`<p class="req">${desc}${st.type==='storage'&&S.up.fridge?' 업그레이드 덕분에 천천히 시들어요.':''}</p>
-      ${two(i,bagGrid(i,'in',it=>!!accepts(st,it)),`<div class="lbl">${title}</div><div class="grid">${st.slots.map((it,k)=>cellHTML(it,'out',k,{prog:it?boxProg(st,it):null,price:st.type==='display'})).join('')}</div>`)}${st.type==='display'?'<p class="note" style="text-align:left">자유 꽃다발 가격은 신선도에 따라 자동으로 정해져요. 시든 꽃다발은 팔리지 않으니 휴지통에 버려 주세요.</p>':''}`;
+      ${two(i,bagGrid(i,'in',it=>!!accepts(st,it)),`<div class="lbl">${title}</div><div class="grid">${st.slots.map((it,k)=>cellHTML(it,'out',k,{prog:it?boxProg(st,it):null,price:st.type==='display'})).join('')}</div>`)}${XST[st.type]?`<p class="note" style="text-align:left">${st.area!=='shop'&&st.type==='display'?'가게 밖 진열대예요. 영업 시간에 지나가는 사람들이 들러서 사 가요. ':''}설비 앞에서 행동 버튼을 길게 누르면 들 수 있어요. 진열대·물올림 통은 가게 밖에도 놓을 수 있어요.</p>`:''}${st.type==='display'?'<p class="note" style="text-align:left">자유 꽃다발 가격은 신선도에 따라 자동으로 정해져요. 시든 꽃다발은 팔리지 않으니 휴지통에 버려 주세요.</p>':''}`;
   }
   else if(m.type==='buy'){
     const f=FL[m.flower],p=S.prices[m.flower],tot=p*m.qty,free=bagFree(i);
@@ -313,15 +339,15 @@ function renderModal(i){
       <div class="row"><button class="btn primary" data-a="buy" ${S.money<tot||free<m.qty?'disabled':''}>${free<m.qty?'가방 칸이 모자라요':m.qty+'단 사기'}</button></div></div></div>`;
   }
   else if(m.type==='supply'){
-    const cat=m.cat||'equip',imgOnly=['style','deco','interior','furn'].includes(cat);
+    const cat=m.cat||'equip',imgOnly=['style','deco','interior','furn','front'].includes(cat);
     const pit=m.pending&&SHOP_ITEMS.find(x=>x.id===m.pending);
-    h=head(i,'용품상점')+(pit?`<div class="confirm"><div class="sart">${itemArt(pit)}</div><div class="grow"><b style="font-weight:normal">${pit.name}</b>${pit.part?` <small>· ${pit.part}</small>`:''}<br>${won(pit.price)}에 살까요?</div><button class="btn primary small" data-a="buyok">살게요</button><button class="btn small" data-a="buyno">아니요</button></div>`:'')+`<p class="req">가진 돈 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k,n])=>`<button class="btn small ${k===cat?'soft':''}" data-a="cat" data-v="${k}">${n}</button>`).join('')}</div><div class="shopgrid${imgOnly?' img':''}">`+SHOP_ITEMS.filter(it=>it.cat===cat).map(it=>{
-      const cur=it.styleSet&&S.style===it.styleSet,have=cur||((!!S.up[it.id]||!!S.closet[it.id])&&!it.repeat),lock=it.need&&!S.up[it.need];
-      return `<div class="scard${have?' own':''}"><div class="sart">${itemArt(it)}</div>${it.part?`<div class="spart">${it.part}</div>`:''}${imgOnly?'':`<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock?' (앞 단계를 먼저 사야 해요)':''}</div>`}${have?`<span class="sbad">${cur?'사용 중':'보유'}</span>`:`<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} · ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock||S.money<it.price?'disabled':''}>${won(it.price)}</button>`}</div>`}).join('')+'</div>';
+    h=head(i,'용품상점')+(pit?`<div class="confirm"><div class="sart">${itemArt(pit)}</div><div class="grow"><b style="font-weight:normal">${pit.name}</b>${pit.part?` <small>· ${pit.part}</small>`:''}<br>${won(pit.price)}에 살까요?</div><button class="btn primary small" data-a="buyok">살게요</button><button class="btn small" data-a="buyno">아니요</button></div>`:'')+`<p class="req">가진 돈 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k,n])=>`<button class="btn small ${k===cat?'soft':''}" data-a="cat" data-v="${k}">${n}</button>`).join('')}</div>${cat==='style'?`<div class="row tabs">${Object.keys(STYLE).map(k=>`<button class="btn small ${k===(m.sub||'tee')?'primary':''}" data-a="sub" data-v="${k}">${STYLE_PART[k]}</button>`).join('')}</div>`:''}<div class="shopgrid${imgOnly?' img':''}">`+SHOP_ITEMS.filter(it=>it.cat===cat&&(cat!=='style'||it.style[0]===(m.sub||'tee'))).map(it=>{
+      const cur=(it.styleSet&&S.style===it.styleSet)||(it.front&&(S.up['fr_'+it.front[0]]||FRONT[it.front[0]].def)===it.front[1]),full=it.max&&(S.up['n_'+it.addSt]||0)>=it.max,have=cur||full||((!!S.up[it.id]||!!S.closet[it.id])&&!it.repeat),lock=it.need&&!S.up[it.need];
+      return `<div class="scard${have?' own':''}"><div class="sart" data-id="${it.id}">${itemArt(it)}</div>${it.part?`<div class="spart">${it.part}</div>`:''}${imgOnly?'':`<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock?' (앞 단계를 먼저 사야 해요)':''}</div>`}${have?`<span class="sbad">${cur?'사용 중':'보유'}</span>`:`<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} · ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock||S.money<it.price?'disabled':''}>${won(it.price)}</button>`}</div>`}).join('')+'</div>';
   }
   else if(m.type==='seedbuy'){
     const t=m.flower,p=SEED_PRICE[t],tot=p*m.qty,has=c.bag.some(it=>it&&it.kind==='seed'&&it.t===t)||bagFree(i)>0;
-    h=head(i,'모종 가게')+`<div class="row">${TYPES.map(k=>`<button class="btn small ${k===t?'soft':''}" data-a="sflower" data-v="${k}">${FL[k].name}</button>`).join('')}</div>
+    h=head(i,'모종 가게')+`<div class="row">${openTypes().map(k=>`<button class="btn small ${k===t?'soft':''}" data-a="sflower" data-v="${k}">${FL[k].name}</button>`).join('')}</div>
       <div class="mg"><div class="preview" style="aspect-ratio:1">${seedSVG(t)}</div><div>
       <p class="req">${FL[t].name} 모종은 하나에 ${won(p)}이에요. 텃밭에 심으면 ${GROW[t]}일 뒤 5송이를 수확해요. 물을 주면 빨리 자라고, 안 주면 아주 천천히 자라요. 수확 전에는 시들지 않아요.</p>
       <div class="row" style="align-items:center"><button class="btn" data-a="qty" data-v="-1" aria-label="하나 줄이기">−</button><span class="big">${m.qty}개</span><button class="btn" data-a="qty" data-v="1" aria-label="하나 늘리기">+</button></div>
@@ -342,12 +368,12 @@ function renderModal(i){
   }
   else if(m.type==='wardrobe'){
     const o=S.outfit[i];const cat=m.cat;const C=STYLE[cat];
-    const opts=[[null,cat==='tee'?'기본 등번호 티':'없음']].concat(C.opts.filter(([v])=>S.closet['st_'+cat+'_'+v]).map(([v,n])=>[v,n]));
+    const opts=[[null,{tee:'기본 등번호 티',pants:'기본 검정 바지',shoes:'기본 흰 운동화'}[cat]||'없음']].concat(C.opts.filter(([v])=>S.closet['st_'+cat+'_'+v]).map(([v,n])=>[v,n]));
     const locked=C.opts.filter(o=>o[3]!=='gift'&&!S.closet['st_'+cat+'_'+o[0]]).length,glock=C.opts.filter(o=>o[3]==='gift'&&!S.closet['st_'+cat+'_'+o[0]]).length;
     h=head(i,'옷장')+`<div class="row tabs">${Object.entries(STYLE).map(([k,v])=>`<button class="btn small ${k===cat?'soft':''}" data-a="wcat" data-v="${k}">${v.label}</button>`).join('')}</div>
       <div class="mg"><div class="preview" style="aspect-ratio:1"><canvas id="wprev${i}" width="220" height="220" style="width:100%;height:100%"></canvas></div><div>
       <div class="list">${opts.map(([v,n])=>`<div class="li"><span class="grow">${n}</span><button class="btn small ${(o[cat]||null)===v?'primary':''}" data-a="wear" data-v="${v===null?'':v}">${(o[cat]||null)===v?'입는 중':'입기'}</button></div>`).join('')}</div>
-      ${locked?`<p class="note" style="text-align:left">용품상점 '옷·치장'에서 ${locked}가지를 더 살 수 있어요.</p>`:''}${glock?`<p class="note" style="text-align:left">마을 사람들과 친해지면 선물로 ${glock}가지를 더 받을 수 있어요.</p>`:''}${cat==='dress'&&o.dress?'<p class="note" style="text-align:left">원피스·셔츠를 입으면 티셔츠 대신 보여요.</p>':''}</div></div>`;
+      ${locked?`<p class="note" style="text-align:left">용품상점 '옷·치장'에서 ${locked}가지를 더 살 수 있어요.</p>`:''}${glock?`<p class="note" style="text-align:left">마을 사람들과 친해지면 선물로 ${glock}가지를 더 받을 수 있어요.</p>`:''}${cat==='dress'&&o.dress?'<p class="note" style="text-align:left">셔츠·원피스를 입으면 상의 대신 보여요.</p>':''}</div></div>`;
   }
   else if(m.type==='rename'){
     h=head(i,'새 간판','나중에')+`<p class="req">가게 이름을 정해 주세요. (12자까지)</p><div class="row"><input id="nameIn${i}" class="namein" maxlength="12" value="${esc(S.shopName)}" aria-label="가게 이름"></div><div class="row"><button class="btn primary" data-a="setname">간판 달기</button></div>`;
@@ -377,7 +403,7 @@ function renderModal(i){
           <p class="req">${o?esc(o.name)+'님은 '+PAPERS[o.paper].name+' 포장을 원해요.':''}</p>
           <div class="lbl">모양</div><div class="row">${shapeKeys().map(k=>`<button class="sw pat ${(m.shape||'cone')===k?'on':''}" data-a="shape" data-v="${k}" aria-label="${SHAPES[k].name}" title="${SHAPES[k].name}">${shapeSwatch(k,m.paper)}</button>`).join('')}</div>
           <p class="req" style="margin-top:.2rem">${SHAPES[m.shape||'cone'].name}${SHAPES[m.shape||'cone'].basket?' · 재료비 5,000원, 판매가 +5,000원 · 누구나 좋아해요':''}</p>
-          ${SHAPES[m.shape||'cone'].basket?'':`<div class="lbl">포장지</div><div class="row">${paperKeys().map(k=>`<button class="sw ${m.paper===k?'on':''}" style="background:${PAPERS[k].c}" data-a="paper" data-v="${k}" aria-label="${PAPERS[k].name} 포장지"></button>`).join('')}</div>
+          ${SHAPES[m.shape||'cone'].basket?'':`<div class="lbl">포장지</div><div class="row">${paperKeys().map(k=>`<button class="sw ${m.paper===k?'on':''}" style="background:${PAPERS[k].bg||PAPERS[k].c}" data-a="paper" data-v="${k}" aria-label="${PAPERS[k].name} 포장지"></button>`).join('')}</div>
           <div class="lbl">무늬</div><div class="row">${patKeys().map(k=>`<button class="sw pat ${m.pat===k?'on':''}" data-a="pat" data-v="${k}" aria-label="${PATTERNS[k].name} 무늬" title="${PATTERNS[k].name}">${patSwatch(k,m.paper)}</button>`).join('')}</div>
           ${m.pat&&m.pat!=='plain'&&(PAT_GOOD[m.pat]||[]).includes(m.paper)?'<p class="req">✿ 이 색이랑 잘 어울리는 무늬예요!</p>':''}`}
           <div class="lbl">리본</div><div class="row">${ribbonKeys().map(k=>`<button class="sw ${m.ribbon===k?'on':''}" style="background:${RIBBONS[k].c}" data-a="ribbon" data-v="${k}" aria-label="${RIBBONS[k].name} 리본"></button>`).join('')}</div>
@@ -476,6 +502,7 @@ function onModalClick(i,e){
     }
   }
   else if(m.type==='supply'&&a==='cat'){m.cat=v;renderModal(i)}
+  else if(m.type==='supply'&&a==='sub'){m.sub=v;renderModal(i)}
   else if(m.type==='seedbuy'){
     if(a==='sflower'){m.flower=v;renderModal(i)}
     if(a==='qty'){m.qty=clamp(m.qty+(+v),1,12);renderModal(i)}
@@ -491,13 +518,17 @@ function onModalClick(i,e){
   else if(m.type==='supply'&&a==='shopbuy'){m.pending=v;GP.ctxFocus['m'+i]='[data-a="buyok"]';renderModal(i);const mb=modalEl(i).querySelector('.mbody');if(mb)mb.scrollTop=0;return}
   else if(m.type==='supply'&&a==='buyno'){m.pending=null;renderModal(i);return}
   else if(m.type==='supply'&&a==='buyok'){
-    const it=SHOP_ITEMS.find(x=>x.id===m.pending);m.pending=null;if(!it||((S.up[it.id]||S.closet[it.id])&&!it.repeat)||S.money<it.price)return;
+    const it=SHOP_ITEMS.find(x=>x.id===m.pending);m.pending=null;if(!it||((S.up[it.id]||S.closet[it.id])&&!it.repeat)||S.money<it.price||(it.max&&(S.up['n_'+it.addSt]||0)>=it.max))return;
     if(it.bag){const ex=bag.find(x=>x&&x.kind==='sprinkler');if(ex)ex.n++;else if(!bagAdd(i,{kind:'sprinkler',n:1})){toast(i,'가방이 꽉 찼어요');return}}
     S.money-=it.price;S.stats.invest+=it.price;sfx('buy');
+    if(it.addSt){const n=(S.up['n_'+it.addSt]||0)+1;const o=addXStation(it.addSt,n);o.carried=true;const sp=findSpot(o);o.carried=false;
+      if(!sp){S.stList.splice(S.stList.indexOf(o),1);delete S.st[o.id];S.money+=it.price;S.stats.invest-=it.price;toast(i,'가게에 놓을 자리가 없어요. 가구를 옮기거나 가게를 넓혀 보세요');return}
+      o.x=sp[0];o.y=sp[1];S.up['n_'+it.addSt]=n;odecChanged();toast(i,`${BOX[it.addSt][0]}을(를) 가게에 놓았어요. 행동 버튼을 길게 눌러 옮길 수 있어요`);renderModal(i);return}
+    if(it.front){S.up['fr_'+it.front[0]]=it.front[1];BG_CACHE={};toast(i,`가게 ${FRONT[it.front[0]].label}을(를) 바꿨어요. 마을에서 보여요`);renderModal(i);return}
     if(it.styleSet){S.style=it.styleSet;BG_CACHE={};toast(i,`가게를 ${it.name} 스타일로 바꿨어요`);renderModal(i);return}
     if(it.floor){const f={...it.floor};const sp=findSpot(f);if(!sp){S.money+=it.price;S.stats.invest-=it.price;toast(i,f.wall?'벽에 걸 빈자리가 없어요. 가구 배치로 뒤쪽 가구를 옮겨 보거나 가게를 넓혀 보세요':'가게에 놓을 자리가 없어요');return}f.x=sp[0];f.y=sp[1];S.decor.push(f);toast(i,`${it.name}을(를) 가게에 놓았어요. 가구 배치로 옮길 수 있어요`);renderModal(i);return}
     if(it.style){S.closet[it.id]=true;toast(i,`${it.name}을(를) 샀어요. 가게 옷장에서 입을 수 있어요`);renderModal(i);return}
-    if(!it.bag){S.up[it.id]=true;BG_CACHE={}}
+    if(!it.bag){S.up[it.id]=true;BG_CACHE={};resizeSlots()}
     if(/^bag\d/.test(it.id)){ensureBags();toast(i,`가방이 ${bagSize()}칸이 됐어요`)}if(it.cat==='expand')toast(i,'가게가 넓어졌어요! 메뉴 옆 가구 배치 버튼으로 가구를 옮겨 보세요');
     if(it.id==='sign'){c.modal=null;openModal(i,{type:'rename'});return}
     toast(i,`${it.name}을(를) 샀어요`);renderModal(i);
@@ -628,7 +659,7 @@ function showIntro(){
   showScreen(`<div class="sheet"><h1 style="font-size:1.86rem">${S.day}일차 아침</h1>
     <p class="sub">오늘 예약은 ${S.orders.length}건이에요. 꽃시장은 마을 오른쪽 끝에 있고 정오에 문을 닫아요. 픽업이 30분 늦을 때마다 10%씩 할인돼요.</p>
     <div class="list">${S.orders.map(o=>`<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} · ${esc(o.name)}<br><small>${Object.keys(o.req).map(t=>FL[t].name+' '+o.req[t]).join(', ')} · ${PAPERS[o.paper].name} 포장</small></span><span>${won(o.price)}</span></div>`).join('')}</div>
-    <p class="hint" style="margin-top:0.62rem">오늘 시세 (한 단 5송이): ${TYPES.map(t=>`${FL[t].name} ${won(S.prices[t])}`).join(', ')}<br>가진 돈: ${won(S.money)}${stockLine()}</p>
+    <p class="hint" style="margin-top:0.62rem">오늘 시세 (한 단 5송이): ${openTypes().map(t=>`${FL[t].name} ${won(S.prices[t])}`).join(', ')}<br>가진 돈: ${won(S.money)}${stockLine()}</p>
     <div class="opts"><button class="btn primary" id="goDay">가게 문 열기</button></div></div>`);
   $('#goDay').onclick=()=>{hideScreen();S.phase='play';$('#hud').style.display='flex';buildControls();try{document.documentElement.requestFullscreen?.().catch(()=>{})}catch(_){}};
   prepGate('#goDay');
@@ -677,7 +708,7 @@ function prepareNextDay(){
   S.day++;
   const list=S.tomorrow.slice();S.tomorrow=[];
   const used=new Set(list.map(o=>o.time));
-  while(list.length<2){const t=SLOTS.find(x=>!used.has(x)&&x>=150)||300;used.add(t);const o=genOrder(pick(TEMPLATES),t,S.day);o.regular=true;list.push(o)}
+  while(list.length<2){const t=SLOTS.find(x=>!used.has(x)&&x>=150)||300;used.add(t);const o=genOrder(pick(tplPool()),t,S.day);o.regular=true;list.push(o)}
   list.sort((a,b)=>a.time-b.time);S.orders=list;
   saveGame();
 }

@@ -287,6 +287,7 @@ function prDecSig(d,area){
   if(d.t==='clocktower'||d.t==='schoolclock')x+=Math.floor(S.t/3); // 마을 시계는 3분마다(가게 벽시계는 1분마다)
   if(d.t==='hoursSign')x+=(S.t>=MARKET_CLOSE); // 영업 안내판은 '열림/닫힘'만 바뀌어요(예전엔 1분마다 다시 구웠어요)
   if(d.t==='swing')x+='|'+(S.swingOcc||[]).join();
+  if(d.t==='w_neon')x+=(lampAt(S.t)>.2); // 네온사인은 저녁에 켜질 때만 다시 구워요
   if(d.t==='lamp')x+=Math.round(lampAt(S.t)*12); // 가로등 밝기 단계(예전엔 40단계+10분마다 → 가로등 8개가 계속 다시 구워졌어요)
   return x+'|'+prBakeScale(area);
 }
@@ -416,7 +417,7 @@ const PR_PRE_AREAS=['shop','town','market','supply','north','farm'];
 function prPrebake(done,tries){if(!PR.on){if(PR.game&&(tries||0)<60){setTimeout(()=>prPrebake(done,(tries||0)+1),100)}else done&&done();return} /* 그림 엔진이 아직 준비 전이면 잠깐 기다려요 */
   const L=PR_PRE_AREAS.filter(a=>AREAS[a]&&!(AREAS[a].chunk&&AREA_CHUNK[a]));PR.preQ=L.concat(['+shop','+town','+market','+north','+farm','*campus'].filter(a=>AREAS[a.slice(1)]),['#art']);PR.artI=0;PR.preDone=done||null}
 function prPreStep(){if(!PR.preQ)return;const a=PR.preQ.shift();
-  if(a){try{if(a[0]==='+')prPreHeavy(a.slice(1));else if(a==='#art'){/* 용품상점 물건 그림도 미리(한 프레임에 8개씩) → 상점 칸을 처음 열 때 멈칫하지 않게 */const L2=(typeof SHOP_ITEMS!=='undefined'?SHOP_ITEMS:[]);const t0=performance.now();while(PR.artI<L2.length&&performance.now()-t0<60){try{itemArt(L2[PR.artI])}catch(e){}PR.artI++}if(PR.artI<L2.length)PR.preQ.unshift(a)}
+  if(a){try{if(a[0]==='+')prPreHeavy(a.slice(1));else if(a==='#art'){/* 용품상점 물건 그림도 미리(한 프레임에 8개씩) → 상점 칸을 처음 열 때 멈칫하지 않게 */const L2=(typeof SHOP_ITEMS!=='undefined'?SHOP_ITEMS:[]);const t0=performance.now();while(PR.artI<L2.length&&performance.now()-t0<60){const it=L2[PR.artI];if(it.cat!=='style'){try{ART_MS=0;itemArt(it)}catch(e){}}PR.artI++} /* 옷 그림은 많아서 상점 칸을 열 때 조금씩 그려요 */if(PR.artI<L2.length)PR.preQ.unshift(a)}
     else if(a==='*campus'){if(!prPreCampus()&&(PR.preN=(PR.preN||0)+1)<40)PR.preQ.unshift(a);else PR.preN=0}else{prEnsureBg(a);prArea(a).seenF=PR.frame}}catch(e){console.error(e)}}
   if(!PR.preQ.length){PR.preQ=null;const d=PR.preDone;PR.preDone=null;if(d)d()}}
 /* 캠퍼스 입구(마을에서 들어오는 곳) 주변의 땅 조각·건물·나무를 미리 그려 두고 지우지 않게 표시해요 → 캠퍼스에 들어갈 때 멈칫하지 않게 */

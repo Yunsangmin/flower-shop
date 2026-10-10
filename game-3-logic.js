@@ -5,16 +5,16 @@
 function saveGame(mid){
   try{
     const slots={};S.stList.forEach(s=>{if(s.slots&&s.slots.some(Boolean))slots[s.id]=s.slots});
-    const pos={};S.stList.forEach(s=>{if(s.area==='shop')pos[s.id]=[s.x,s.y]});
+    const pos={};S.stList.forEach(s=>{if(s.home==='shop')pos[s.id]=s.area==='shop'?[s.x,s.y]:[s.x,s.y,s.area]});
     const plots={};S.stList.forEach(s=>{if(s.plot)plots[s.id]=s.plot});
     const spr={};S.stList.forEach(s=>{if(s.on)spr[s.id]=1});
     const data={v:SAVE_VER,style:S.style,mid:mid||null,spr,closet:S.closet,outfit:S.outfit,day:S.day,money:S.money,nextId:S.nextId,up:S.up,bags:S.bags,bench:S.bench,works:S.works,slots,pos,plots,decor:S.decor,odecor:S.odecor||{},orders:S.orders,shopName:S.shopName,bonds:S.bonds||{}};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
 }
-const SAVE_VER=8;
+const SAVE_VER=9;
 /* 앞으로 저장 형식이 바뀌면 여기서 예전 저장을 새 형식으로 옮겨요 (v4 → v5 → …) */
-const MIGRATE={7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
+const MIGRATE={8:d=>{d.v=9;d.up=d.up||{};d.pos=d.pos||{};return d} /* v9: 설비 위치에 장소(가게 밖) · 늘어난 칸 수 · 추가 설비 개수(up.n_bucket 등) */,7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
 function migrateSave(d){if(!d||typeof d.v!=='number'||d.v<4)return null;while(d.v<SAVE_VER){const f=MIGRATE[d.v];if(!f)return null;d=f(d)}return d}
 function loadSave(){try{const d=migrateSave(JSON.parse(localStorage.getItem(SAVE_KEY)||'null'));dropSurnames(d,0);return d}catch(e){return null}}
 function continueGame(mode){mode='duo';
@@ -24,7 +24,7 @@ function continueGame(mode){mode='duo';
   S.decor.forEach(x=>x.carried=false);for(const a in S.odecor)S.odecor[a].forEach(x=>x.carried=false);ODEC_V++;
   makeStations();
   Object.entries(d.slots||{}).forEach(([id,v])=>{const s=S.st[id];if(s&&s.slots)v.forEach((it,k)=>{if(k<s.slots.length)s.slots[k]=it})});
-  Object.entries(d.pos||{}).forEach(([id,[x,y]])=>{const s=S.st[id];if(s){s.x=x;s.y=y}});
+  Object.entries(d.pos||{}).forEach(([id,[x,y,a]])=>{const s=S.st[id];if(s){s.x=x;s.y=y;if(a&&AREAS[a]&&(XST[s.type]))s.area=a}});
   Object.entries(d.plots||{}).forEach(([id,v])=>{const s=S.st[id];if(s)s.plot=v});
   Object.keys(d.spr||{}).forEach(id=>{if(S.st[id])S.st[id].on=true});
   if(d.mid)resumeMid(d.mid);else startDaySetup();
@@ -135,7 +135,9 @@ function wallFlags(){if(!S.decor||!S.up)return;const f=wallCover(176,208),s2=wal
 /* ---------- 가구 들고 다니기: 가구 앞에서 행동 버튼 길게 → 들기, 행동 → 내려놓기, 닫기 → 제자리 ----------
    가게 밖(마을·언덕·캠퍼스·텃밭)에도 놓을 수 있어요. 가게 설비와 벽 장식은 가게 안에서만. */
 function odecChanged(){ODEC_V++;if(typeof CNAV!=='undefined')CNAV=null;BG_CACHE={};bump()}
-function carryList(c){if(c.area==='shop')return movables();if(OUT_AREAS.includes(c.area))return odec(c.area).filter(d=>!d.carried);return []}
+function carryList(c){if(c.area==='shop')return movables();if(OUT_AREAS.includes(c.area))return odec(c.area).filter(d=>!d.carried).concat(stationsIn(c.area).filter(s=>s.home==='shop'));return []}
+/* 가게 밖에 둘 수 있는 설비: 진열대·물올림 통(나머지 설비는 가게 안에서만 옮겨요) */
+function outOK(f){return !!(f.type&&XST[f.type])}
 function furnAny(c){const [dx,dy]=DIRV[c.dir]||[0,1];const fx=c.x+dx*12,fy=c.y-3+dy*12;
   for(const f of carryList(c)){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}return null}
 function placeSpotO(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),Math.round(cy/TILE-f.h/2)]}
@@ -144,13 +146,17 @@ function spotOKO(area,f,x,y){const A=AREAS[area];if(x<1||y<1||x+f.w>A.w-1||y+f.h
   for(const o of odec(area)){if(o===f||o.carried||(f.walk&&o.walk))continue;if(!f.walk&&!o.walk&&x<o.x+o.w&&x+f.w>o.x&&y<o.y+o.h&&y+f.h>o.y)return false}
   for(const c of S.chars){if(c.area!==area)continue;const tx=c.x/TILE,ty=(c.y-2)/TILE;if(!f.walk&&tx>x-.3&&tx<x+f.w+.3&&ty>y&&ty<y+f.h+.2)return false}return true}
 function carrySpot(c){const f=c.carry;if(c.area==='shop'){const p=placeSpot(c,f);return [p[0],p[1],spotOK(f,p[0],p[1])]}
-  if(!OUT_AREAS.includes(c.area)||f.type||f.wall)return [0,0,false];const p=placeSpotO(c,f);return [p[0],p[1],spotOKO(c.area,f,p[0],p[1])]}
-function pickUp(c,f){if(!f||S.chars.some(o=>o.carry===f))return;if(S.chars.some(o=>o.rest&&o.rest.deco===f)){toast(c.i,'누군가 앉아 있어요');return}
+  if(!OUT_AREAS.includes(c.area)||(f.type&&!outOK(f))||f.wall)return [0,0,false];const p=placeSpotO(c,f);
+  /* 설비는 손님이 다니는 큰길(가게 앞 9~11번 줄)과 가게 문 앞을 막지 않게 */
+  if(f.type&&c.area==='town'&&((p[1]<=11&&p[1]+f.h>9)||(p[0]<9&&p[0]+f.w>5&&p[1]<=11)))return [p[0],p[1],false];
+  return [p[0],p[1],spotOKO(c.area,f,p[0],p[1])]}
+function pickUp(c,f){if(!f||S.chars.some(o=>o.carry===f))return;if(f.type&&S.chars.some(o=>o!==c&&o.modal&&o.modal.st===f.id)){toast(c.i,'누군가 쓰고 있어요');return}if(S.chars.some(o=>o.rest&&o.rest.deco===f)){toast(c.i,'누군가 앉아 있어요');return}
   f.carried=true;c.carry=f;sfx('lift');if(!S.decor.includes(f))odecChanged();toast(c.i,'들었어요. 놓을 곳에서 행동 버튼, 취소는 닫기 버튼')}
 function listOf(f){if(S.decor.includes(f))return S.decor;for(const a of OUT_AREAS){const L=odec(a);if(L.includes(f))return L}return null}
 function placeCarry(c){const f=c.carry;const [x,y,ok]=carrySpot(c);
-  if(!ok){toast(c.i,f.type&&c.area!=='shop'?'가게 설비는 가게 안에서만 옮길 수 있어요':f.wall&&c.area!=='shop'?'벽 장식은 가게 벽에만 걸 수 있어요':!OUT_AREAS.includes(c.area)&&c.area!=='shop'?'여기에는 놓을 수 없어요':'여기에는 놓을 수 없어요. 조금 옮겨 보세요');return}
+  if(!ok){toast(c.i,f.type&&c.area!=='shop'&&!outOK(f)?'이 설비는 가게 안에서만 옮길 수 있어요. 진열대·물올림 통은 밖에도 놓을 수 있어요':f.type&&c.area==='town'?'여기에는 놓을 수 없어요. 손님이 다니는 큰길과 가게 문 앞은 비워 두세요':f.wall&&c.area!=='shop'?'벽 장식은 가게 벽에만 걸 수 있어요':!OUT_AREAS.includes(c.area)&&c.area!=='shop'?'여기에는 놓을 수 없어요':'여기에는 놓을 수 없어요. 조금 옮겨 보세요');return}
   if(!f.type){const from=listOf(f),to=c.area==='shop'?S.decor:odec(c.area);if(from!==to){if(from)from.splice(from.indexOf(f),1);to.push(f)}}
+  else if(f.area!==c.area){f.area=c.area;if(typeof NAV!=='undefined')for(const k in NAV)if(NAV[k])NAV[k].chk=0}
   f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('thud');saveMid&&saveMid()}
 function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();sfx('thud');toast(c.i,'제자리에 두었어요')}
 function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
@@ -186,6 +192,8 @@ function doAction(i){
   /* 앉기·눕기는 누르는 순간 바로(손 떼는 순간을 기다리지 않음 → 조이콘에서도 확실하게). 계속 누르고 있으면 일어나서 들기 */
   if(s&&s.type==='seat'){sitOn(c,s.deco);if(fa===s.deco)c.pend={t:now,seat:s.deco,sat:!!c.rest};return}
   if(!s&&fa){c.pend={t:now};return}
+  /* 설비 앞: 짧게 누르면 바로 열고, 계속 누르고 있으면(0.7초) 닫고 들어요 */
+  if(s&&s.home==='shop'&&!S.edit&&s.type!=='npc'&&s.type!=='seat')c.pend={t:now,st:s};
   if(!s){toast(i,'가까이에 쓸 수 있는 게 없어요');return}
   switch(s.type){
     case 'npc':{const w=s.walker;w.talking=true;w.dir=faceTo(w,c);
@@ -218,7 +226,7 @@ function doAction(i){
     case 'field':toast(i,'나중에 여기서 꽃을 키울 수 있어요');return;
     case 'storage':case 'shelf':case 'bucket':case 'dryer':case 'pickup':case 'display':
       openModal(i,{type:'box',st:s.id});return;
-    case 'wardrobe':openModal(i,{type:'wardrobe',cat:'glasses'});return;
+    case 'wardrobe':openModal(i,{type:'wardrobe',cat:'tee'});return;
     case 'sprspot':{
       if(s.on){const ex=c.bag.find(it=>it&&it.kind==='sprinkler');if(ex)ex.n++;else if(!bagAdd(i,{kind:'sprinkler',n:1})){toast(i,'가방이 꽉 찼어요');return}s.on=false;toast(i,'스프링클러를 걷었어요');return}
       const k=c.bag.findIndex(it=>it&&it.kind==='sprinkler');if(k<0)return;const it=c.bag[k];it.n--;if(it.n<=0)c.bag[k]=null;s.on=true;s.sprayAt=performance.now();
@@ -286,7 +294,7 @@ function settleOrder(cu,o,b,how){
   const price=Math.round((o.price*ev.q*(1-disc)+tip)/100)*100+(isBasket(b)?5000:0);
   S.money+=price;o.status='delivered';sfx('coin');setTimeout(()=>sfx('star'+ev.stars),320);
   const lines=['정말 예뻐요! 꼭 다시 올게요.','마음에 들어요, 고마워요.','음… 생각했던 거랑은 조금 달라요.'];
-  const rec={o,price,disc,ev,b,tip,how,sty,line:isBasket(b)&&ev.stars>=2?pick(['꽃바구니라니! 너무 예뻐요. 두고두고 볼게요.','바구니에 담으니까 꽃이 더 화사해 보여요!','와, 꽃바구니! 받는 사람이 정말 좋아하겠어요.']):sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
+  const rec={o,price,disc,ev,b,tip,how,sty,line:isBasket(b)&&ev.stars>=2?pick(b.shape==='tin'?['양철 버킷이라니, 감성 가득이에요!','버킷에 담으니까 꽃집 진열대 같아요. 너무 예뻐요!']:['꽃바구니라니! 너무 예뻐요. 두고두고 볼게요.','바구니에 담으니까 꽃이 더 화사해 보여요!','와, 꽃바구니! 받는 사람이 정말 좋아하겠어요.']):sty&&ev.stars>=2&&PAT_LINE[b.pat]?pick(PAT_LINE[b.pat]):lines[3-ev.stars]};
   S.stats.rev.push(rec);
   cu.bouquet=b;leave(cu);
   return rec;
@@ -315,7 +323,7 @@ function spawnOrderCustomer(o){
   S.customers.push(viaTown(k));
 }
 function spawnUrgent(){
-  const o=genOrder(pick(TEMPLATES),Math.round(S.t),S.day);o.urgent=true;o.price*=2;o.deadline=S.t+URGENT_MIN;o.arrived=true;o.text='급해요! '+o.text;
+  const o=genOrder(pick(tplPool()),Math.round(S.t),S.day);o.urgent=true;o.price*=2;o.deadline=S.t+URGENT_MIN;o.arrived=true;o.text='급해요! '+o.text;
   S.orders.push(o);S.orders.sort((a,b)=>a.time-b.time);spawnOrderCustomer(o);sfx('ring');toastAll('급한 꽃다발 손님이 가게로 오고 있어요! 두 배 가격이에요');hudKey='';bump();
 }
 function spawnWalkin(){const k=newCust('walkin',{plan:[]});const n=1+Math.floor(Math.random()*3);for(let j=0;j<n;j++)k.plan.push('look');k.plan.push('display');nextGoal(k);S.customers.push(viaTown(k))}
@@ -325,11 +333,13 @@ function nextGoal(k){
   if(!g){leave(k);return}
   k.goal=g;
   if(g==='look'){const [x,y]=browsePoint();routeTo(k,x,y)}
-  else if(g==='display'){const d=S.st.display;routeTo(k,...frontOf(d,rnd(.6,d.w-.6)))}
+  else if(g==='display'){const L=shopDisplays(),ok=L.filter(d=>sellables(d).length);const d=ok.length?pick(ok):L.length?pick(L):null;if(!d){leave(k);return}k.disp=d.id;routeTo(k,...frontOf(d,rnd(.6,d.w-.6)))}
 }
-function sellables(){return S.st.display.slots.map((b,j)=>b&&(b.kind==='bouquet'?!wiltedB(b)&&isFreeBq(b):b.stems.some(s=>s.dried||s.f>=WILT))?j:-1).filter(j=>j>=0)}
-function sellFromDisplay(k){
-  const D=S.st.display.slots;const opts=sellables();if(!opts.length){k.say='오늘은 살 게 없네요';return}
+/* 진열대는 여러 개일 수 있어요(가게 안 · 가게 밖). 가게 안 손님은 가게 안 진열대에서만 사요 */
+function shopDisplays(){return stationsIn('shop').filter(s=>s.type==='display')}
+function sellables(d){if(!d){let a=[];for(const x of shopDisplays())a=a.concat(sellables(x));return a}return d.slots.map((b,j)=>b&&(b.kind==='bouquet'?!wiltedB(b)&&isFreeBq(b):b.stems.some(s=>s.dried||s.f>=WILT))?j:-1).filter(j=>j>=0)}
+function sellFromDisplay(k,dst,out){
+  const ds=dst||S.st[k.disp]||S.st.display;if(!ds||!ds.slots)return;const D=ds.slots;const opts=sellables(ds);if(!opts.length){k.say='오늘은 살 게 없네요';return}
   const bq=opts.filter(j=>D[j].kind==='bouquet');const j=bq.length&&Math.random()<.65?pick(bq):pick(opts),b=D[j];
   let price=0,label='';
   if(b.kind==='bouquet'){price=freePrice(b);D[j]=null;k.bouquet=b;label='꽃다발'}
@@ -337,10 +347,10 @@ function sellFromDisplay(k){
     for(let q=0;q<n;q++){const s=ok[q];b.stems.splice(b.stems.indexOf(s),1);taken.push(s);price+=FL[s.t].price/5*(s.dried?1.4:(1.2+.8*clamp(s.f/100,0,1)))}
     if(!b.stems.length)D[j]=null;price=Math.round(price/100)*100;k.bouquet={kind:'bunch',t:b.t,stems:taken,trim:true,dried:!!b.dried};label=`${FL[b.t].name}${b.dried?'(드라이)':''} ${n}송이`;S.stats.displayN+=n}
   S.money+=price;S.stats.display+=price;sfx('coin');bump();
-  toastAll(`진열대에서 ${label}이(가) 팔렸어요 +${won(price)}`);
+  toastAll(`${out?'가게 밖 ':''}진열대에서 ${label}이(가) 팔렸어요 +${won(price)}`);
 }
 function reserveOffer(k){
-  const tpl=pick(TEMPLATES);const t=Math.ceil((S.t+120)/30)*30;
+  const tpl=pick(tplPool());const t=Math.ceil((S.t+120)/30)*30;
   return {tpl,name:k.name,time:pick(SLOTS),today:t<=510?t:null,until:S.t+999};
 }
 /* ---------- 길찾기(마을·북쪽 길): 주민·손님·고양이가 화단·물·나무·건물을 돌아서 걸어가게 ----------
@@ -446,7 +456,7 @@ function updateWalkers(dt){
   if(!inRec&&yard.length)yard.forEach(w=>{if(!w.goIn){w.goIn=true;w.sit=false;w.dz=0;w.yo=0;w.path=[[8.5*TILE,28.6*TILE]]}});
   if(!inRec&&yard.length){S.swingOcc=[false,false];S.ball=null}
   if(yard.length)updateBall(dt,yard);
-  S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main&&!w.cRole);if(w)w.offer={tpl:pick(TEMPLATES),time:pick(SLOTS),name:w.name,until:S.t+70}}});
+  S.offers.forEach((t,n)=>{if(t!==null&&S.t>=t){S.offers[n]=null;const w=S.walkers.find(w=>w.zone!=='lane'&&!w.offer&&!w.follow&&w.kind!=='kid'&&!w.main&&!w.cRole);if(w)w.offer={tpl:pick(tplPool()),time:pick(SLOTS),name:w.name,until:S.t+70}}});
   const obs=new Set(S.chars.map(c=>c.area));
   /* 같은 장소여도 두 사람 모두에게서 화면 두 개 넘게 멀리 있는 주민(넓은 캠퍼스)은 가끔만 계산 */
   const farAll=w=>{const a=wArea(w);if(!WIDE_AREAS[a])return false;for(const c of S.chars)if(c.area===a&&Math.abs(c.x-w.x)<30*TILE&&Math.abs(c.y-w.y)<20*TILE)return false;return true};
@@ -460,6 +470,21 @@ function updateWalkers(dt){
     w.mv=Math.hypot(w.x-px,w.y-py)>.02;if(w.dog)w.dog.mv=Math.hypot(w.dog.x-dpx,w.dog.y-dpy)>.02;
   });
   if(S.walkers.some(w=>w.dead))S.walkers=S.walkers.filter(w=>!w.dead);
+}
+/* ---------- 가게 밖 진열대: 영업 시간에 지나가던 주민이 들러서 사 가요 ----------
+   3분(게임 시간)에 한 번만 살펴봐서 계산이 아주 적어요 */
+function outDisplays(){return S.stList.filter(s=>s.type==='display'&&s.area!=='shop'&&!s.carried)}
+function outdoorSales(dMin){
+  S._osT=(S._osT||0)+dMin;const chk=S._osT>=3;if(chk)S._osT=0;
+  const L=outDisplays();if(!L.length)return;
+  for(const w of S.walkers){if(!w.buyD)continue;const d=S.st[w.buyD];
+    if(!d||d.carried||d.area!==wArea(w)||w.hidden||S.t>=DAY_LEN){w.buyD=null;continue}
+    if(w.talking)continue;const [fx,fy]=frontOf(d);w.tx=fx;w.ty=fy;
+    if(Math.hypot(w.x-fx,w.y-fy)<20){w.buyD=null;w._buyT=S.t;w.wait=2;w.dir='up';sellFromDisplay(w,d,true);delete w.bouquet}}
+  if(!chk||S.t>=DAY_LEN-10)return;
+  for(const d of L){if(!sellables(d).length||Math.random()>.6)continue;const [fx,fy]=frontOf(d);
+    const c=S.walkers.filter(w=>!w.hidden&&!w.talking&&!w.follow&&!w.buyD&&!w.main&&w.zone!=='yard'&&w.zone!=='lane'&&!w.school&&wArea(w)===d.area&&(w._buyT==null||S.t-w._buyT>90)&&Math.hypot(w.x-fx,w.y-fy)<18*TILE);
+    if(c.length){const w=pick(c);w.buyD=d.id;w.wait=0}}
 }
 const ERRAND_DOORS=[20*TILE,43*TILE];
 /* ---------- 쉬는 시간 운동장 놀이: 그네 · 미끄럼틀 · 공놀이 · 소꿉놀이 ---------- */
@@ -578,7 +603,7 @@ function update(dtReal){
       if(d.area!==c.area)continue;
       const hit=d.edge==='right'?(c.x>=d.x&&c.y>=d.y0&&c.y<=d.y1):d.edge==='left'?(c.x<=d.x&&c.y>=d.y0&&c.y<=d.y1):(c.x>=d.x0&&c.x<=d.x1&&(d.edge==='bottom'?c.y>=d.y:c.y<=d.y));
       if(hit){
-        if(c.carry&&(S.edit||c.carry.type||c.carry.wall)){if(d.edge==='right')c.x-=4;else if(d.edge==='left')c.x+=4;else c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
+        if(c.carry&&(S.edit||(c.carry.type&&!outOK(c.carry))||c.carry.wall)){if(d.edge==='right')c.x-=4;else if(d.edge==='left')c.x+=4;else c.y+=d.edge==='bottom'?-4:4;toast(c.i,'가구를 먼저 내려놓으세요');break}
         const o=S.chars[1-c.i];
         c.area=d.to;sfx('door');c.x=d.sx+(o.area===d.to&&Math.abs(o.x-d.sx)<10&&Math.abs(o.y-d.sy)<10?12:0);c.y=d.sy;c.dir=d.dir;c.face=c.ang=DIR_ANG[d.dir];c.fade=1;c.vx=c.vy=0;break;
       }
@@ -588,12 +613,14 @@ function update(dtReal){
   if(a.area===b.area&&!a.rest&&!b.rest){const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d<11){const p=(11-d)/2||.5,nx=d?dx/d:1,ny=d?dy/d:0;moveChar(a,-nx*p,-ny*p);moveChar(b,nx*p,ny*p)}}
   S.puffs.forEach(q=>q.t+=dtReal);S.puffs=S.puffs.filter(q=>q.t<.5);
   /* 행동 버튼 길게 누르기 → 가구 들기 / 짧게 → 앉기 */
-  S.chars.forEach((c,i)=>{if(!c.pend)return;if(c.modal){c.pend=null;return}
+  S.chars.forEach((c,i)=>{if(!c.pend)return;
+    if(c.pend.st){const p=c.pend;if(!actHeld(i)){c.pend=null;return}if(performance.now()-p.t>=700){c.pend=null;if(c.modal&&c.modal.type==='talk')return;if(c.modal)closeModal(i);if(!c.modal&&!c.carry&&p.st.area===c.area)pickUp(c,p.st)}return}
+    if(c.modal){c.pend=null;return}
     if(actHeld(i)){if(performance.now()-c.pend.t>=700){const p=c.pend,f=p.sat?p.seat:furnAny(c);c.pend=null;if(p.sat&&c.rest)standUp(c);if(f)pickUp(c,f)}}
     else{const p=c.pend;c.pend=null;if(p.sat)return;if(p.seat)sitOn(c,p.seat);else toast(i,'행동 버튼을 길게 누르면 가구를 들 수 있어요')}});
   S._wf=(S._wf||0)+dtReal;if(S._wf>.5){S._wf=0;wallFlags()}
   S._gc=(S._gc||0)+dtReal;if(S._gc>3){S._gc=0;giftCatchUp()}
-  updateCustomers(dt);updateWalkers(dt);
+  updateCustomers(dt);updateWalkers(dt);outdoorSales(dt/REAL_PER_MIN);
   S.calls.forEach(k=>{if(k.state==='wait'&&S.t>=k.t)k.state='ring';if(k.state==='ring'&&S.t>k.t+k.dur)k.state='missed'});
   if(ringingCall()&&performance.now()-AU.lastRing>1600&&S.chars.some(c=>c.area==='shop')){AU.lastRing=performance.now();sfx('ring')}
   if(Math.floor(S.t/30)!==S._as){S._as=Math.floor(S.t/30);saveMid()}
