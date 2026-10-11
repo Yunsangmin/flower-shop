@@ -296,6 +296,8 @@ function pollPads(dt){
       if(ctx){
         const d=Math.hypot(v[0],v[1])>.5?(Math.abs(v[0])>Math.abs(v[1])?(v[0]>0?'right':'left'):(v[1]>0?'down':'up')):null;
         if(d&&d!==st.dir[dk]){st.dir[dk]=d;st.hold[dk]=0;navMove(ctx,d)}else if(d){st.hold[dk]=(st.hold[dk]||0)+dt;if(st.hold[dk]>.38){st.hold[dk]=.26;navMove(ctx,d)}}else st.dir[dk]=null;
+        /* 창이 열려 있어도 행동 버튼을 '누르고 있는지'는 알려 줘요 → 설비를 꾹 누르면 열렸던 창을 닫고 들 수 있게(예전엔 창이 열리는 순간 손을 뗀 걸로 봐서 못 들었어요) */
+        if(B.act.some(k=>pressed(k)))PADACT[slot]=true;
         if(any(B.act))navPress(ctx);else if(any(B.back))navBack(ctx);else if(any(B.menu))navMenu();
       }else{
         /* 신호가 아주 잠깐(0.05초 이내) 0으로 끊기는 경우만 보정 — 예전엔 2프레임이라 TV가 느릴 때 손을 떼도 미끄러졌어요 */
