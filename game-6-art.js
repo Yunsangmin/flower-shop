@@ -591,26 +591,23 @@ function hair2Front(g,p,H,HL,hx,t,f){const m=p.h2,W=h2HW(p),o=t*5,D=mix(p.hair,'
 function hair2SideBehind(g,p,H,bob,hs){const m=p.h2,yb=H2LEN[m.len]||-84;
   if(yb>-80){g.beginPath();g.moveTo(-6,-116-bob);g.bezierCurveTo(-28-Math.abs(hs),-112-bob,-26,yb-12-bob,-22,yb-bob);h2Edge(g,m.tex,-22,-2,yb-bob);g.bezierCurveTo(-2,yb-20-bob,-4,-96-bob,0,-110-bob);g.closePath();g.fillStyle=H;g.fill()}
   if(m.x==='pony'){g.save();g.translate(-17,-122-bob);g.rotate(.12+Math.max(-.1,Math.min(.1,hs*.02)));g.beginPath();g.moveTo(-3,0);g.bezierCurveTo(-13,10,-9,32,-4,48);g.bezierCurveTo(1,36,6,14,5,0);g.closePath();g.fillStyle=H;g.fill();g.restore()}}
-/* 옆모습 머리(얼굴 위) */
-function hair2Side(g,p,H,HL,bob,slim){const m=p.h2,D=mix(p.hair,'#000',.3),v=m.vol||0,fr=m.fr,yS=H2SD[m.sd]||-90;
-  el(g,-1,-94,4,5.5,p.skinSh); // 귀
-  g.beginPath();g.moveTo(-21,-86);g.bezierCurveTo(-30,-130-v,26,-136-v,25,-101);
-  if(fr==='none'||fr==='crop'){g.lineTo(22,-109);g.quadraticCurveTo(12,-116,4,-110)}
-  else if(fr==='see'){g.lineTo(23,-104);g.lineTo(18,-106);g.quadraticCurveTo(12,-112,4,-108)}
-  else{g.lineTo(24,-99);g.quadraticCurveTo(20,-101,16,-100);g.quadraticCurveTo(10,-108,4,-107)}
-  g.quadraticCurveTo(-2,-103,-3,-97);g.quadraticCurveTo(-5,-90,-9,-84);g.closePath();g.fillStyle=H;g.fill();
-  if(m.sd==='under')rr(g,-14,-102,12,12,4,mix(p.hair,p.skin,.5));
-  else if(yS>-91)h2Lock(g,3,-106,yS,-1,m.sd==='wisp'?4.5:8,m.tex,H);
-  if(m.tex==='curl')for(let k=0;k<=11;k++){const a=Math.PI*(1.05+k*.085);el(g,2+Math.cos(a)*23,-101+Math.sin(a)*(21+v),3.8,3.5,H)}
-  if(m.tex==='spiky')for(let k=0;k<5;k++){const a=Math.PI*(1.15+k*.16),c=Math.cos(a),sn=Math.sin(a),x=2+c*22,y=-102+sn*(20+v),nx=-sn,ny=c;poly(g,[x-nx*3,y-ny*3,x+nx*3,y+ny*3,x+c*3.5,y+sn*3.5],H)}
-  if(m.tex==='wave'||m.tex==='cc'){g.save();g.globalAlpha=.32;g.strokeStyle=D;g.lineWidth=1;for(let k=0;k<4;k++){g.beginPath();g.arc(-12+k*7,-114+Math.abs(k-1.5)*2,3.4,0,Math.PI*1.3);g.stroke()}g.restore()}
+/* 옆모습 머리(얼굴 위) — 원래(21차 이전) 옆모습 모양을 그대로 쓰고, 묶음·길이·결만 더해요
+   · 얼굴(볼) 위에 따로 붙이는 옆머리 덩어리는 그리지 않아요 */
+function hair2Side(g,p,H,HL,bob,slim){const m=p.h2,D=mix(p.hair,'#000',.3),v=m.vol||0,tied=!!m.x&&m.x!=='halfbun';
+  el(g,-6,-100,20,24,H);
+  g.beginPath();g.moveTo(-22,-96);g.bezierCurveTo(-24,-126-v*.6,26,-130-v*.6,24,-102);g.bezierCurveTo(18,-104,10,-101,5,-105);g.bezierCurveTo(1,-98,-6,-94,-7,-82);g.lineTo(-22,-82);g.closePath();g.fillStyle=H;g.fill();
+  /* 귀 쪽: 짧은 머리·묶은 머리는 귀가 보이고, 기른 머리는 귀를 덮고 내려와요 */
+  const SL={chest:46,chin:30,bobin:30,hime:30,cheek:22};const L=tied?(m.x==='braids'?0:15):(SL[m.sd]||0);
+  if(L)rr(g,-12,-104,12,L,6,H);else el(g,-1,-94,4,5.5,p.skinSh);
+  if(m.tex==='curl')for(let k=0;k<5;k++)el(g,-16+k*8,-120-v*.5+Math.abs(k-2)*2,5.5,5.5,H);
+  else if(m.tex==='wave'||m.tex==='cc'){g.save();g.globalAlpha=.3;g.strokeStyle=D;g.lineWidth=1;for(let k=0;k<3;k++){g.beginPath();g.arc(-12+k*8,-116+Math.abs(k-1)*2,3.2,0,Math.PI*1.2);g.stroke()}g.restore()}
   if(m.x==='bun')el(g,-8,-128-v,10,9,H);
   if(m.x==='buns'){el(g,-10,-124,8,7.5,H);el(g,8,-129,7,6.5,mix(p.hair,'#000',.06))}
   if(m.x==='halfbun')el(g,-16,-118,6.5,5.5,H);
-  if(m.x==='braids')h2Braid(g,2,-90,4,-54,H,D,'#E07A7A');
+  if(m.x==='braids')h2Braid(g,-6,-90,-6,-54,H,D,'#E07A7A');
   if(m.x==='sidepony'){g.beginPath();g.moveTo(-8,-94);g.bezierCurveTo(-14,-80,-6,-70,-10,-58);g.bezierCurveTo(-4,-54,0,-62,-2,-72);g.bezierCurveTo(0,-82,-2,-90,-2,-94);g.closePath();g.fillStyle=H;g.fill()}
-  g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-10,-119-v*.5);g.quadraticCurveTo(4,-126-v*.5,16,-115);g.stroke();
-  hairShine(g,2,-125-v*.5,13,'#FFFFFF')}
+  g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-10,-118-v*.5);g.quadraticCurveTo(4,-124-v*.5,16,-114);g.stroke();
+  hairShine(g,2,-124-v*.5,13,'#FFFFFF')}
 /* 뒷모습 */
 function hair2Rear(g,p,H,HL,hx,t){const m=p.h2,W=h2HW(p)+3,yb=H2LEN[m.len]||-84,D=mix(p.hair,'#000',.3),v=m.vol||0;
   if(m.sd==='under'){el(g,hx,-99,W,26,mix(p.hair,p.skin,.5));g.beginPath();g.ellipse(hx,-101,W,26+v*.5,0,Math.PI,Math.PI*2);g.lineTo(hx+W-1,-96);g.quadraticCurveTo(hx,-93,hx-W+1,-96);g.closePath();g.fillStyle=H;g.fill()}
