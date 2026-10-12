@@ -155,7 +155,7 @@ const HAIRS={
      ['braids','양갈래 땋기',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'braids'}],['sidepony','사이드 포니테일',{fr:'curtain',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'sidepony'}],
      ['pony','하이 포니테일',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:2,x:'pony'}],['bun','똥머리',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'bun'}],
      ['buns','만두머리',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'buns'}],['halfup','반묶음',{fr:'curtain',sd:'chest',len:'long',tex:'straight',vol:2,x:'halfbun'}],
-     ['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
+     ['hiponyw','하이포니 웨이브',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:4,x:'hipony',big:1,perm:1,price:70000}],['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
 const HAIR_DEFAULT={m:'gareuma',f:'seethru'};
 const HAIR_C=[['#221C21','흑발'],['#3B2A22','자연 갈색'],['#5A3A2A','초코 브라운'],['#8A6A50','밀크 브라운'],['#6E6258','애쉬 브라운'],['#8C8C90','애쉬 그레이'],['#6A5E44','카키 브라운'],
   ['#6E2A3A','와인'],['#8A4E4E','로즈 브라운'],['#23263A','블루 블랙'],['#A8783A','골드 브라운'],['#D8B36A','블론드'],['#D88AA0','핑크']];

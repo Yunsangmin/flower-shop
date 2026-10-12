@@ -68,7 +68,7 @@ const SALON_LINES=['어서 오세요, 리트헤어예요! 오늘은 어떤 느�
 function salonO(i){return S.outfit[i]||(S.outfit[i]={})}
 function hairOwned(i,k){const o=salonO(i),g=PAL[i].style==='f'?'f':'m';return k===HAIR_DEFAULT[g]||k===o.hair||(o.hairOwn||[]).includes(k)}
 function colOwned(i,c){const o=salonO(i);return c==='orig'||c===o.hairC||(o.hairCOwn||[]).includes(c)}
-function hairPrice(k){const H=hairDef(k);return H&&H.perm?SALON_PRICE.perm:SALON_PRICE.cut}
+function hairPrice(k){const H=hairDef(k);if(H&&H.price)return H.price;return H&&H.perm?SALON_PRICE.perm:SALON_PRICE.cut}
 function salonTry(i,m){const o={...salonO(i)};if(m.sel)o.hair=m.sel;if(m.col)o.hairC=m.col==='orig'?undefined:m.col;return palFromOutfit(PAL[i],o)}
 function salonAskCost(i,a){return a.t==='hair'?(hairOwned(i,a.k)?0:hairPrice(a.k)):(colOwned(i,a.k)?0:SALON_PRICE.dye)}
 MODAL_R.salon=(i,m)=>{const o=salonO(i),L=HAIRS[m.g];m.say=m.say||pick(SALON_LINES);
@@ -77,7 +77,7 @@ MODAL_R.salon=(i,m)=>{const o=salonO(i),L=HAIRS[m.g];m.say=m.say||pick(SALON_LIN
       return `<button class="sw ${c==='orig'?'orig ':''}${m.col===c?'on':''}${own?' own':''}" style="background:${c==='orig'?'':c}" data-a="hcol" data-v="${c}" aria-label="${n}${cur?' (지금 색)':own?' (보유·무료)':''}" title="${n}">${own?'<span class="ck">✓</span>':''}</button>`}).join('')}</div>
       <p class="req">${m.col?(m.col==='orig'?'원래 색':HAIR_C.find(x=>x[0]===m.col)[1])+(m.col===curC?' · 지금 색이에요':colOwned(i,m.col)?' · 보유(무료) — 한 번 더 누르면 바꿔요':` · 염색 ${won(SALON_PRICE.dye)} — 한 번 더 누르면 바꿔요`):'색을 눌러 미리 보고, 한 번 더 누르면 바꿔요. ✓는 이미 산 색(무료)이에요.'}</p>`
     :`<div class="list">${L.map(([k,n])=>{const cur=k===curH,own=hairOwned(i,k);
-      return `<div class="li"><span class="grow">${n}<br><small>${cur?'지금 머리':own?'보유 · 무료':(hairDef(k).perm?'펌 ':'커트 ')+won(hairPrice(k))}</small></span><button class="btn small ${m.sel===k?'primary':''}" data-a="hsel" data-v="${k}" ${cur?'':''}>${cur?'지금 머리':m.sel===k?'바꾸기':'해 보기'}</button></div>`}).join('')}</div>`;
+      return `<div class="li"><span class="grow">${n}<br><small>${cur?'지금 머리':own?'보유 · 무료':(hairDef(k).price?'스페셜 펌 ':hairDef(k).perm?'펌 ':'커트 ')+won(hairPrice(k))}</small></span><button class="btn small ${m.sel===k?'primary':''}" data-a="hsel" data-v="${k}" ${cur?'':''}>${cur?'지금 머리':m.sel===k?'바꾸기':'해 보기'}</button></div>`}).join('')}</div>`;
   let ask='';
   if(m.ask){const a=m.ask,cost=salonAskCost(i,a),nm=a.t==='hair'?(L.find(x=>x[0]===a.k)||[0,''])[1]:(a.k==='orig'?'원래 색':(HAIR_C.find(x=>x[0]===a.k)||[0,''])[1]);
     ask=`<div class="confirm"><div class="grow">‘${nm}’(으)로 바꿀까요?<br><small>${cost?won(cost)+' · 가진 돈 '+won(S.money):'이미 산 거라 무료예요'}</small></div><button class="btn primary small" data-a="hok" ${S.money<cost?'disabled':''}>${S.money<cost?'돈이 모자라요':'바꿀게요'}</button><button class="btn small" data-a="hno">아니요</button></div>`}
