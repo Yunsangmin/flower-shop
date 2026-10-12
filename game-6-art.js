@@ -520,7 +520,7 @@ function hairShine(g,hx,y,w,col){g.save();g.globalAlpha=.55;g.strokeStyle=col;g.
    · 정면(hair2Behind→몸 뒤, hair2Front→얼굴 위) / 옆모습(hair2SideBehind, hair2Side) / 뒷모습(hair2Rear)
    · 그림 수는 그대로라 메모리는 늘지 않고, 처음 그릴 때만 조금 더 걸려요
    ========================================================= */
-const H2LEN={nape:-84,bob:-72,shoulder:-62,long:-44,xlong:-32};
+const H2LEN={nape:-84,bob:-72,shoulder:-62,long:-44,xlong:-32,xxlong:-14};
 const H2SD={wisp:-84,ear:-92,under:-95,cheek:-82,chin:-74,chest:-54,bobin:-74,hime:-80};
 function h2HW(p){return p.style==='f'?22:25}
 /* 아래 끝 모양(결): x0→x1, y 기준선 */
@@ -537,8 +537,26 @@ function h2Lock(g,x,y0,yE,s,w,tex,col){const mid=(y0+yE)/2,cv=tex==='wave'||tex=
   g.bezierCurveTo(x-s*(w*.55),yE-5,x-s*(w*.75-cv*.5),mid,x-s*w,y0+3);g.closePath();g.fillStyle=col;g.fill()}
 function h2Braid(g,x0,y0,x1,y1,H,D,tie){const n=7;for(let k=0;k<n;k++){const t=k/(n-1),x=x0+(x1-x0)*t,y=y0+(y1-y0)*t,w=6-t*1.6;el(g,x+(k%2?1.2:-1.2),y,w,4.2,H);ln(g,x-w*.6,y-1,x+w*.6,y+1.5,D,.7)}
   el(g,x1,y1+4,2.6,2,tie);for(let k=0;k<3;k++)ln(g,x1,y1+5,x1-2+k*2,y1+11,H,1.6)}
+/* 물결치는 긴 꽁지(웨이브 포니테일): (x,y)에서 아래로 len, 굵기 w, 아래로 갈수록 dx만큼 옆으로 */
+function h2WTail(g,x,y,len,w,dx,H,D){const n=12,P=[],Q=[];
+  const C=t=>[x+dx*t*t+Math.sin(t*Math.PI*2.5)*2.6*t,y+len*t],HW=t=>w*(.62+.42*Math.sin(Math.min(1,t*1.15)*Math.PI*.85))*(1-.62*t);
+  for(let k=0;k<=n;k++){const t=k/n,[cx,cy]=C(t),hw=HW(t);P.push([cx-hw,cy]);Q.push([cx+hw,cy])}
+  const smooth=(A)=>{for(let k=1;k<A.length-1;k++){const mx=(A[k][0]+A[k+1][0])/2,my=(A[k][1]+A[k+1][1])/2;g.quadraticCurveTo(A[k][0],A[k][1],mx,my)}g.lineTo(A[A.length-1][0],A[A.length-1][1])};
+  g.beginPath();g.moveTo(P[0][0],P[0][1]);smooth(P);const e=C(1);g.quadraticCurveTo(e[0],e[1]+6,Q[n][0],Q[n][1]);smooth(Q.slice().reverse());g.closePath();g.fillStyle=H;g.fill();
+  g.save();g.globalAlpha=.3;g.strokeStyle='#FFFFFF';g.lineWidth=1.4;g.beginPath();for(let k=1;k<n;k++){const t=k/n,[cx,cy]=C(t);const xx=cx-.2*HW(t)+Math.sin(t*Math.PI*2.5)*1.2;k>1?g.lineTo(xx,cy):g.moveTo(xx,cy)}g.stroke();g.restore();
+  g.save();g.globalAlpha=.25;g.strokeStyle=D;g.lineWidth=.9;for(const f of [-.4,.05,.45]){g.beginPath();for(let k=0;k<=n;k++){const t=k/n,[cx,cy]=C(t);const xx=cx+f*HW(t);k?g.lineTo(xx,cy):g.moveTo(xx,cy+3)}g.stroke()}g.restore()}
+/* 물결 결: 머리 덩어리 안에 S자로 굽이치는 머리칼 줄(어두운 줄 + 밝은 윤기 줄) */
+function h2WaveLines(g,cx,yt,yb,wt,wb,D,Lc,amp){const per=13,A=amp||3.2,wAt=y=>wt+(wb-wt)*Math.min(1,(y-yt)/Math.max(1,yb-yt)*1.6);
+  const strand=(f,ph)=>{g.beginPath();let y=yt+4,k=0;g.moveTo(cx+f*wAt(y),y);while(y<yb-4){const y2=Math.min(yb-3,y+per),ym=(y+y2)/2;g.quadraticCurveTo(cx+f*wAt(ym)+A*((k+ph)%2?1:-1),ym,cx+f*wAt(y2),y2);y=y2;k++}g.stroke()};
+  g.save();g.lineCap='round';g.globalAlpha=.3;g.strokeStyle=D;g.lineWidth=1.1;for(const f of [-.82,-.5,-.18,.16,.48,.8])strand(f,0);
+  if(Lc){g.globalAlpha=.38;g.strokeStyle=Lc;g.lineWidth=1.6;for(const f of [-.66,-.04,.62])strand(f,1)}g.restore()}
+/* 물결치는 옆머리 한 줄기(앞모습) */
+function h2WLock(g,x,y0,yE,s,w,col,D){const n=8,P=[],Q=[];for(let k=0;k<=n;k++){const t=k/n,cx=x-s*w*.25*t+Math.sin(t*Math.PI*2.5)*2.2*t,cy=y0+(yE-y0)*t,hw=w*.5*(1-.55*t);P.push([cx-hw,cy]);Q.push([cx+hw,cy])}
+  const sm=A=>{for(let k=1;k<A.length-1;k++)g.quadraticCurveTo(A[k][0],A[k][1],(A[k][0]+A[k+1][0])/2,(A[k][1]+A[k+1][1])/2);g.lineTo(A[A.length-1][0],A[A.length-1][1])};
+  g.beginPath();g.moveTo(P[0][0],P[0][1]);sm(P);g.quadraticCurveTo(P[n][0]+w*.25,yE+3,Q[n][0],Q[n][1]);sm(Q.slice().reverse());g.closePath();g.fillStyle=col;g.fill();
+  g.save();g.globalAlpha=.3;g.strokeStyle=D;g.lineWidth=.9;g.beginPath();for(let k=0;k<=n;k++){const t=k/n,cx=x-s*w*.25*t+Math.sin(t*Math.PI*2.5)*2.2*t,cy=y0+(yE-y0)*t;k?g.lineTo(cx,cy):g.moveTo(cx,cy+2)}g.stroke();g.restore()}
 /* 풍성한 물결 머리 덩어리: 가운데 cx, 위 yt(폭 wt) → 아래 yb(폭 wb). 바깥선이 부드럽게 물결쳐요. one=한쪽(옆모습) */
-function h2Mass(g,cx,yt,yb,wt,wb,H,D,one){const n=5,L=one?cx-wb:cx-wb,R=one?cx+wt*.6:cx+wb;
+function h2Mass(g,cx,yt,yb,wt,wb,H,D,one,Lc){const n=5,L=one?cx-wb:cx-wb,R=one?cx+wt*.6:cx+wb;
   const sideX=(k,s)=>{const t=k/n;return cx+s*(wt+(wb-wt)*Math.min(1,t*1.6))};
   g.beginPath();g.moveTo(one?cx+wt*.6:cx-wt,yt);
   if(!one){for(let k=1;k<=n;k++){const ya=yt+(yb-yt)*(k-.5)/n,y=yt+(yb-yt)*k/n;g.quadraticCurveTo(sideX(k-.5,-1)-(k%2?5:-1),ya,sideX(k,-1),y)}}
@@ -547,24 +565,30 @@ function h2Mass(g,cx,yt,yb,wt,wb,H,D,one){const n=5,L=one?cx-wb:cx-wb,R=one?cx+w
   if(!one){for(let k=n-1;k>=0;k--){const ya=yt+(yb-yt)*(k+.5)/n,y=yt+(yb-yt)*k/n;g.quadraticCurveTo(sideX(k+.5,1)+((k+1)%2?5:-1),ya,sideX(k,1),y)}}
   else g.bezierCurveTo(cx+wt*.8,yb-20,cx+wt*.4,yt+30,cx+wt*.6,yt);
   g.closePath();g.fillStyle=H;g.fill();
-  g.save();g.globalAlpha=.22;g.strokeStyle=D;g.lineWidth=1;const xs=one?[-.6,-.2,.25]:[-.7,-.4,.4,.7];
-  for(const f of xs){const x0=cx+f*wt*.9,x1=cx+f*wb;g.beginPath();g.moveTo(x0,yt+10);g.bezierCurveTo(x0+5,yt+(yb-yt)*.35,x1-5,yt+(yb-yt)*.6,x1,yb-3);g.stroke()}g.restore()}
+  h2WaveLines(g,cx,yt,yb,wt*.95,wb*.92,D,Lc)}
 /* 몸 뒤(정면): 뒷머리·포니테일·반묶음 */
 function hair2Behind(g,p,H,hx,t,bob){const m=p.h2,W=h2HW(p),o=hx,yb=H2LEN[m.len]||-84,D=mix(p.hair,'#000',.3);
+  if(m.x==='wpony')h2WTail(g,o+W,-118-bob,68,10,8,H,D);
   if(m.x==='pony'){g.beginPath();g.moveTo(o+8,-124-bob);g.bezierCurveTo(o+W+16,-118-bob,o+W+12,-92-bob,o+W+8,-66-bob);g.bezierCurveTo(o+W+2,-80-bob,o+W+2,-104-bob,o+2,-116-bob);g.closePath();g.fillStyle=H;g.fill()}
   if(m.x==='halfbun')el(g,o,-126-bob,7,6,H);
-  if(yb>-80){const wb=W+(yb>-50?7:5)+(m.big?5:0);if(m.big){h2Mass(g,o,-108-bob,yb-bob,W+3,wb+2,H,mix(p.hair,'#000',.3));}else{g.beginPath();g.moveTo(o-W-3,-106-bob);g.bezierCurveTo(o-W-6,-90-bob,o-wb,yb-10-bob,o-wb,yb-bob);h2Edge(g,m.tex,o-wb,o+wb,yb-bob);g.bezierCurveTo(o+wb,yb-10-bob,o+W+6,-90-bob,o+W+3,-106-bob);g.closePath();g.fillStyle=H;g.fill();
+  if(yb>-80){const wb=W+(yb>-50?7:5)+(m.big?5:0);if(m.big||m.tex==='wave'||m.tex==='cc'){h2Mass(g,o,-108-bob,yb-bob,W+3,wb+2,H,D,false,mix(p.hair,'#FFFFFF',.5));}else{g.beginPath();g.moveTo(o-W-3,-106-bob);g.bezierCurveTo(o-W-6,-90-bob,o-wb,yb-10-bob,o-wb,yb-bob);h2Edge(g,m.tex,o-wb,o+wb,yb-bob);g.bezierCurveTo(o+wb,yb-10-bob,o+W+6,-90-bob,o+W+3,-106-bob);g.closePath();g.fillStyle=H;g.fill();
     g.save();g.globalAlpha=.16;for(let k=-3;k<=3;k++)ln(g,o+k*6,-100-bob,o+k*6.8,yb+4-bob,'#000',1);g.restore()}}}
 /* 얼굴 위(정면, hx 기준): 정수리·앞머리·옆머리·묶음 */
 function hair2Front(g,p,H,HL,hx,t,f){const m=p.h2,W=h2HW(p),o=t*5,D=mix(p.hair,'#000',.32),L=mix(p.hair,'#FFFFFF',.18),v=m.vol||0;
   g.save();g.translate(hx,0);
   const yS=H2SD[m.sd]||-90;
   /* 옆머리(얼굴 양옆) — 앞머리보다 먼저(위에 정수리가 덮어요) */
-  if(m.sd==='under'){const c=mix(p.hair,p.skin,.5);for(const s of [-1,1])rr(g,s<0?-W-2:W-4,-102,6,12,3,c)}
+  const male=p.style!=='f',burn=(xo,xi,yE,col)=>{for(const s of [-1,1]){const X=v=>s*v+o*.6;g.beginPath();g.moveTo(X(xo),-109);g.quadraticCurveTo(X(xo+.6),(yE-109)/2,X(xo-.8),yE+1.5);g.quadraticCurveTo(X((xo+xi)/2+.5),yE+1.5,X(xi+.6),yE-2);g.quadraticCurveTo(X(xi-.4),(yE-109)/2,X(xi-1.5),-109);g.closePath();g.fillStyle=col;g.fill()}};
+  /* 남자 옆머리: 귀 앞으로 짧게 내려와 끝이 둥글게 모이는 구레나룻 */
+  if(male&&m.sd==='ear')burn(22.5,17,-93,H);
+  else if(male&&m.sd==='under')burn(21.5,18,-98,mix(p.hair,p.skin,.22));
+  else if(male&&m.sd==='cheek')burn(W+1,W-7.5,-86,H);
+  else if(m.sd==='under'){const c=mix(p.hair,p.skin,.5);for(const s of [-1,1])rr(g,s<0?-W-2:W-4,-102,6,12,3,c)}
   else if(m.sd==='hime'){for(const s of [-1,1]){g.beginPath();g.moveTo(s*(W+2)+o,-104);g.lineTo(s*(W+2)+o,-80);g.lineTo(s*(W-6)+o,-80);g.lineTo(s*(W-5)+o,-102);g.closePath();g.fillStyle=H;g.fill()}}
   else if(m.sd==='bobin'){for(const s of [-1,1]){g.beginPath();g.moveTo(s*(W+3)+o,-106);g.bezierCurveTo(s*(W+7)+o,-90,s*(W+5)+o,-76,s*(W-3)+o,-72);g.quadraticCurveTo(s*(W-7)+o,-78,s*(W-4)+o,-100);g.closePath();g.fillStyle=H;g.fill()}}
   else if(yS<-91){}
   else if(m.sd==='wisp')for(const s of [-1,1])h2Lock(g,s*(W-1)+o*.6,-104,yS,s,4.5,m.tex,H);
+  else if((m.tex==='wave'||m.tex==='cc')&&yS>-80)for(const s of [-1,1]){h2WLock(g,s*(W-2)+o*.6,-106,yS,s,10,H,D);if(yS>-70)h2WLock(g,s*(W-6)+o*.6,-104,yS+6,s,6,mix(p.hair,'#000',.06),D)}
   else for(const s of [-1,1]){h2Lock(g,s*(W+1)+o*.6,-106,yS,s,9,m.tex,H);if(yS>-70)h2Lock(g,s*(W-3)+o*.6,-104,yS+8,s,6,m.tex,mix(p.hair,'#000',.06))}
   /* 정수리 + 앞머리선 */
   g.beginPath();g.moveTo(-W-3,-92);g.bezierCurveTo(-W-6,-132-v,W+6,-132-v,W+3,-92);
@@ -575,10 +599,12 @@ function hair2Front(g,p,H,HL,hx,t,f){const m=p.h2,W=h2HW(p),o=t*5,D=mix(p.hair,'
   else if(fr==='see'){g.lineTo(W-2,-99);g.quadraticCurveTo(o,-118,-W+2,-99)}
   else if(fr==='side'||fr==='comma'){g.lineTo(W-1,-101);g.quadraticCurveTo(W-6,-114,6+o,-114);g.quadraticCurveTo(-10+o,-110,-W+3,-100);g.lineTo(-W+1,-97)}
   else if(fr==='split'){g.lineTo(W-1,-96);g.quadraticCurveTo(W-8,-108,3+o,-111);g.lineTo(-1+o,-111);g.quadraticCurveTo(-W+8,-108,-W+1,-96)}
+  else if(fr==='mush'){g.lineTo(W+1,-93);const n=8;for(let k=0;k<=n;k++){const x=W-1-k*(2*W-2)/n;g.quadraticCurveTo(x+(2*W-2)/n*.5+o*.5,-97-(k%2?0:2.5),x+o*.5,-99.5+Math.abs(k-n/2)*.5)}g.lineTo(-W-1,-93)}
   else if(fr==='curtain'){g.lineTo(W-1,-92);g.bezierCurveTo(W-3,-102,10+o,-104,2+o,-112);g.lineTo(-2+o,-112);g.bezierCurveTo(-10+o,-104,-W+3,-102,-W+1,-92)}
   g.closePath();g.fillStyle=H;g.fill();
   /* 시스루 앞머리: 가는 머리칼 몇 가닥 */
   if(fr==='see'){for(const x of [-13,-6,1,8,14]){const xx=x+o*.6;g.beginPath();g.moveTo(xx-2.5,-115);g.quadraticCurveTo(xx+1,-108,xx+(x<0?-1:1),-100);g.quadraticCurveTo(xx+3,-108,xx+2.5,-115);g.closePath();g.fillStyle=H;g.fill()}}
+  if(fr==='mush'){g.beginPath();g.moveTo(1+o*.5,-110);g.quadraticCurveTo(5+o*.5,-102,2+o*.5,-94);g.quadraticCurveTo(7+o*.5,-102,5+o*.5,-110);g.closePath();g.fillStyle=H;g.fill()}
   if(fr==='comma'){g.strokeStyle=H;g.lineWidth=4;g.lineCap='round';g.beginPath();g.arc(-W+8+o*.4,-102,4,-Math.PI*.2,Math.PI*1.05);g.stroke()}
   /* 결: 웨이브·컬·삐침 */
   if(m.tex==='curl'){for(let k=0;k<=14;k++){const a=Math.PI*(1+k/14);el(g,Math.cos(a)*(W+2.5)+o*.5,-101+Math.sin(a)*(20+v),3.9,3.6,H)}for(const s of [-1,1])for(let k=0;k<4;k++)el(g,s*(W+2.5-k*.4)+o*.4,-98+k*5.5,3.4,3.2,H)}
@@ -596,14 +622,15 @@ function hair2Front(g,p,H,HL,hx,t,f){const m=p.h2,W=h2HW(p),o=t*5,D=mix(p.hair,'
   if(m.x==='braids')for(const s of [-1,1])h2Braid(g,s*(W+1)+o*.5,-90,s*(W+4)+o*.5,-52,H,D,'#E07A7A');
   if(m.x==='sidepony'){el(g,-W-2+o*.4,-96,4,3.4,'#E07A7A');g.beginPath();g.moveTo(-W-4,-94);g.bezierCurveTo(-W-14,-84,-W-4,-72,-W-10,-58);g.bezierCurveTo(-W-6,-50,-W+2,-56,-W-1,-66);g.bezierCurveTo(-W+3,-76,-W-2,-86,-W+1,-94);g.closePath();g.fillStyle=H;g.fill();
     g.save();g.globalAlpha=.3;g.strokeStyle=D;g.lineWidth=.9;g.beginPath();g.moveTo(-W-4,-90);g.bezierCurveTo(-W-10,-80,-W-2,-70,-W-7,-60);g.stroke();g.restore()}
-  if(m.x==='pony')el(g,W-6+o,-117,4,3,'#E07A7A');
+  if(m.x==='pony'||m.x==='wpony')el(g,W-6+o,-117,4,3,'#E07A7A');
   g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-10+o*.5,-121-v*.4);g.quadraticCurveTo(-16+o*.5,-116,-19,-108);g.stroke();
   hairShine(g,o*.6,-125-v*.5,14,'#FFFFFF');
   g.restore()}
 /* 옆모습(오른쪽을 봄): 몸 뒤에 그리는 긴 머리·포니테일 */
 function hair2SideBehind(g,p,H,bob,hs){const m=p.h2,yb=H2LEN[m.len]||-84;
-  if(m.big){h2Mass(g,-11,-112-bob,yb-bob,15,19,H,mix(p.hair,'#000',.3));return}
+  if(yb>-80&&(m.big||m.tex==='wave'||m.tex==='cc')){h2Mass(g,-11,-112-bob,yb-bob,15,m.big?19:15,H,mix(p.hair,'#000',.3),false,mix(p.hair,'#FFFFFF',.5));return}
   if(yb>-80){g.beginPath();g.moveTo(-6,-116-bob);g.bezierCurveTo(-28-Math.abs(hs),-112-bob,-26,yb-12-bob,-22,yb-bob);h2Edge(g,m.tex,-22,-2,yb-bob);g.bezierCurveTo(-2,yb-20-bob,-4,-96-bob,0,-110-bob);g.closePath();g.fillStyle=H;g.fill()}
+  if(m.x==='wpony')h2WTail(g,-20,-120-bob,72,11,-7,H,mix(p.hair,'#000',.3));
   if(m.x==='pony'){g.save();g.translate(-17,-122-bob);g.rotate(.12+Math.max(-.1,Math.min(.1,hs*.02)));g.beginPath();g.moveTo(-3,0);g.bezierCurveTo(-13,10,-9,32,-4,48);g.bezierCurveTo(1,36,6,14,5,0);g.closePath();g.fillStyle=H;g.fill();g.restore()}}
 /* 옆모습 머리(얼굴 위) — 원래(21차 이전) 옆모습 모양을 그대로 쓰고, 묶음·길이·결만 더해요
    · 얼굴(볼) 위에 따로 붙이는 옆머리 덩어리는 그리지 않아요 */
@@ -627,10 +654,12 @@ function hair2Side(g,p,H,HL,bob,slim){const m=p.h2,D=mix(p.hair,'#000',.3),v=m.v
 function hair2Rear(g,p,H,HL,hx,t){const m=p.h2,W=h2HW(p)+3,yb=H2LEN[m.len]||-84,D=mix(p.hair,'#000',.3),v=m.vol||0;
   if(m.sd==='under'){el(g,hx,-99,W,26,mix(p.hair,p.skin,.5));g.beginPath();g.ellipse(hx,-101,W,26+v*.5,0,Math.PI,Math.PI*2);g.lineTo(hx+W-1,-96);g.quadraticCurveTo(hx,-93,hx-W+1,-96);g.closePath();g.fillStyle=H;g.fill()}
   else el(g,hx-t*2,-101,W-t*2,26+v*.4,H);
-  if(yb>-80){const wb=W+(yb>-50?4:2)+(m.big?5:0);if(m.big){h2Mass(g,hx,-106,yb,W,wb+2,H,D);}else{g.beginPath();g.moveTo(hx-W,-104);g.bezierCurveTo(hx-W-3,-90,hx-wb,yb-10,hx-wb,yb);h2Edge(g,m.tex,hx-wb,hx+wb,yb);g.bezierCurveTo(hx+wb,yb-10,hx+W+3,-90,hx+W,-104);g.closePath();g.fillStyle=H;g.fill();
+  if(yb>-80){const wb=W+(yb>-50?4:2)+(m.big?5:0);if(m.big||m.tex==='wave'||m.tex==='cc'){h2Mass(g,hx,-106,yb,W,wb+2,H,D,false,mix(p.hair,'#FFFFFF',.5));}else{g.beginPath();g.moveTo(hx-W,-104);g.bezierCurveTo(hx-W-3,-90,hx-wb,yb-10,hx-wb,yb);h2Edge(g,m.tex,hx-wb,hx+wb,yb);g.bezierCurveTo(hx+wb,yb-10,hx+W+3,-90,hx+W,-104);g.closePath();g.fillStyle=H;g.fill();
     g.save();g.globalAlpha=.16;for(let k=-3;k<=3;k++)ln(g,hx+k*6,-104,hx+k*6.8,yb+3,'#000',1);g.restore()}}
   else{g.beginPath();g.moveTo(hx-W+1,-96);h2Edge(g,m.tex,hx-W+1,hx+W-1,-84);g.lineTo(hx+W-1,-96);g.closePath();g.fillStyle=H;g.fill()}
+  if((m.tex==='wave'||m.tex==='cc')&&yb<=-80)h2WaveLines(g,hx,-122-v*.4,-86,W*.55,W*.8,D,mix(p.hair,'#FFFFFF',.5),2.6);
   if(m.tex==='curl')for(let k=0;k<=14;k++){const a=Math.PI*(1+k/14);el(g,hx+Math.cos(a)*(W-.5),-100+Math.sin(a)*(25+v*.4),3.9,3.6,H)}
+  if(m.x==='wpony'){h2WTail(g,hx,-116,72,15,3,mix(p.hair,'#000',.06),D);el(g,hx,-117,5.5,3,'#E07A7A')}
   if(m.x==='pony'){g.beginPath();g.moveTo(hx-6,-118);g.bezierCurveTo(hx-12,-96,hx-6,-72,hx+1,-54);g.bezierCurveTo(hx+6,-72,hx+11,-96,hx+6,-118);g.closePath();g.fillStyle=mix(p.hair,'#000',.08);g.fill();g.save();g.globalAlpha=.25;ln(g,hx-2,-110,hx,-62,D,1);ln(g,hx+3,-108,hx+1,-66,D,1);g.restore();el(g,hx,-119,5.5,4,'#E07A7A')}
   if(m.x==='hipony'){g.beginPath();g.moveTo(hx-10,-114-v);g.bezierCurveTo(hx-16,-140-v,hx+8,-150-v,hx+15,-133-v);g.bezierCurveTo(hx+18,-125-v,hx+12,-118-v,hx+9,-114-v);g.closePath();g.fillStyle=p.hair;g.fill();el(g,hx,-121-v,5.5,3,'#E07A7A')}
   if(m.x==='bun')el(g,hx,-126-v,10,9,H);
@@ -1006,6 +1035,12 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
     if(back){
       if(p.pack)rr(g,-15+st-t*4,-74,30*(1-.2*t),30,8,p.packC||'#E3A04A');
       if(t>0){el(g,22+hx,-96,4.5,6,p.skinSh);el(g,16+hx+t*4,-90,3+t*5,8+t*4,p.skin)}else{el(g,-23,-96,4.5,6,p.skinSh);el(g,23,-96,4.5,6,p.skinSh)}
+      /* 등 번호는 머리보다 먼저 그려요(긴 머리가 번호를 덮도록) */
+      if(p.num&&!p.coat){g.save();if(flip)g.scale(-1,1);const tx=(flip?-1:1)*(st-t*6);g.fillStyle='#FFFFFF';g.textAlign='center';g.textBaseline='alphabetic';
+        g.save();g.translate(tx,0);g.scale(1-.3*t,1);
+        if(f){g.font="8px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.jersey||p.name,0,-50);g.font="bold 12px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.num,0,-39)}
+        else{g.font="9px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.jersey||p.name,0,-60);g.font="bold 17px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.num,0,-44)}
+        g.restore();g.restore()}
       if(p.h2)hair2Rear(g,p,H,HL,hx,t);
       else if(style==='bald'){el(g,hx,-99,25,25,p.skin);el(g,hx,-94,26,12,H);el(g,hx-4,-112,10,5,'rgba(255,255,255,.22)')}
       else{el(g,hx-t*2,-99,26-t*2,26,H);
@@ -1018,11 +1053,6 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
         g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-12+hx,-116);g.quadraticCurveTo(hx,-124,12+hx,-116);g.stroke();hairShine(g,hx,-124,13,'#FFFFFF')}
       if(!p.h2)hairModBack(g,p,H,HL,hx,t,style);
       pinV(g,p,hx,t,true);hatV(g,p,hx,t,true);
-      if(p.num&&!p.coat){g.save();if(flip)g.scale(-1,1);const tx=(flip?-1:1)*(st-t*6);g.fillStyle='#FFFFFF';g.textAlign='center';g.textBaseline='alphabetic';
-        g.save();g.translate(tx,0);g.scale(1-.3*t,1);
-        if(f){g.font="8px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.jersey||p.name,0,-50);g.font="bold 12px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.num,0,-39)}
-        else{g.font="9px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.jersey||p.name,0,-60);g.font="bold 17px 'Jua','Gowun Dodum',sans-serif";g.fillText(p.num,0,-44)}
-        g.restore();g.restore()}
     }else{
       if(p.pack){ln(g,-12+st,-76,-10+st,-50,mix(p.packC||'#E3A04A','#000',.15),3);ln(g,12+st,-76,10+st,-50,mix(p.packC||'#E3A04A','#000',.15),3)}
       if(t>0)el(g,-22+hx+t*6,-96,4.5,6,p.skinSh);else{el(g,-(f?22:25),-96,4.5,6,p.skinSh);el(g,f?22:25,-96,4.5,6,p.skinSh);el(g,-(f?22:25),-96,2.2,3.2,mix(p.skinSh,'#CC7777',.2));el(g,f?22:25,-96,2.2,3.2,mix(p.skinSh,'#CC7777',.2))}

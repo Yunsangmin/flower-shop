@@ -147,7 +147,9 @@ const HAIRS={
      ['leaf','리프컷',{fr:'curtain',sd:'cheek',len:'nape',tex:'straight',vol:2}],['ez','애즈펌',{fr:'split',sd:'ear',len:'nape',tex:'cc',vol:3,perm:1}],
      ['wolf','울프컷',{fr:'see',sd:'cheek',len:'shoulder',tex:'layer',vol:3}],['slick','슬릭백',{fr:'none',sd:'under',len:'nape',tex:'straight',vol:4}],
      ['crop','크롭컷',{fr:'crop',sd:'under',len:'nape',tex:'spiky',vol:1}],['shadow','쉐도우펌',{fr:'full',sd:'ear',len:'nape',tex:'wave',vol:4,perm:1}],
-     ['hippiem','히피펌',{fr:'see',sd:'cheek',len:'nape',tex:'curl',vol:5,perm:1}],['longm','장발 레이어드',{fr:'split',sd:'chin',len:'shoulder',tex:'layer',vol:2}]],
+     ['hippiem','히피펌',{fr:'see',sd:'cheek',len:'nape',tex:'curl',vol:5,perm:1}],['longm','장발 레이어드',{fr:'split',sd:'chin',len:'shoulder',tex:'layer',vol:2}],
+     ['wavem','볼륨 웨이브펌',{fr:'split',sd:'chin',len:'bob',tex:'wave',vol:5,big:1,perm:1}],['natural','내추럴 사이드',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:4}],
+     ['mush','볼륨 머쉬룸컷',{fr:'mush',sd:'ear',len:'nape',tex:'straight',vol:5}],['volpart','볼륨 가르마펌',{fr:'curtain',sd:'cheek',len:'nape',tex:'wave',vol:5,perm:1}]],
   f:[['seethru','시스루뱅 롱',{fr:'see',sd:'chest',len:'long',tex:'straight',vol:2}],['layered','레이어드 C컬',{fr:'curtain',sd:'chest',len:'long',tex:'cc',vol:2}],
      ['hush','허쉬컷',{fr:'see',sd:'chin',len:'shoulder',tex:'layer',vol:3}],['bangbob','뱅 단발',{fr:'full',sd:'bobin',len:'bob',tex:'straight',vol:2}],
      ['tassel','태슬컷',{fr:'side',sd:'chin',len:'shoulder',tex:'straight',vol:1}],['build','빌드펌',{fr:'side',sd:'chest',len:'long',tex:'wave',vol:3,perm:1}],
@@ -155,7 +157,7 @@ const HAIRS={
      ['braids','양갈래 땋기',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'braids'}],['sidepony','사이드 포니테일',{fr:'curtain',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'sidepony'}],
      ['pony','하이 포니테일',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:2,x:'pony'}],['bun','똥머리',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'bun'}],
      ['buns','만두머리',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'buns'}],['halfup','반묶음',{fr:'curtain',sd:'chest',len:'long',tex:'straight',vol:2,x:'halfbun'}],
-     ['hiponyw','하이포니 웨이브',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:4,x:'hipony',big:1,perm:1,price:70000}],['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
+     ['hiponyw','하이포니 웨이브',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:4,x:'hipony',big:1,perm:1,price:70000}],['wpony','웨이브 포니테일',{fr:'side',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'wpony',perm:1}],['superlong','슈퍼 롱 스트레이트',{fr:'see',sd:'chest',len:'xxlong',tex:'straight',vol:3}],['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
 const HAIR_DEFAULT={m:'gareuma',f:'seethru'};
 const HAIR_C=[['#221C21','흑발'],['#3B2A22','자연 갈색'],['#5A3A2A','초코 브라운'],['#8A6A50','밀크 브라운'],['#6E6258','애쉬 브라운'],['#8C8C90','애쉬 그레이'],['#6A5E44','카키 브라운'],
   ['#6E2A3A','와인'],['#8A4E4E','로즈 브라운'],['#23263A','블루 블랙'],['#A8783A','골드 브라운'],['#D8B36A','블론드'],['#D88AA0','핑크']];
