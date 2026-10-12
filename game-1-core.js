@@ -138,15 +138,25 @@ const HATV={beretN:['beret','#3E4D78'],beanieG:['beanie','#9AA0A8'],beanieP:['be
 const ACCV={pearlN:{neck:'pearl'},goldN:{neck:'gold'},bowR:{bow:'#C0463E'},bowN:{bow:'#3A4C80'},corsP:{corsage:'#F29AB0'},corsW:{corsage:'#FFFFFF'},scarfR:{scarf:'#C65C5C'},scarfC:{scarf:'#EFE4D0'}};
 const EARV={earP:'pearl',earG:'gold',earD:'drop'};
 /* 머리 스타일(리트헤어): b=기본 모양, 나머지는 덧그림(앞머리·옆머리·컬 등). perm=펌 가격 */
+/* 머리 스타일(리트헤어) v2: 머리칼 덩어리로 그려요(game-6-art.js 의 hair2*)
+   fr=앞머리(none 넘김·full 일자뱅·see 시스루·side 옆으로·split 가르마·comma 쉼표·crop 짧게·curtain 커튼뱅), sd=옆머리 길이(ear·cheek·chin·chest),
+   len=뒷머리(nape·bob·shoulder·long·xlong), tex=결(straight·wave·curl·layer·spiky), vol=정수리 볼륨, x=묶음(pony·sidepony·braids·bun·buns·halfbun), perm=펌 가격 */
 const HAIRS={
-  m:[['dandy','댄디컷',{b:'short',fr:'full'}],['twoblock','투블럭컷',{b:'short',sides:1,vol:1}],['leaf','리프컷',{b:'short',fr:'leaf'}],['sports','스포츠머리',{b:'short',crop:1}],
-     ['buzz','2mm 삭발',{b:'bald',buzz:1}],['mohawk','모히칸',{b:'bald',buzz:1,crest:1}],['pomade','포마드(올백)',{b:'short',fr:'up'}],
-     ['ez','애즈펌',{b:'short',fr:'part',wave:1,perm:1}],['gareuma','가르마펌',{b:'short',pm:1,perm:1}],['shadow','쉐도우펌',{b:'short',fr:'full',wave:1,perm:1}],
-     ['spin','스핀스왈로펌',{b:'short',swirl:1,perm:1}],['foil','호일펌',{b:'curly',perm:1}],['hippiem','히피펌',{b:'curly',side:1,perm:1}],['longm','장발',{b:'bob'}]],
-  f:[['straight','긴 생머리',{b:'long'}],['straightb','긴 생머리 + 앞머리',{b:'long',bangs:1}],['layered','레이어드컷',{b:'long',layer:1}],['hush','허쉬컷',{b:'long',len:.78,layer:1,bangs:'see'}],
-     ['bob','단발 보브',{b:'bob'}],['kalbob','칼단발',{b:'bob',blunt:1}],['tassel','태슬컷',{b:'bob',blunt:1,len:1.35}],['build','빌드펌',{b:'long',wave:1,perm:1}],
-     ['hippie','히피펌',{b:'curly',perm:1}],['cwave','C컬 물결펌',{b:'long',cc:1,bangs:1,perm:1}],['bun','똥머리',{b:'bun'}],['pony','하이 포니테일',{b:'pony'}],
-     ['twin','양갈래',{b:'pony',twin:1}],['half','반묶음',{b:'long',half:1}],['pixie','숏컷',{b:'short',fr:'side'}]]};
+  m:[['dandy','댄디컷',{fr:'full',sd:'ear',len:'nape',tex:'straight',vol:2}],['comma','쉼표머리',{fr:'comma',sd:'ear',len:'nape',tex:'straight',vol:2}],
+     ['gareuma','가르마펌',{fr:'split',sd:'ear',len:'nape',tex:'wave',vol:3,perm:1}],['twoblock','투블럭',{fr:'side',sd:'under',len:'nape',tex:'straight',vol:4}],
+     ['leaf','리프컷',{fr:'curtain',sd:'cheek',len:'nape',tex:'straight',vol:2}],['ez','애즈펌',{fr:'split',sd:'ear',len:'nape',tex:'cc',vol:3,perm:1}],
+     ['wolf','울프컷',{fr:'see',sd:'cheek',len:'shoulder',tex:'layer',vol:3}],['slick','슬릭백',{fr:'none',sd:'under',len:'nape',tex:'straight',vol:4}],
+     ['crop','크롭컷',{fr:'crop',sd:'under',len:'nape',tex:'spiky',vol:1}],['shadow','쉐도우펌',{fr:'full',sd:'ear',len:'nape',tex:'wave',vol:4,perm:1}],
+     ['hippiem','히피펌',{fr:'see',sd:'cheek',len:'nape',tex:'curl',vol:5,perm:1}],['longm','장발 레이어드',{fr:'split',sd:'chin',len:'shoulder',tex:'layer',vol:2}]],
+  f:[['seethru','시스루뱅 롱',{fr:'see',sd:'chest',len:'long',tex:'straight',vol:2}],['layered','레이어드 C컬',{fr:'curtain',sd:'chest',len:'long',tex:'cc',vol:2}],
+     ['hush','허쉬컷',{fr:'see',sd:'chin',len:'shoulder',tex:'layer',vol:3}],['bangbob','뱅 단발',{fr:'full',sd:'bobin',len:'bob',tex:'straight',vol:2}],
+     ['tassel','태슬컷',{fr:'side',sd:'chin',len:'shoulder',tex:'straight',vol:1}],['build','빌드펌',{fr:'side',sd:'chest',len:'long',tex:'wave',vol:3,perm:1}],
+     ['hippie','히피펌',{fr:'see',sd:'chest',len:'long',tex:'curl',vol:5,perm:1}],['swave','S컬 물결펌',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:2,perm:1}],
+     ['braids','양갈래 땋기',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'braids'}],['sidepony','사이드 포니테일',{fr:'curtain',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'sidepony'}],
+     ['pony','하이 포니테일',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:2,x:'pony'}],['bun','똥머리',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'bun'}],
+     ['buns','만두머리',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'buns'}],['halfup','반묶음',{fr:'curtain',sd:'chest',len:'long',tex:'straight',vol:2,x:'halfbun'}],
+     ['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
+const HAIR_DEFAULT={m:'gareuma',f:'seethru'};
 const HAIR_C=[['#221C21','흑발'],['#3B2A22','자연 갈색'],['#5A3A2A','초코 브라운'],['#8A6A50','밀크 브라운'],['#6E6258','애쉬 브라운'],['#8C8C90','애쉬 그레이'],['#6A5E44','카키 브라운'],
   ['#6E2A3A','와인'],['#8A4E4E','로즈 브라운'],['#23263A','블루 블랙'],['#A8783A','골드 브라운'],['#D8B36A','블론드'],['#D88AA0','핑크']];
 function hairDef(k){for(const g of ['m','f'])for(const h of HAIRS[g])if(h[0]===k)return h[2];return null}
@@ -429,7 +439,7 @@ function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.ha
   if(o.hat&&HATV[o.hat]){p.hat=HATV[o.hat][0];p.hatC=HATV[o.hat][1]}
   if(o.acc&&ACCV[o.acc])Object.assign(p,ACCV[o.acc]);
   if(o.ear&&EARV[o.ear])p.ear=EARV[o.ear];
-  if(o.hair){const H=hairDef(o.hair);if(H){p.hs=H.b;p.perm=!!H.pm;p.bangs=!!H.bangs;p.hm=H}}
+  {const g=base.style==='f'?'f':'m',H=(o.hair&&hairDef(o.hair))||hairDef(HAIR_DEFAULT[g]);if(H){p.h2=H;p.hs=H.len==='long'||H.len==='xlong'||H.sd==='chest'?'long':H.len==='bob'||H.len==='shoulder'?'bob':'short';p.perm=false;p.bangs=false;p.hm=null}}
   if(o.hairC){p.hair=o.hairC;p.hairHi=mix(o.hairC,'#FFFFFF',.22)}
   const D=o.dress&&DRESS[o.dress];if(D){p.tee=D.c;p.teeSh=mix(D.c,'#3B2F3F',.15);p.num=null;if(D.dress){p.skirt=D.c;p.dress=1}else{p.shirt=D.shirt;if(D.l)p.shirtL=D.l}}
   const B=o.bag&&BAGS[o.bag];if(B)Object.assign(p,B);

@@ -229,7 +229,7 @@ function modalEl(i){return $('#modal'+i)}
 function openModal(i,m){
   const c=S.chars[i];c.modal=m;c.vx=c.vy=0;
   const el=modalEl(i);el.dataset.t=performance.now();
-  el.className='modal open '+(S.mode==='solo'?'center':(i===0?'left':'right'))+(m.type==='talk'?' talk':'');
+  el.dataset.see='';el.className='modal open '+(S.mode==='solo'?'center':(i===0?'left':'right'))+(m.type==='talk'?' talk':'');
   renderModal(i);updateControlVisibility();if(m.type!=='talk')sfx('open');else talkOpenSfx(m);
 }
 /* 대화 시작 소리: 동물은 하트 뿅뿅 + 울음소리, 이야기는 반짝, 그리고 첫 대사의 감정 */
@@ -247,7 +247,7 @@ function closeModal(i){
   updateControlVisibility();
 }
 function head(i,title,closeLabel){return `<div class="mh"><span class="who p${i}">${PAL[i].name}</span><h2>${title}</h2><button class="btn small" data-a="close">${closeLabel||'닫기'}</button></div><!--B-->`}
-function wrapBody(h){const inv=h.indexOf('class="inv"')>=0;const open=`<div class="mbody${inv?' noscroll':' scr'}">`;return (h.indexOf('<!--B-->')>=0?h.replace('<!--B-->',open):open+h)+'</div>'}
+function wrapBody(h){const inv=h.indexOf('class="inv"')>=0||h.indexOf('class="sscroll')>=0;const open=`<div class="mbody${inv?' noscroll':' scr'}">`;return (h.indexOf('<!--B-->')>=0?h.replace('<!--B-->',open):open+h)+'</div>'}
 function reqCheck(o,stems){
   const cnt={};stems.forEach(s=>cnt[s.t]=(cnt[s.t]||0)+1);
   return `<div class="check">${Object.keys(o.req).map(t=>{const h=cnt[t]||0,r=o.req[t];return `<span class="${h>=r?'ok':''}">${FL[t].name} ${h}/${r}</span>`}).join('')}${Object.keys(cnt).filter(t=>!o.req[t]).map(t=>`<span>${FL[t].name} ${cnt[t]} (요청 외)</span>`).join('')}</div>`;
@@ -465,9 +465,9 @@ function renderModal(i){
       <div class="lbl">내일</div>${S.tomorrow.length?`<div class="list">${S.tomorrow.map(o=>`<div class="li"><span class="t">${clock(o.time)}</span><span class="grow">${esc(o.title)} · ${esc(o.name)}<br>${reqChips(o.req)}</span></div>`).join('')}</div>`:'<p class="note">아직 내일 예약이 없어요. 전화를 받거나 공원에서 손님을 만나 보세요.</p>'}`;
   }
   if(!h&&MODAL_R[m.type])h=MODAL_R[m.type](i,m,c);
-  const sy=(el.querySelector('.invR')||{}).scrollTop||0,sl=(el.querySelector('.invL')||{}).scrollTop||0,sm=(el.querySelector('.mbody')||{}).scrollTop||0;
+  const sy=(el.querySelector('.invR')||{}).scrollTop||0,sl=(el.querySelector('.invL')||{}).scrollTop||0,sm=(el.querySelector('.mbody')||{}).scrollTop||0,ss=(el.querySelector('.sscroll')||{}).scrollTop||0;
   el.innerHTML=wrapBody(h);
-  const r=el.querySelector('.invR'),l=el.querySelector('.invL'),mb=el.querySelector('.mbody');if(r)r.scrollTop=sy;if(l)l.scrollTop=sl;if(mb&&!r)mb.scrollTop=sm;
+  const r=el.querySelector('.invR'),l=el.querySelector('.invL'),mb=el.querySelector('.mbody');if(r)r.scrollTop=sy;if(l)l.scrollTop=sl;if(mb&&!r)mb.scrollTop=sm;const sc2=el.querySelector('.sscroll');if(sc2)sc2.scrollTop=ss;
   gpRefocus(i);
   if(m.type==='trim'&&m.step==='cut')startCutAnim(i);
   if(m.type==='wardrobe')drawPreview(i);
@@ -816,5 +816,21 @@ const SET={music:.5,sfx:.7,pads:{},assign:{},gfx:'auto'};
 function loadSettings(){try{Object.assign(SET,JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'))}catch(e){}}
 function saveSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(SET))}catch(e){}}
 loadSettings();
+/* ---------- 둘이 할 때 창이 상대를 가리면 자동으로 비치게 ----------
+   · 0.2초마다 상대 캐릭터의 화면 위치만 계산(그림을 새로 그리지 않아 가벼워요)
+   · 설정 '창 비침': 없음 / 약간 / 많이 (SET.see = 0 / 1 / 2, 기본 1) */
+if(SET.see==null)SET.see=1;
+(function(){const st=document.createElement('style');st.textContent=
+  '.modal.left,.modal.right{max-height:min(calc(100vh - var(--hudH,44px) - 1.2rem - env(safe-area-inset-bottom,0px)),74vh)}'+
+  '.modal{transition:opacity .18s}.modal.see1{opacity:.62}.modal.see2{opacity:.32}';document.head.appendChild(st)})();
+function charScreenRect(j){const c=S.chars[j];if(!c)return null;let vs;try{vs=viewports()}catch(e){return null}
+  const v=vs.find(v=>v.chars.includes(j));if(!v)return null;const cam=camera(v),s=cam.s;
+  const x=cam.ox+c.x*s,y=cam.oy+c.y*s;return {l:x-9*s,r:x+9*s,t:y-36*s,b:y+2*s}}
+function modalSeeTick(){if(S.mode==='solo'||S.phase!=='play'||!S.chars||S.chars.length<2)return;
+  for(const i of [0,1]){const el=modalEl(i);if(!el)continue;const m=S.chars[i].modal;let k=0;
+    if(m&&m.type!=='talk'&&SET.see&&el.classList.contains('open')){const R=charScreenRect(1-i);
+      if(R){const M=el.getBoundingClientRect();if(R.r>M.left&&R.l<M.right&&R.b>M.top&&R.t<M.bottom)k=SET.see}}
+    const want=k?'see'+k:'';if(el.dataset.see!==want){el.classList.remove('see1','see2');if(want)el.classList.add(want);el.dataset.see=want}}}
+setInterval(modalSeeTick,200);
 try{const t=document.createElement('div');t.style.cssText='display:flex;flex-direction:column;row-gap:1px;position:absolute';t.innerHTML='<div></div><div></div>';document.body.appendChild(t);if(t.scrollHeight!==1)document.documentElement.classList.add('oldflex');t.remove()}catch(e){}
 

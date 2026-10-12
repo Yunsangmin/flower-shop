@@ -419,6 +419,7 @@ function showSettings(from){
     <div class="setrow"><span class="grow">배경음악</span><button class="btn small" data-set="music" data-d="-1" aria-label="배경음악 줄이기">−</button>${bar(SET.music)}<button class="btn small" data-set="music" data-d="1" aria-label="배경음악 키우기">+</button></div>
     <div class="setrow"><span class="grow">효과음</span><button class="btn small" data-set="sfx" data-d="-1" aria-label="효과음 줄이기">−</button>${bar(SET.sfx)}<button class="btn small" data-set="sfx" data-d="1" aria-label="효과음 키우기">+</button></div>
     <div class="setrow"><span class="grow">그래픽<br><small>${LITE?'가볍게 (빠름)':'보통'}${SET.gfx==='auto'?' · 자동':''}</small></span><button class="btn small ${SET.gfx==='auto'?'primary':''}" data-gfx="auto">자동</button><button class="btn small ${SET.gfx==='high'?'primary':''}" data-gfx="high">보통</button><button class="btn small ${SET.gfx==='lite'?'primary':''}" data-gfx="lite">가볍게</button></div>
+    <div class="setrow"><span class="grow">창 비침<br><small>둘이 할 때 창이 상대 캐릭터를 가리면 창이 비쳐 보여요</small></span>${['없음','약간','많이'].map((t,k)=>`<button class="btn small ${(SET.see==null?1:SET.see)===k?'primary':''}" data-see="${k}">${t}</button>`).join('')}</div>
     <div class="setrow"><span class="grow">성능 표시<br><small>화면 오른쪽 아래에 초당 프레임·처리 시간·메모리를 보여 줘요</small></span><button class="btn small ${SET.perf?'primary':''}" id="setPerf">${SET.perf?'켜짐':'꺼짐'}</button></div>
     <div class="lbl" id="setPads">조이콘</div>
     ${pads.length?`<div class="setrow"><span class="grow">${padsList().some(g=>isCombo(g.id))||(padsList().some(g=>joySide(g.id)==='L')&&padsList().some(g=>joySide(g.id)==='R'))?'조이콘 두 개가 연결됐어요':'조이콘(컨트롤러)이 연결됐어요'}<br><small>둘이 할 때: 왼쪽 조이콘 → <b style="font-weight:normal">${SET.swapSides?'수갱':'생민'}</b>, 오른쪽 조이콘 → <b style="font-weight:normal">${SET.swapSides?'생민':'수갱'}</b></small></span><button class="btn small soft" id="swapSides">생민·수갱 자리 바꾸기</button></div>`:'<p class="note" style="text-align:left">연결된 조이콘이 없어요. 스탠바이미에 블루투스로 연결한 뒤 아무 버튼이나 눌러 주세요.</p>'}
@@ -427,6 +428,7 @@ function showSettings(from){
     <div class="opts"><button class="btn primary" id="goKeys">조이콘 키 지정</button><button class="btn soft" id="goDiag">컨트롤러 진단</button><button class="btn primary" data-back="1" id="setBack">돌아가기</button></div></div>`);
   {const gb=$('#goBak');if(gb)gb.onclick=showBackups}
   const sc=$('#screen');sc.querySelectorAll('[data-gfx]').forEach(b=>b.onclick=()=>{SET.gfx=b.dataset.gfx;saveSettings();applyGfx();showSettings()});$('#goDiag').onclick=showDiag;$('#goKeys').onclick=showKeys;
+  sc.querySelectorAll('[data-see]').forEach(b=>b.onclick=()=>{SET.see=+b.dataset.see;saveSettings();showSettings()});
   $('#setPerf').onclick=()=>{SET.perf=!SET.perf;saveSettings();perfShow();showSettings()};
   const swb=$('#swapSides');if(swb)swb.onclick=()=>{SET.swapSides=!SET.swapSides;saveSettings();showSettings()};
   sc.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{const k=b.dataset.set;SET[k]=clamp(Math.round((SET[k]+(+b.dataset.d)*.1)*10)/10,0,1);saveSettings();applyVolume();sfx('tap');showSettings()});
