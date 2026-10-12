@@ -179,8 +179,11 @@ function drawStationV(g,s){
       for(let k=0;k<2;k++){rr(g,x+4+k*12,y+4,11,9,1,'#F7F1E6');g.fillStyle='#E8DCC8';g.fillRect(x+4+k*12,y+8,11,.8)}
       rr(g,x+w/2-5,y-6,10,7,1.5,'#FFF8EE');ln(g,x+w/2,y+1,x+w/2,y-2,CO.leafD,.8);el(g,x+w/2-2,y-3,2,1,CO.leaf,-.5);el(g,x+w/2+2,y-3.5,2,1,CO.leaf,.5);
       break;}
+    default:if(STATION_DRAW[s.type])STATION_DRAW[s.type](g,s,x,y,w,h);
   }
 }
+/* 새 장소 파일이 자기 설비 그림을 등록하는 곳 */
+const STATION_DRAW={};
 const VENDORS={sunflower:{style:'m',hs:'short',hair:'#4A3628',hairHi:'#6A5040',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#F7D978',teeSh:'#E2BE52',pants:'#5A6A7A',shoe:'#fff',num:'',acc:'cap'},
   ranunculus:{style:'f',hs:'pony',hair:'#3A2A26',hairHi:'#5A4642',skin:'#F4D3B7',skinSh:'#E0B597',tee:'#F6C0B2',teeSh:'#E09E8C',pants:'#7A6A5A',shoe:'#fff',num:''},
   peony:{style:'f',hs:'bun',hair:'#2E2A2E',hairHi:'#4E464E',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#F4C6D4',teeSh:'#DCA4B6',pants:'#4E4A5E',shoe:'#fff',num:'',acc:'glasses'},rose:{style:'m',hs:'short',hair:'#2E2A3A',hairHi:'#4A4458',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#E7A3AE',teeSh:'#C98490',pants:'#3E3E48',shoe:'#fff',num:'',acc:'glasses'},hydrangea:{style:'f',hs:'bob',hair:'#5A3A2E',hairHi:'#7A5A4E',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#BFD0F0',teeSh:'#9CB0D6',pants:'#6E5B4B',shoe:'#fff',num:''},tulip:{style:'f',hair:'#6B4A3A',hairHi:'#8A6553',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#F4B6C4',teeSh:'#E08FA4',pants:'#5C6A8C',shoe:'#fff',num:''},freesia:{style:'m',hair:'#3B2A22',hairHi:'#5E4536',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#F6DC86',teeSh:'#E2BD55',pants:'#6E5B4B',shoe:'#fff',num:''},gyp:{style:'f',hair:'#8A8A8A',hairHi:'#B0B0B0',skin:'#F4D3B7',skinSh:'#E0B597',tee:'#BFE3D0',teeSh:'#9CCBB4',pants:'#3E3E48',shoe:'#fff',num:''}};
@@ -517,10 +520,11 @@ function townStatic(g){
   // field soil
   rr(g,630,222,244,130,4,'#B89574');for(let y=230;y<346;y+=10){g.fillStyle='#A5825F';g.fillRect(636,y,232,4)}
   rr(g,720,208,32,16,4,'#E9DFC8');
-  FACADES.forEach(f=>drawFacade(g,f));
+  FACADES.forEach(f=>{if(f.t!=='shopFront')drawFacade(g,f)}); /* 우리 가게 앞모습은 따로 그려요(외관을 바꿔도 마을 바닥 전체를 다시 그리지 않게 — TV에서 0.9초 멈칫하던 것 방지) */
 }
+const FACADE_DRAW={}; // 새 장소 파일이 마을 건물 앞모습을 등록하는 곳
 function drawFacade(g,f){
-  const x=f.x*TILE,w=f.w*TILE,top=0,base=96;
+  const x=f.x*TILE,w=f.w*TILE,top=0,base=96;if(FACADE_DRAW[f.t]){FACADE_DRAW[f.t](g,f,x,w);return}
   const win=(wx,wy,ww,wh,inner)=>{rr(g,wx-1.5,wy-1.5,ww+3,wh+3,2,'#F8F4EC');rr(g,wx,wy,ww,wh,1.5,inner||'#CFE3EE');g.fillStyle='rgba(255,255,255,.4)';g.fillRect(wx+1,wy+1,ww-2,wh*.3)};
   const box=(bx,by,bw)=>{rr(g,bx,by,bw,4,1,CO.wood);for(let k=0;k<bw/3;k++)flowerHead(g,TYPES[k%3],bx+1.5+k*3,by,2.8,100)};
   const door=(dx,col)=>{rr(g,dx+2,58,28,38,3,col);rr(g,dx+5,62,22,16,2,'rgba(207,227,238,.9)');g.fillStyle='rgba(0,0,0,.08)';g.fillRect(dx+15.5,62,1,34);el(g,dx+24,82,1.2,1.2,'#E1B656');rr(g,dx,94,32,3,1,'#CDBFA8')};
@@ -718,7 +722,7 @@ function bgSpec(area,s){
   let q=PR.on?PR.R*(prIsTV()?.7:1):Math.min(DPR,1.6);const A0=AREAS[area];const BUD=PR.on?(prIsTV()?4.5e6:8.5e6):(LITE?3.5e6:9e6);
   while(A0.w*TILE*s*q*A0.h*TILE*s*q>BUD||(PR.on&&Math.max(A0.w,A0.h)*TILE*s*q>PR.maxTex))q*=.85;
   // 가게 바닥만 꾸미기·업그레이드에 따라 바뀌어요. 다른 장소는 물건을 사도 다시 그리지 않아요
-  return {q,key:area+'|'+s.toFixed(3)+'|'+q.toFixed(3)+(area==='shop'?'|'+JSON.stringify(S.up)+'|'+S.style:area==='town'?'|'+townSig():'')}}
+  return {q,key:area+'|'+s.toFixed(3)+'|'+q.toFixed(3)+(area==='shop'?'|'+JSON.stringify(S.up)+'|'+S.style:'')}}
 /* 마을 바닥 그림에 들어가는 가게 앞모습(간판 이름·외관)이 바뀌면 다시 그려요 */
 function townSig(){const U=S.up||{};return [S.shopName,U.sign?1:0,U.fr_awn||'',U.fr_wall||'',U.fr_door||'',U.fr_boxes?1:0,U.fr_lamps?1:0,U.fr_ivy?1:0,U.fr_board?1:0,U.fr_bike?1:0,U.fr_tile?1:0].join(',')}
 function bgDraw(area,s,q){
@@ -956,3 +960,8 @@ Object.assign(DECOR_DRAW,{
 Object.assign(SEATS,{sofa2:{n:2},hangchair:{n:1},beanbag:{n:1}});
 Object.assign(PR_DEB,{sofa2:[-1,-14,1,1],plantstand:[0,-24,0,1],deskset:[0,-16,0,1],aquarium:[0,-14,0,1],hangchair:[0,-36,0,1],showcase:[0,-28,0,1],grandclock:[0,-36,0,1],bigvase:[-2,-22,2,1],beanbag:[0,-6,0,1],lantern:[0,-20,0,1],herbbox:[0,-12,0,1]});
 ['w_neon','w_tapestry','w_hat','w_botanical','w_eucalyptus','w_menu'].forEach(t=>PR_DEB[t]=[0,-30,0,-14]);
+/* 우리 가게 앞모습(마을): 장식 한 조각으로 따로 구워요 → 간판 이름·외관이 바뀌면 이 조각만 다시 그림 */
+DECOR_DRAW.shopfacade=g=>{const f=FACADES.find(q=>q.t==='shopFront');if(f)drawFacade(g,f)};
+PR_DEB.shopfacade=[0,-2,0,0];
+DECOR_BASE.town.push({t:'shopfacade',x:1,y:0,w:11,h:6,walk:true,nofade:true});
+

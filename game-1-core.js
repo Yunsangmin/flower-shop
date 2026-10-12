@@ -87,6 +87,8 @@ const RIBBONS={
   peachr:{name:'피치',c:'#F6B49A',d:'#D98C70',set:'ribbons3'},mintr:{name:'민트',c:'#9FD8C4',d:'#72B39C',set:'ribbons3'},skyr:{name:'하늘',c:'#9CC5E8',d:'#6F9CC8',set:'ribbons3'},yellowr:{name:'노랑',c:'#F5D66A',d:'#D2AE3E',set:'ribbons3'},coralr:{name:'코랄',c:'#F29A86',d:'#CF7462',set:'ribbons3'},
   red:{name:'빨강',c:'#D8434E',d:'#A82E38',set:'ribbons4'},burg:{name:'버건디',c:'#8A3346',d:'#61202F',set:'ribbons4'},black:{name:'검정',c:'#2E2B30',d:'#121014',set:'ribbons4'},silver:{name:'은색',c:'#CDD3D9',d:'#949DA6',set:'ribbons4'},twine:{name:'노끈',c:'#CBA978',d:'#9C7C4E',set:'ribbons4'}
 };
+/* 리본 모양(매듭): 처음엔 3가지, 나머지는 용품상점 '포장재' 칸 세트로 */
+const BOWS={classic:{name:'기본 나비'},knot:{name:'한 번 묶기'},tails:{name:'꼬리 긴 리본'},big:{name:'볼륨 나비',set:'bows2'},double:{name:'이중 나비',set:'bows2'},loops:{name:'둥근 고리',set:'bows2'},rosette:{name:'꽃 매듭(로제트)',set:'bows3'},twine:{name:'노끈 감아 묶기',set:'bows3'}};
 const TEMPLATES=[
   {title:'장미 고백',text:'오늘 고백하려고요. 새빨간 장미로 부탁드려요.',req:{rose:7,gyp:3},paper:'cream',price:62000},
   {title:'수국 한 아름',text:'여름 느낌 나는 수국 꽃다발이요. 시원하게요!',req:{hydrangea:2,gyp:3},paper:'sky',price:44000},
@@ -135,6 +137,19 @@ const STYLE_PART={tee:'상의',pants:'하의',dress:'셔츠·원피스',apron:'�
 const HATV={beretN:['beret','#3E4D78'],beanieG:['beanie','#9AA0A8'],beanieP:['beanie','#F2B6C6'],capB:['cap','#2E2B30'],capW:['cap','#EEEAE2']};
 const ACCV={pearlN:{neck:'pearl'},goldN:{neck:'gold'},bowR:{bow:'#C0463E'},bowN:{bow:'#3A4C80'},corsP:{corsage:'#F29AB0'},corsW:{corsage:'#FFFFFF'},scarfR:{scarf:'#C65C5C'},scarfC:{scarf:'#EFE4D0'}};
 const EARV={earP:'pearl',earG:'gold',earD:'drop'};
+/* 머리 스타일(리트헤어): b=기본 모양, 나머지는 덧그림(앞머리·옆머리·컬 등). perm=펌 가격 */
+const HAIRS={
+  m:[['dandy','댄디컷',{b:'short',fr:'full'}],['twoblock','투블럭컷',{b:'short',sides:1,vol:1}],['leaf','리프컷',{b:'short',fr:'leaf'}],['sports','스포츠머리',{b:'short',crop:1}],
+     ['buzz','2mm 삭발',{b:'bald',buzz:1}],['mohawk','모히칸',{b:'bald',buzz:1,crest:1}],['pomade','포마드(올백)',{b:'short',fr:'up'}],
+     ['ez','애즈펌',{b:'short',fr:'part',wave:1,perm:1}],['gareuma','가르마펌',{b:'short',pm:1,perm:1}],['shadow','쉐도우펌',{b:'short',fr:'full',wave:1,perm:1}],
+     ['spin','스핀스왈로펌',{b:'short',swirl:1,perm:1}],['foil','호일펌',{b:'curly',perm:1}],['hippiem','히피펌',{b:'curly',side:1,perm:1}],['longm','장발',{b:'bob'}]],
+  f:[['straight','긴 생머리',{b:'long'}],['straightb','긴 생머리 + 앞머리',{b:'long',bangs:1}],['layered','레이어드컷',{b:'long',layer:1}],['hush','허쉬컷',{b:'long',len:.78,layer:1,bangs:'see'}],
+     ['bob','단발 보브',{b:'bob'}],['kalbob','칼단발',{b:'bob',blunt:1}],['tassel','태슬컷',{b:'bob',blunt:1,len:1.35}],['build','빌드펌',{b:'long',wave:1,perm:1}],
+     ['hippie','히피펌',{b:'curly',perm:1}],['cwave','C컬 물결펌',{b:'long',cc:1,bangs:1,perm:1}],['bun','똥머리',{b:'bun'}],['pony','하이 포니테일',{b:'pony'}],
+     ['twin','양갈래',{b:'pony',twin:1}],['half','반묶음',{b:'long',half:1}],['pixie','숏컷',{b:'short',fr:'side'}]]};
+const HAIR_C=[['#221C21','흑발'],['#3B2A22','자연 갈색'],['#5A3A2A','초코 브라운'],['#8A6A50','밀크 브라운'],['#6E6258','애쉬 브라운'],['#8C8C90','애쉬 그레이'],['#6A5E44','카키 브라운'],
+  ['#6E2A3A','와인'],['#8A4E4E','로즈 브라운'],['#23263A','블루 블랙'],['#A8783A','골드 브라운'],['#D8B36A','블론드'],['#D88AA0','핑크']];
+function hairDef(k){for(const g of ['m','f'])for(const h of HAIRS[g])if(h[0]===k)return h[2];return null}
 const DRESS={pink:{c:'#F6C9D3',dress:1},sky:{c:'#BFD9EE',dress:1},linen:{c:'#EFE4D0',dress:1},navy:{c:'#3E4A6E',dress:1},stripe:{c:'#EEF3FA',shirt:'stripe',l:'#4A6A9A'},check:{c:'#F3DCCB',shirt:'check',l:'#B0473E'},denim:{c:'#7F9CC0',shirt:'denim'}};
 const BAGS={yellow:{bag:true,bagC:'#E8C25A'},blackmini:{bag:true,bagC:'#2E2B30'},denim:{bag:true,bagC:'#7F9CC0',bagP:'#EFE6D6'},bluepack:{pack:true,packC:'#9CC5E8'},leather:{bag:true,bagC:'#9C6B4C'},canvas:{bag:true,bagC:'#EFE6D6',bagP:'#9DBB88'},rattan:{bag:true,bagC:'#C99A63'},basket:{prop:'basket'},pack:{pack:true,packC:'#E8A0A8'},kkami:{bag:true,bagC:'#F4EEE2',bagP:'#2A2626',bagP2:'#F29AB0'},spring:{bag:true,bagC:'#DDEBD4',bagP:'#F29AB0',bagP2:'#FFFFFF'}};
 const SHOP_ITEMS=[
@@ -149,6 +164,7 @@ const SHOP_ITEMS=[
   {id:'fridge2',cat:'equip',name:'냉장고 칸 늘리기 (16칸)',desc:'꽃 냉장고가 16칸이 돼요.',price:90000},
   {id:'fridge3',cat:'equip',name:'냉장고 칸 늘리기 (20칸)',desc:'꽃 냉장고가 20칸이 돼요.',price:180000,need:'fridge2'},
   {id:'fridge4',cat:'equip',name:'냉장고 칸 늘리기 (24칸)',desc:'꽃 냉장고가 24칸이 돼요.',price:320000,need:'fridge3'},
+  {id:'xfridge',cat:'equip',name:'꽃 냉장고 더 사기',desc:'냉장고가 하나 더 생겨요(최대 4개 더). 칸 늘리기·천천히 시들기 업그레이드가 모든 냉장고에 똑같이 적용돼요.',price:100000,repeat:true,addSt:'storage',max:4},
   {id:'xbucket',cat:'equip',name:'물올림 통 더 사기',desc:'물올림 통이 하나 더 생겨요. 여러 개 살 수 있고, 가게 밖에도 들고 나가 놓을 수 있어요.',price:40000,repeat:true,addSt:'bucket',max:10},
   {id:'xdisplay',cat:'equip',name:'진열대 더 사기',desc:'진열대가 하나 더 생겨요. 가게 밖 마을에 두면 영업 시간에 지나가는 사람들이 사 가요.',price:70000,repeat:true,addSt:'display',max:6},
   {id:'craft2',cat:'equip',name:'작업대 추가',desc:'둘이 동시에 꽃다발을 만들 수 있어요.',price:80000},
@@ -165,6 +181,8 @@ const SHOP_ITEMS=[
   {id:'patterns4',cat:'wrap',name:'감성 무늬 세트',desc:'잎사귀, 악보, 물결, 모눈, 금박 테두리 무늬가 생겨요.',price:50000},
   {id:'ribbons3',cat:'wrap',name:'파스텔 리본 세트',desc:'피치, 민트, 하늘, 노랑, 코랄 리본이 생겨요.',price:20000},
   {id:'ribbons4',cat:'wrap',name:'고급 리본 세트',desc:'빨강, 버건디, 검정, 은색 리본과 노끈이 생겨요.',price:30000},
+  {id:'bows2',cat:'wrap',name:'볼륨 리본 세트',desc:'볼륨 나비, 이중 나비, 둥근 고리 리본 모양이 생겨요.',price:25000},
+  {id:'bows3',cat:'wrap',name:'특별 매듭 세트',desc:'꽃 매듭(로제트)과 노끈 감아 묶기 모양이 생겨요.',price:35000},
   {id:'shapes2',cat:'wrap',name:'새 포장 모양 세트',desc:'둥근 모자 상자, 종이 쇼핑백, 양철 버킷 모양이 생겨요. 양철 버킷은 바구니처럼 재료비 5,000원, 판매가 +5,000원이에요.',price:45000},
   {id:'basket',cat:'wrap',name:'꽃바구니 (라탄·흰색)',desc:'꽃다발을 라탄이나 흰색 바구니에 담을 수 있어요. 만들 때 5,000원이 더 들지만 판매가도 5,000원 올라가고, 누구나 좋아해요.',price:30000},
   {id:'patterns2',cat:'wrap',name:'고급 포장 무늬',desc:'레이스, 영자신문, 투명 비닐 포장이 생겨요.',price:18000},
@@ -315,7 +333,7 @@ const SLOTN={storage:12,shelf:2,bucket:2,dryer:2,pickup:2,display:6,counter:4};
 function slotN(type){if(type==='pickup')return S.up.pickup4?8:S.up.pickup3?6:S.up.pickup2?4:2;if(type==='storage')return S.up.fridge4?24:S.up.fridge3?20:S.up.fridge2?16:12;return SLOTN[type]}
 function resizeSlots(){S.stList.forEach(s=>{if(!s.slots)return;const n=slotN(s.type);while(s.slots.length<n)s.slots.push(null)})}
 /* 여러 개 살 수 있는 설비(물올림 통·진열대): S.up.n_bucket / S.up.n_display 개수만큼 'xbucket1'… 'xdisplay1'… 로 만들어요 */
-const XST={bucket:{w:1,h:1},display:{w:3,h:1}};
+const XST={bucket:{w:1,h:1},display:{w:3,h:1},storage:{w:2,h:1}};
 function addXStation(type,n){const id='x'+type+n;if(S.st[id])return S.st[id];const o={id,type,area:'shop',home:'shop',x:2,y:7,w:XST[type].w,h:XST[type].h,item:null,slots:Array(slotN(type)).fill(null)};S.st[id]=o;S.stList.push(o);return o}
 const BAGN=8;
 function bagSize(){return S.up.bag3?16:S.up.bag2?12:8}
@@ -411,6 +429,8 @@ function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.ha
   if(o.hat&&HATV[o.hat]){p.hat=HATV[o.hat][0];p.hatC=HATV[o.hat][1]}
   if(o.acc&&ACCV[o.acc])Object.assign(p,ACCV[o.acc]);
   if(o.ear&&EARV[o.ear])p.ear=EARV[o.ear];
+  if(o.hair){const H=hairDef(o.hair);if(H){p.hs=H.b;p.perm=!!H.pm;p.bangs=!!H.bangs;p.hm=H}}
+  if(o.hairC){p.hair=o.hairC;p.hairHi=mix(o.hairC,'#FFFFFF',.22)}
   const D=o.dress&&DRESS[o.dress];if(D){p.tee=D.c;p.teeSh=mix(D.c,'#3B2F3F',.15);p.num=null;if(D.dress){p.skirt=D.c;p.dress=1}else{p.shirt=D.shirt;if(D.l)p.shirtL=D.l}}
   const B=o.bag&&BAGS[o.bag];if(B)Object.assign(p,B);
   return p}

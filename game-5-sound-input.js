@@ -222,12 +222,16 @@ function stickVec2(st,k,x,y){if(!st)return stickVec(x,y);const H=st.hy||(st.hy={
   let v=stickVec(Math.max(m,.3001)===m?x:x*.3001/m,Math.max(m,.3001)===m?y:y*.3001/m);if(!v[0]&&!v[1])v=[x/m*.01,y/m*.01];
   const pm=Math.hypot(h.v[0],h.v[1]);
   if(pm>.4&&Math.hypot(v[0],v[1])>.4){const cos=(v[0]*h.v[0]+v[1]*h.v[1])/(pm*Math.hypot(v[0],v[1]));
-    if(cos<-.2){const now=performance.now();if(!h.alt){h.alt=now;INLOG.flip++;return h.v}if(now-h.alt<60)return h.v}}
+    if(cos<-.2){const now=performance.now();if(!h.alt){h.alt=now;INLOG.flip++;inSide(k).flip++;return h.v}if(now-h.alt<60)return h.v}}
   h.alt=null;h.v=v;return v}
 /* 조작 기록: 버벅임이 '그림이 늦어서'인지 '조이콘 신호가 늦어서'인지 '방향이 튀어서'인지 나눠서 세요(설정 → 컨트롤러 진단에서 보여요) */
-const INLOG={since:Date.now(),gap150:0,gap400:0,maxGap:0,stale:0,flip:0,slowF:0,heldSlowF:0,last:''};
+const INLOG={since:Date.now(),gap150:0,gap400:0,maxGap:0,stale:0,flip:0,slowF:0,heldSlowF:0,last:'',side:{}};
+/* 왼쪽(L)·오른쪽(R) 조이콘을 따로 세요 → 한쪽만 신호가 나쁜지 바로 보여요 */
+function inSide(k){k=k==='L'||k==='R'?k:'기타';return INLOG.side[k]||(INLOG.side[k]={gap150:0,gap400:0,maxGap:0,stale:0,flip:0,n:0})}
 try{const o=JSON.parse(localStorage.getItem('ourflowershop_input_log')||'null');if(o&&o.prev)INLOG.prevTxt=o.prev}catch(e){}
-function inlogTxt(){const mins=Math.max(1,(Date.now()-INLOG.since)/60000);return `${mins.toFixed(0)}분 동안 · 조이콘 신호 늦음(0.15초↑) ${INLOG.gap150}회 · 끊김(0.4초↑) ${INLOG.gap400}회 · 가장 긴 끊김 ${(INLOG.maxGap/1000).toFixed(2)}초 · 멈춤 처리 ${INLOG.stale}회 · 튀는 방향 걸러냄 ${INLOG.flip}회 · 느린 화면(0.1초↑) ${INLOG.slowF}회(스틱 미는 중 ${INLOG.heldSlowF}회)`}
+function inlogTxt(){const mins=Math.max(1,(Date.now()-INLOG.since)/60000);
+  const sd=Object.entries(INLOG.side).map(([k,v])=>`${k==='L'?'왼쪽':k==='R'?'오른쪽':k} 조이콘: 신호 늦음 ${v.gap150}회 · 끊김 ${v.gap400}회 · 가장 긴 끊김 ${(v.maxGap/1000).toFixed(2)}초 · 멈춤 처리 ${v.stale}회 · 튀는 방향 ${v.flip}회`).join(' / ');
+  return `${mins.toFixed(0)}분 동안 · ${sd||'조이콘 기록 없음'} · 느린 화면(0.1초↑) ${INLOG.slowF}회(스틱 미는 중 ${INLOG.heldSlowF}회)`}
 setInterval(()=>{try{localStorage.setItem('ourflowershop_input_log',JSON.stringify({prev:inlogTxt(),t:Date.now()}))}catch(e){}},30000);
 function sideSlot(side){const sw=!!SET.swapSides;return side==='L'?(sw?1:0):(sw?0:1)}
 function padUnits(gp,st){
@@ -289,8 +293,8 @@ function pollPads(dt){
     const nowT=performance.now(),axs=gp.axes.join(',');st.mpg=Math.max(st.mpg||0,nowT-(st.lp||nowT));st.lp=nowT;
     if(gp.timestamp!==st.ts){if(st.ts!=null&&axs===st.axs)st.tsOK=(st.tsOK||0)+1;
       /* 화면이 느려서 늦게 읽은 건 빼고(그동안 0.08초 안쪽으로 계속 읽었는데도 새 신호가 없었을 때만) 조이콘 신호 늦음으로 세요 */
-      if(st.tsOK>10&&st.tsT&&st.mpg<80){const gap=nowT-st.tsT;if(gap>150&&S.phase==='play'){INLOG.gap150++;if(gap>400)INLOG.gap400++;if(gap>INLOG.maxGap)INLOG.maxGap=gap}}st.ts=gp.timestamp;st.tsT=nowT;st.mpg=0}st.axs=axs;
-    const stale=st.tsOK>10&&nowT-(st.tsT||nowT)>400;if(stale&&!st.wasStale&&S.phase==='play')INLOG.stale++;st.wasStale=stale;
+      if(st.tsOK>10&&st.tsT&&st.mpg<80){const gap=nowT-st.tsT;if(gap>150&&S.phase==='play'){const sd=inSide(joySide(gp.id));INLOG.gap150++;sd.gap150++;if(gap>400){INLOG.gap400++;sd.gap400++}if(gap>INLOG.maxGap)INLOG.maxGap=gap;if(gap>sd.maxGap)sd.maxGap=gap}}st.ts=gp.timestamp;st.tsT=nowT;st.mpg=0}st.axs=axs;
+    const stale=st.tsOK>10&&nowT-(st.tsT||nowT)>400;if(stale&&!st.wasStale&&S.phase==='play'){INLOG.stale++;inSide(joySide(gp.id)).stale++}st.wasStale=stale;
     for(const u of padUnits(gp,st)){
       const slot=u.slot,v=stale?[0,0]:u.vec,B=applyPadBinds(gp,u),ctx=navContext(slot),dk=u.side;
       if(ctx){
@@ -419,7 +423,9 @@ function showSettings(from){
     <div class="lbl" id="setPads">조이콘</div>
     ${pads.length?`<div class="setrow"><span class="grow">${padsList().some(g=>isCombo(g.id))||(padsList().some(g=>joySide(g.id)==='L')&&padsList().some(g=>joySide(g.id)==='R'))?'조이콘 두 개가 연결됐어요':'조이콘(컨트롤러)이 연결됐어요'}<br><small>둘이 할 때: 왼쪽 조이콘 → <b style="font-weight:normal">${SET.swapSides?'수갱':'생민'}</b>, 오른쪽 조이콘 → <b style="font-weight:normal">${SET.swapSides?'생민':'수갱'}</b></small></span><button class="btn small soft" id="swapSides">생민·수갱 자리 바꾸기</button></div>`:'<p class="note" style="text-align:left">연결된 조이콘이 없어요. 스탠바이미에 블루투스로 연결한 뒤 아무 버튼이나 눌러 주세요.</p>'}
     <p class="hint">둘이 할 때는 한 사람당 조이콘 1개를 가로로 쥐어요. 스틱을 기울인 방향 그대로, 대각선까지 움직여요. 버튼 역할을 바꾸고 싶으면 "조이콘 키 지정"을 써 주세요.</p>
+    <div class="lbl">저장 백업</div><div class="setrow"><span class="grow">하루를 시작할 때마다 저장을 자동으로 복사해 최근 3개를 보관해요<br><small>${backupList().length?backupList().map(b=>`${b.day}일차`).join(' · '):'아직 백업이 없어요(다음 날을 시작하면 생겨요)'}</small></span><button class="btn small soft" id="goBak" ${backupList().length?'':'disabled'}>백업에서 되돌리기</button></div>
     <div class="opts"><button class="btn primary" id="goKeys">조이콘 키 지정</button><button class="btn soft" id="goDiag">컨트롤러 진단</button><button class="btn primary" data-back="1" id="setBack">돌아가기</button></div></div>`);
+  {const gb=$('#goBak');if(gb)gb.onclick=showBackups}
   const sc=$('#screen');sc.querySelectorAll('[data-gfx]').forEach(b=>b.onclick=()=>{SET.gfx=b.dataset.gfx;saveSettings();applyGfx();showSettings()});$('#goDiag').onclick=showDiag;$('#goKeys').onclick=showKeys;
   $('#setPerf').onclick=()=>{SET.perf=!SET.perf;saveSettings();perfShow();showSettings()};
   const swb=$('#swapSides');if(swb)swb.onclick=()=>{SET.swapSides=!SET.swapSides;saveSettings();showSettings()};
@@ -428,6 +434,15 @@ function showSettings(from){
   sc.querySelectorAll('[data-calib]').forEach(b=>b.onclick=()=>{const gp=padsList().find(g=>g.index===+b.dataset.calib);if(gp)startCalib(gp)});
   $('#setBack').onclick=()=>{GP.calib=null;if(SETTINGS_FROM==='pause'){togglePauseScreen()}else showTitle()};
 }
+
+function showBackups(){const L=backupList();const fmt=t=>{const d=new Date(t);return `${d.getMonth()+1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`};
+  showScreen(`<div class="sheet" style="width:min(40rem,96vw)"><h1 style="font-size:1.57rem">백업에서 되돌리기</h1><p class="sub">고른 날의 아침으로 돌아가요. 지금 저장도 백업에 남겨 두니까, 잘못 골라도 다시 돌아올 수 있어요.</p>
+    <div class="list">${L.map((b,k)=>`<div class="li"><span class="grow">${b.day}일차 아침 · 가진 돈 ${won(b.money||0)}<br><small>${fmt(b.at)}에 보관</small></span><button class="btn small" data-bak="${k}">이 날로 되돌리기</button></div>`).reverse().join('')}</div>
+    <div class="opts"><button class="btn primary" data-back="1" id="bakBack">돌아가기</button></div></div>`);
+  $('#bakBack').onclick=()=>showSettings();
+  $('#screen').querySelectorAll('[data-bak]').forEach(b=>b.onclick=()=>{const k=+b.dataset.bak;const it=backupList()[k];if(!it)return;
+    showScreen(`<div class="sheet" style="width:min(36rem,96vw)"><h1 style="font-size:1.5rem">${it.day}일차 아침으로 되돌릴까요?</h1><p class="sub">지금 진행은 백업으로 남겨 두고, 게임을 다시 불러와요.</p><div class="opts"><button class="btn primary" id="bakYes">되돌리기</button><button class="btn" data-back="1" id="bakNo">아니요</button></div></div>`);
+    $('#bakNo').onclick=showBackups;$('#bakYes').onclick=()=>{if(restoreBackup(k)){try{sessionStorage.removeItem('ofs_autoresume')}catch(e){}location.reload()}else toastAll('되돌리지 못했어요')}})}
 
 /* ---------- tutorial ---------- */
 const TUT=[
@@ -457,7 +472,7 @@ function askTutorial(mode){
 /* ---------- mid-day autosave ---------- */
 function saveMid(){
   if(S.phase!=='play')return;
-  saveGame({t:S.t,prices:S.prices,tomorrow:S.tomorrow,stats:{...S.stats,rev:S.stats.rev.map(r=>({price:r.price,o:{title:r.o.title},ev:r.ev,b:{stems:r.b.stems,paper:r.b.paper,ribbon:r.b.ribbon,card:r.b.card}}))},calls:S.calls,offers:S.offers,reserveAt:S.reserveAt,chars:S.chars.map(c=>({area:c.area,x:c.x,y:c.y})),tut:S.tut});
+  saveGame({t:S.t,prices:S.prices,tomorrow:S.tomorrow,stats:{...S.stats,rev:S.stats.rev.map(r=>({price:r.price,o:{title:r.o.title},ev:r.ev,b:{stems:r.b.stems,paper:r.b.paper,ribbon:r.b.ribbon,bow:r.b.bow,shape:r.b.shape,pat:r.b.pat,card:r.b.card}}))},calls:S.calls,offers:S.offers,reserveAt:S.reserveAt,chars:S.chars.map(c=>({area:c.area,x:c.x,y:c.y})),tut:S.tut});
 }
 addEventListener('visibilitychange',()=>{if(document.hidden)saveMid()});
 addEventListener('pagehide',()=>saveMid());

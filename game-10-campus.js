@@ -706,3 +706,13 @@ function cStep(w,dt){
    (게임을 켤 때마다 한 번 정해져요. 메인 주민은 원래대로) */
 const WALKER_SEED=(Math.random()*2147483646|0)+1;
 {const _mw3=makeWalkers;makeWalkers=function(){const R=Math.random;let s=WALKER_SEED;Math.random=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646};try{_mw3()}finally{Math.random=R}}}
+
+/* ---------- 쪽냥이: GS25·카페(의관 1층) 앞에 사는 치즈색 길고양이 + 작은 집 ---------- */
+CDEC.push({t:'cathouse',x:121,y:21,w:2,h:1},{t:'catbowls',x:123,y:21,w:1,h:1,flat:true,walk:true});
+CAT_SPOTS.campus=[120,135,21.6,25.5];
+const ZZOK={name:'쪽냥이',who:'캠퍼스 길고양이',pal:{G1:'#E39A4E',G2:'#F4BE80',GD:'#B86A2A',W:'#FFF4E4',collar:null},
+  lines:['냐앙~ (GS25 문이 열릴 때마다 고개를 들어요)','미야? (카페에서 나는 고소한 냄새를 맡고 있어요)','쪽! …냥. (이름처럼 뽀뽀하듯 코를 대요)','골골골… (학생들이 쓰다듬어 줘서 기분이 좋아요)','냥! (자기 집 앞 밥그릇을 지키고 있어요)'],
+  spots:[[122,22.4],[127,22.6],[131,24],[124,24.6]]};
+{const _mw=makeWalkers;makeWalkers=function(){_mw();S.fcats=S.fcats||[];if(!S.fcats.some(k=>k.name==='쪽냥이')){const [sx,sy]=ZZOK.spots[0];
+  S.fcats.push({kind:'cat',area:'campus',name:ZZOK.name,who:ZZOK.who,pal:ZZOK.pal,lines:ZZOK.lines,spots:ZZOK.spots,x:sx*TILE,y:sy*TILE,tx:sx*TILE,ty:sy*TILE,dir:'down',walk:0,state:'sit',timer:rnd(2,8),talking:false,hearts:0,speed:20})}}}
+

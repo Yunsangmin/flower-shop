@@ -124,6 +124,54 @@ function sprSVG(){return `<svg viewBox="0 0 40 40"><rect x="18" y="14" width="4"
 const ART_BG='<rect width="64" height="64" rx="12" fill="#FBF6F0"/>';
 function sv(inner){return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${inner}</svg>`}
 function artPerson(extra,tee){return `<ellipse cx="32" cy="58" rx="16" ry="3" fill="#0001"/><rect x="18" y="38" width="28" height="22" rx="9" fill="${tee||'#4C82D4'}"/><rect x="28" y="30" width="8" height="10" rx="3" fill="#E0B597"/><ellipse cx="32" cy="24" rx="13" ry="14" fill="#F4D3B7"/><path d="M19 22 C19 8 45 8 45 22 C41 17 36 16 32 15 C28 16 23 17 19 22Z" fill="#3B2A22"/><ellipse cx="27" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><ellipse cx="37" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><path d="M29.5 31 Q32 33 34.5 31" stroke="#C0707E" stroke-width="1.1" fill="none"/>${extra}`}
+/* 옷·치장 상점 그림: 사람에게 입힌 모습 대신 물건 자체를 크게(가벼운 도형 그림이라 메모리도 적어요) */
+function styleArt(k,v){const D=c=>mix(c,'#000',.18),Lg=c=>mix(c,'#FFFFFF',.3);
+  if(k==='tee'){const [tp,c0,l]=String(v).split('|');const c=c0||tp,top=c0?tp:null;
+    const body=`<path d="M12 20 L23 11 H41 L52 20 L46 28 L43 26 V55 H21 V26 L18 28Z" fill="${c}" stroke="${D(c)}" stroke-width="1"/>`;
+    const neck=top==='hood'?`<path d="M22 12 Q32 2 42 12 Q32 20 22 12Z" fill="${D(c)}"/><path d="M28 16 v12 M36 16 v12" stroke="${Lg(c)}" stroke-width="1.4"/><rect x="25" y="40" width="14" height="8" rx="2" fill="${D(c)}" opacity=".6"/>`:top==='knit'?`<path d="M26 11 Q32 17 38 11" stroke="${D(c)}" stroke-width="3" fill="none"/>${[25,29,33,37,41].map(x=>`<path d="M${x} 20 V54" stroke="${D(c)}" stroke-width=".8" opacity=".5"/>`).join('')}<rect x="21" y="51" width="22" height="4" fill="${D(c)}"/>`:`<path d="M27 11 Q32 16 37 11" stroke="${D(c)}" stroke-width="1.5" fill="none"/>`;
+    const str=top==='stripe'?[22,28,34,40,46,52].map(y=>`<rect x="21" y="${y}" width="22" height="2.6" fill="${l}"/>`).join('')+`<rect x="13" y="21" width="9" height="2.4" fill="${l}" transform="rotate(-38 13 21)"/>`:'';
+    return sv(body+str+neck)}
+  if(k==='pants'){const sk=String(v).startsWith('s:'),c=sk?v.slice(2):v;
+    if(sk){const pleat=/^#3E4D78$/i.test(c);return sv(`<rect x="20" y="10" width="24" height="6" rx="1.5" fill="${D(c)}"/><path d="M20 15 H44 L52 54 H12Z" fill="${c}" stroke="${D(c)}"/>${pleat?[18,24,30,36,42,48].map(x=>`<path d="M${(32+(x-32)*.5).toFixed(1)} 16 L${x} 54" stroke="${D(c)}" stroke-width=".9"/>`).join(''):`<path d="M30 16 L28 54" stroke="${D(c)}" stroke-width=".8" opacity=".6"/>`}`)}
+    const jean=/5A78A6|8FAED0/i.test(c),cord=/6B4E3D/i.test(c);return sv(`<path d="M18 8 H46 L48 56 H36 L32 24 L28 56 H16Z" fill="${c}" stroke="${D(c)}"/><rect x="18" y="8" width="28" height="5" fill="${D(c)}"/>${jean?'<path d="M21 14 Q24 20 30 18 M43 14 Q40 20 34 18" stroke="#E2C27A" stroke-width="1" fill="none"/><path d="M32 13 V24" stroke="#E2C27A" stroke-width=".8"/>':''}${cord?[20,23,26,38,41,44].map(x=>`<path d="M${x} 14 L${x+ (x<32?-1.5:1.5)} 54" stroke="${D(c)}" stroke-width=".7"/>`).join(''):''}`)}
+  if(k==='dress'){const Dd=DRESS[v]||{c:'#ccc'},c=Dd.c;
+    if(Dd.dress)return sv(`<path d="M24 8 H40 L42 22 L54 56 H10 L22 22Z" fill="${c}" stroke="${D(c)}"/><path d="M24 8 L20 4 M40 8 L44 4" stroke="${D(c)}" stroke-width="2"/><rect x="22" y="21" width="20" height="3" fill="${D(c)}" opacity=".6"/>${v==='pink'?[[24,34],[38,40],[30,48],[18,50],[44,52]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2" fill="#FFFFFF"/>`).join(''):''}`);
+    const pat=Dd.shirt==='stripe'?[24,29,34,39].map(x=>`<path d="M${x} 14 V55" stroke="${Dd.l}" stroke-width="1.6"/>`).join(''):Dd.shirt==='check'?[20,27,34,41].map(x=>`<path d="M${x} 14 V55" stroke="${Dd.l}" stroke-width="1.6" opacity=".55"/>`).join('')+[22,30,38,46].map(y=>`<path d="M20 ${y} H44" stroke="${Dd.l}" stroke-width="1.6" opacity=".55"/>`).join(''):'';
+    return sv(`<path d="M12 20 L23 11 H41 L52 20 L46 28 L43 26 V55 H21 V26 L18 28Z" fill="${c}" stroke="${D(c)}"/>${pat}<path d="M23 11 L32 22 L41 11 L36 10 L32 15 L28 10Z" fill="${Dd.shirt==='denim'?Lg(c):'#FBF8F2'}"/><path d="M32 22 V55" stroke="${D(c)}"/>${[28,36,44,51].map(y=>`<circle cx="33.5" cy="${y}" r="1.1" fill="${Dd.shirt==='denim'?'#E2C27A':'#E8E2D6'}"/>`).join('')}`)}
+  if(k==='shoes'){const c=v,boot=/F2C230|C9B08A/i.test(c),dress=/2E2B30|8A5A3A/i.test(c);
+    const one=(x)=>boot?`<path d="M${x} 14 h12 v26 l10 4 v8 h-22Z" fill="${c}" stroke="${D(c)}"/><rect x="${x}" y="48" width="22" height="4" fill="${D(c)}"/>`:dress?`<path d="M${x} 36 Q${x} 30 ${x+8} 30 L${x+14} 32 Q${x+24} 36 ${x+24} 44 H${x}Z" fill="${c}" stroke="${D(c)}"/><rect x="${x}" y="44" width="24" height="3" fill="${D(c)}"/><path d="M${x+6} 33 h8" stroke="${Lg(c)}" stroke-width="1.6"/>`:`<path d="M${x} 34 Q${x} 26 ${x+9} 27 L${x+14} 31 Q${x+24} 34 ${x+24} 42 H${x}Z" fill="${c}" stroke="${D(c)}"/><rect x="${x-.5}" y="42" width="25" height="5" rx="2" fill="#F4F2EE" stroke="#D8D2C6"/><path d="M${x+8} 30 l3 4 M${x+11} 29 l3 4" stroke="#FFFFFF" stroke-width="1.2"/>`;
+    return sv(one(6)+`<g transform="translate(2 10)">${one(32)}</g>`)}
+  if(k==='hat'){const H=HATV[v],kind=H?H[0]:v,c=H?H[1]:null;
+    const A={beret:c=>`<ellipse cx="32" cy="34" rx="22" ry="11" fill="${c}"/><ellipse cx="32" cy="30" rx="18" ry="8" fill="${Lg(c)}" opacity=".35"/><circle cx="32" cy="22" r="2.6" fill="${D(c)}"/>`,
+      sunhat:()=>'<ellipse cx="32" cy="40" rx="28" ry="9" fill="#E9D3A4"/><rect x="18" y="20" width="28" height="20" rx="10" fill="#F0DEB4"/><rect x="18" y="32" width="28" height="4" fill="#E07A7A"/>',
+      beanie:c=>`<path d="M14 42 Q14 14 32 14 Q50 14 50 42Z" fill="${c}"/><rect x="12" y="38" width="40" height="10" rx="4" fill="${Lg(c)}"/>${[18,24,30,36,42,48].map(x=>`<path d="M${x} 39 v8" stroke="${D(c)}" stroke-width="1"/>`).join('')}<circle cx="32" cy="12" r="5" fill="#FFF1D6"/>`,
+      cap:c=>`<path d="M14 38 Q14 16 32 16 Q50 16 50 38Z" fill="${c}"/><path d="M32 16 V38" stroke="${D(c)}"/><ellipse cx="44" cy="40" rx="16" ry="5" fill="${D(c)}"/><circle cx="32" cy="16" r="2" fill="${D(c)}"/>`,
+      bucket:()=>'<path d="M8 44 Q32 54 56 44 L50 36 H14Z" fill="#E6D6B8"/><path d="M16 38 L20 16 H44 L48 38Z" fill="#F2E7D2"/><rect x="17" y="32" width="30" height="4" fill="#C9A07A"/>',
+      fedora:c=>`<ellipse cx="32" cy="42" rx="26" ry="7" fill="${D(c)}"/><path d="M18 42 L20 20 Q32 14 44 20 L46 42Z" fill="${c}"/><path d="M26 18 Q32 24 38 18" stroke="${D(c)}" stroke-width="2" fill="none"/><rect x="19" y="34" width="26" height="5" fill="#2E2B30"/>`,
+      visor:c=>`<path d="M12 30 Q32 22 52 30 L52 34 Q32 26 12 34Z" fill="${c}" stroke="#D8D2C6"/><ellipse cx="32" cy="40" rx="22" ry="7" fill="${mix(c,'#000',.08)}" stroke="#D8D2C6"/>`,
+      crown:()=>'<ellipse cx="32" cy="36" rx="22" ry="9" fill="none" stroke="#7FAF6C" stroke-width="3"/>'+[...Array(9)].map((_,j)=>{const a=Math.PI*(1+j/8);const x=32+Math.cos(a)*22,y=36+Math.sin(a)*9;return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${['#F7B7C8','#FFFFFF','#F9D66B','#C9B3EA'][j%4]}"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.4" fill="#E8A23A"/>`}).join('')};
+    const f=A[kind];if(!f)return sv('<circle cx="32" cy="32" r="16" fill="#EEE"/>');return sv(f(c||({beret:'#C65C79',beanie:'#E3A04A',cap:'#5C7FB8',fedora:'#8C6A4E',visor:'#F2F0EA'}[kind])))}
+  if(k==='glasses'){const G=glsSpec(v,{}),r=G.round;const lens=(x)=>r?`<circle cx="${x}" cy="32" r="10" fill="${G.lens}" stroke="${G.f}" stroke-width="${G.lw*1.3}"/>`:`<rect x="${x-11}" y="23" width="22" height="18" rx="6" fill="${G.lens}" stroke="${G.f}" stroke-width="${G.lw*1.6}"/>`;
+    return sv(`${lens(20)}${lens(44)}<path d="M30 30 Q32 27 34 30" stroke="${G.f}" stroke-width="2.4" fill="none"/><path d="M${r?10:9} 30 L4 26 M${r?54:55} 30 L60 26" stroke="${G.f}" stroke-width="2.4"/><path d="M14 27 l5 -3 M38 27 l5 -3" stroke="#FFFFFF" stroke-width="1.6" opacity=".8"/>`)}
+  if(k==='pin'){
+    const P={ribbon:'<ellipse cx="22" cy="32" rx="12" ry="8" fill="#EE7F9C" transform="rotate(-20 22 32)"/><ellipse cx="42" cy="32" rx="12" ry="8" fill="#EE7F9C" transform="rotate(20 42 32)"/><circle cx="32" cy="32" r="5" fill="#C65C79"/><path d="M30 36 l-6 14 M34 36 l6 14" stroke="#EE7F9C" stroke-width="4" stroke-linecap="round"/>',
+      flower:[0,1,2,3,4].map(q=>`<circle cx="${(32+Math.cos(q*1.2566)*9).toFixed(1)}" cy="${(30+Math.sin(q*1.2566)*9).toFixed(1)}" r="8" fill="#FFFFFF" stroke="#E8E2D6"/>`).join('')+'<circle cx="32" cy="30" r="5" fill="#F5CF4E"/><rect x="18" y="46" width="28" height="3" rx="1.5" fill="#B0A090"/>',
+      yflower:[0,1,2,3,4].map(q=>`<circle cx="${(32+Math.cos(q*1.2566)*9).toFixed(1)}" cy="${(30+Math.sin(q*1.2566)*9).toFixed(1)}" r="8" fill="#F9D66B" stroke="#E2B84E"/>`).join('')+'<circle cx="32" cy="30" r="5" fill="#E8A23A"/><rect x="18" y="46" width="28" height="3" rx="1.5" fill="#B0A090"/>',
+      band:'<path d="M10 46 Q10 14 32 14 Q54 14 54 46" stroke="#B9A2E0" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M14 40 Q16 20 32 18" stroke="#D9CCF2" stroke-width="2" fill="none"/>',
+      claw:'<rect x="14" y="22" width="36" height="20" rx="8" fill="#8A5A36"/>'+[20,26,32,38,44].map(x=>`<path d="M${x} 22 V42" stroke="#C99A6A" stroke-width="2.2"/>`).join('')+'<ellipse cx="24" cy="27" rx="5" ry="2" fill="#FFFFFF" opacity=".35"/>',
+      star:'<path d="M32 10 L37 25 L53 25 L40 34 L45 50 L32 40 L19 50 L24 34 L11 25 L27 25Z" fill="#F5CF4E" stroke="#D8A93A"/><rect x="18" y="52" width="28" height="3" rx="1.5" fill="#B0A090"/>',
+      scrunchie:[...Array(9)].map((_,j)=>{const a=j*.698;return `<ellipse cx="${(32+Math.cos(a)*14).toFixed(1)}" cy="${(32+Math.sin(a)*14).toFixed(1)}" rx="8" ry="7" fill="${j%2?'#E8A0B4':'#F2B8C8'}"/>`}).join('')+'<circle cx="32" cy="32" r="7" fill="#FBF6F0"/>',
+      bowP:'<ellipse cx="22" cy="30" rx="12" ry="8" fill="#FFFFFF" stroke="#E8E2D6" transform="rotate(-20 22 30)"/><ellipse cx="42" cy="30" rx="12" ry="8" fill="#FFFFFF" stroke="#E8E2D6" transform="rotate(20 42 30)"/>'+[14,20,44,50].map(x=>`<circle cx="${x}" cy="${x<32?27:27}" r="1.8" fill="#EDE6DA"/>`).join('')+'<circle cx="32" cy="31" r="4.5" fill="#F1E9DC"/>',
+      pearl:[0,1,2].map(j=>`<circle cx="${20+j*12}" cy="${30+j*2}" r="6" fill="#FFFDF8" stroke="#D8CFC4"/><circle cx="${18+j*12}" cy="${28+j*2}" r="2" fill="#FFFFFF"/>`).join('')+'<rect x="12" y="40" width="40" height="3" rx="1.5" fill="#C9A24A"/>'};
+    return sv(P[v]||'<circle cx="32" cy="32" r="12" fill="#EEE"/>')}
+  if(k==='bag'){const B=BAGS[v]||{};
+    if(B.prop==='basket')return sv('<path d="M14 30 C14 8 50 8 50 30" stroke="#A87A48" stroke-width="3" fill="none"/><path d="M10 30 H54 L48 54 H16Z" fill="#C99A63" stroke="#A87A48"/><path d="M12 38 H52 M14 46 H50" stroke="#A87A48"/><circle cx="24" cy="26" r="4" fill="#EE8FA7"/><circle cx="33" cy="25" r="4" fill="#F5CF4E"/><circle cx="41" cy="27" r="4" fill="#FFFFFF"/>');
+    if(B.pack){const c=B.packC||'#E3A04A';return sv(`<rect x="16" y="14" width="32" height="40" rx="11" fill="${c}"/><path d="M24 14 Q32 6 40 14" stroke="${D(c)}" stroke-width="3" fill="none"/><rect x="21" y="32" width="22" height="14" rx="4" fill="${Lg(c)}"/><rect x="21" y="30" width="22" height="3" fill="${D(c)}"/>`)}
+    const c=B.bagC||'#9C6B4C',tote=!!B.bagP||v==='canvas'||v==='denim';
+    if(v==='rattan')return sv('<path d="M20 26 C20 8 44 8 44 26" stroke="#A87A48" stroke-width="3" fill="none"/><ellipse cx="32" cy="40" rx="20" ry="16" fill="#C99A63" stroke="#A87A48"/>'+[28,34,40,46].map(y=>`<path d="M14 ${y} Q32 ${y+4} 50 ${y}" stroke="#A87A48" stroke-width=".9" fill="none"/>`).join(''));
+    if(tote)return sv(`<path d="M24 22 C24 6 40 6 40 22" stroke="${D(c)}" stroke-width="3" fill="none"/><path d="M14 22 H50 L47 56 H17Z" fill="${c}" stroke="${D(c)}"/>${B.bagP?`<circle cx="32" cy="38" r="7" fill="${B.bagP}"/>${B.bagP2?`<circle cx="32" cy="38" r="3" fill="${B.bagP2}"/>`:''}`:''}`);
+    return sv(`<path d="M10 8 L36 30" stroke="${D(c)}" stroke-width="2.4"/><rect x="22" y="28" width="30" height="24" rx="5" fill="${c}" stroke="${D(c)}"/><path d="M22 34 H52 L48 42 H26Z" fill="${D(c)}" opacity=".5"/><circle cx="37" cy="41" r="2" fill="#E2C27A"/>`)}
+  return wearArt(k,v)}
 /* 액세서리·귀걸이는 사람 그림에선 작아서, 상점에는 물건 자체를 크게 그려 보여 줘요 */
 function accArt(v){
   const pearls=(cx,cy,rx,ry,n,r)=>[...Array(n)].map((_,k)=>{const a=Math.PI*(.08+k*.84/(n-1));const x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;return `<circle cx="${x.toFixed(1)}" cy="${(y+.6).toFixed(1)}" r="${r}" fill="#C9BFB4"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="#FFFDF8"/><circle cx="${(x-1).toFixed(1)}" cy="${(y-1).toFixed(1)}" r="${r*.35}" fill="#fff"/>`}).join('');
@@ -140,15 +188,11 @@ function itemArt(it){
   if(it.styleSet&&STYLES[it.styleSet]&&STYLES[it.styleSet].deco&&!it._plain)return themeArt(it);
   if(it.floor&&/^f_/.test(id||'')&&DECOR_DRAW[it.floor.t])return decorArt(it.floor.t,it.floor.w,it.floor.h,!!it.floor.wall);
   if(it.style){const [k,v]=it.style;
-    const known={glasses:['horn','gold'],hat:['beret','sunhat','beanie','cap'],pin:['ribbon','flower','band']}[k];
     if(k==='acc'||k==='ear')return accArt(v);
-    if(k==='dress'||k==='bag'||(known&&!known.includes(v))||v==='knit'||['pants','shoes'].includes(k)||(k==='tee'&&String(v).includes('|')))return wearArt(k,v);
-    if(k==='glasses')return sv(artPerson(v==='gold'?'<circle cx="27" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><circle cx="37" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><path d="M31.4 25 L32.6 25" stroke="#C9A24A"/>':'<rect x="21.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/><rect x="31.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/>'));
-    if(k==='hat'){const h={beret:'<ellipse cx="30" cy="11" rx="15" ry="6" fill="#C65C79" transform="rotate(-8 30 11)"/><circle cx="31" cy="5" r="1.5" fill="#A84C66"/>',sunhat:'<ellipse cx="32" cy="14" rx="22" ry="5" fill="#E9D3A4"/><rect x="21" y="3" width="22" height="12" rx="6" fill="#F0DEB4"/><rect x="21" y="11" width="22" height="3" fill="#E07A7A"/>',beanie:'<rect x="18" y="2" width="28" height="17" rx="9" fill="#E3A04A"/><rect x="17" y="14" width="30" height="5" rx="2.5" fill="#F0C27A"/><circle cx="32" cy="2" r="3" fill="#FFF1D6"/>',cap:'<path d="M18 16 C18 2 46 2 46 16Z" fill="#5C7FB8"/><ellipse cx="40" cy="16" rx="12" ry="3" fill="#46679C"/>'}[v];return sv(artPerson(h))}
-    if(k==='pin'){const h={ribbon:'<ellipse cx="38" cy="10" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(-25 38 10)"/><ellipse cx="45" cy="9" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(25 45 9)"/><circle cx="41.5" cy="9.5" r="1.6" fill="#C65C79"/>',flower:[0,1,2,3,4].map(q=>`<circle cx="${40+Math.cos(q*1.256)*2.6}" cy="${11+Math.sin(q*1.256)*2.6}" r="2" fill="#fff"/>`).join('')+'<circle cx="40" cy="11" r="1.5" fill="#F5CF4E"/>',band:'<path d="M19 20 C19 6 45 6 45 20" stroke="#B9A2E0" stroke-width="3" fill="none"/>'}[v];return sv(artPerson(h))}
-    if(k==='apron')return sv(`<path d="M20 14 h24 v10 l6 32 H14 l6-32Z" fill="${v}"/><rect x="26" y="34" width="12" height="9" rx="2" fill="${mix(v,'#000',.15)}"/><path d="M20 14 L14 4 M44 14 L50 4" stroke="${mix(v,'#000',.2)}" stroke-width="2"/>`);
-    if(k==='tee')return sv(`<path d="M14 18 L24 10 H40 L50 18 L45 26 L42 24 V54 H22 V24 L19 26Z" fill="${v}"/><path d="M27 10 Q32 15 37 10" stroke="${mix(v,'#000',.15)}" stroke-width="1.5" fill="none"/>`);
+    if(k==='apron'){const knit=v==='knit',c=knit?'#F6D3DB':v;return sv(`<path d="M20 14 h24 v10 l6 32 H14 l6-32Z" fill="${c}"/><rect x="26" y="34" width="12" height="9" rx="2" fill="${mix(c,'#000',.15)}"/><path d="M20 14 L14 4 M44 14 L50 4" stroke="${mix(c,'#000',.2)}" stroke-width="2"/>${knit?[[24,30],[38,28],[30,48],[20,46],[44,44]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.4" fill="#F29AB0"/><circle cx="${x}" cy="${y}" r="1" fill="#F5CF4E"/>`).join(''):''}`)}
+    return styleArt(k,v);
   }
+
   if(it.styleSet){const P=STYLES[it.styleSet];const fl=P.floor==='check'?`<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(q=>[0,1,2].map(r=>(q+r)%2?`<rect x="${6+q*4}" y="${36+r*7.3}" width="4" height="7.3" fill="${P.f2}"/>`:'').join('')).join('')}`:P.floor==='plain'?`<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>`:P.floor==='plank'?`<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0,1,2].map(q=>`<rect x="6" y="${40+q*6}" width="52" height=".8" fill="${P.seam}"/>`).join('')}`:P.floor==='herring'?`<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0,1,2,3,4,5,6].map(q=>`<path d="M${6+q*8} 58 l8 -8 M${6+q*8} 48 l8 -8" stroke="${P.seam}" stroke-width="1.2"/>`).join('')}`:`<rect x="6" y="36" width="52" height="22" fill="${P.f1}"/>${[0,1,2,3,4,5,6,7,8].map(q=>`<circle cx="${10+(q*13)%48}" cy="${40+(q*7)%16}" r="1.2" fill="${['#C9B8A6','#9FB0A6','#D9A89A'][q%3]}"/>`).join('')}`;
     const lamp=it.styleSet==='natural'?'<path d="M26 8 L38 8 L42 18 L22 18Z" fill="#C9A06A"/><path d="M24 12 H40" stroke="#B08850"/>':it.styleSet==='vintage'?'<path d="M32 2 V10" stroke="#C9A24A"/><path d="M24 18 Q32 6 40 18Z" fill="#C9A24A"/>':'<circle cx="32" cy="14" r="6" fill="#FFFFFF" stroke="#E4E0D8"/>';
     return sv(`<rect x="6" y="6" width="52" height="30" fill="${P.wall}"/><rect x="6" y="27" width="52" height="9" fill="${P.wain}"/>${fl}${lamp}<rect x="42" y="40" width="7" height="10" rx="2" fill="#D98E6C"/><ellipse cx="45.5" cy="38" rx="6" ry="5" fill="#7FAF6C"/><rect x="12" y="20" width="12" height="10" fill="${P.frame}"/><rect x="13.5" y="21.5" width="9" height="7" fill="#FFF8EE"/>`);
@@ -183,6 +227,7 @@ function itemArt(it){
   if(/^papers[345]$/.test(id)){const L=Object.values(PAPERS).filter(q=>q.set===id).slice(0,4);return sv(L.map((q,k)=>{const x=8+k*12.5;return `<rect x="${x}" y="10" width="10" height="44" rx="5" fill="${q.c}" stroke="${q.d}" stroke-width=".6"/><ellipse cx="${x+5}" cy="10" rx="5" ry="2" fill="${q.l}"/>`}).join(''))}
   if(/^ribbons[34]$/.test(id)){const L=Object.values(RIBBONS).filter(q=>q.set===id).slice(0,3);return sv(L.map((q,k)=>{const x=16+k*16,y=k%2?36:26;return `<ellipse cx="${x-5}" cy="${y}" rx="6" ry="3.6" fill="${q.c}" stroke="${q.d}" stroke-width=".6"/><ellipse cx="${x+5}" cy="${y}" rx="6" ry="3.6" fill="${q.c}" stroke="${q.d}" stroke-width=".6"/><circle cx="${x}" cy="${y}" r="2.4" fill="${q.d}"/><path d="M${x} ${y+2} q-3 8 -5 12 M${x} ${y+2} q3 8 5 12" stroke="${q.c}" stroke-width="2" fill="none"/>`}).join(''))}
   if(/^patterns[34]$/.test(id)){const L=Object.keys(PATTERNS).filter(k=>PATTERNS[k].set===id).slice(0,3),cols=['#F4B6C4','#B9D6F0','#C5D3B4'];return sv(L.map((k,q)=>{const x=8+q*17,P=PAPERS[['pink','sky','sage'][q]],pid='ia'+id+q;return `<defs>${patDef(k,pid,P)}</defs><rect x="${x}" y="10" width="14" height="44" rx="4" fill="${cols[q]}"/><rect x="${x}" y="10" width="14" height="44" rx="4" fill="url(#${pid})"/>`}).join(''))}
+  if(id==='bows2'||id==='bows3'){const L=Object.keys(BOWS).filter(k=>BOWS[k].set===id),R=[RIBBONS.pink,RIBBONS.navy,RIBBONS.gold];return sv(L.map((k,q)=>bowSVG(k,L.length===2?20+q*24:14+q*18,22+(q%2)*14,R[q%3],.55)).join(''))}
   if(id==='shapes2')return sv(`<g transform="translate(2 14) scale(.9)">${shapeSwatch('hatbox','blush').replace(/<svg[^>]*>|<\/svg>/g,'')}</g><g transform="translate(22 30) scale(.9)">${shapeSwatch('bag','kraft').replace(/<svg[^>]*>|<\/svg>/g,'')}</g><g transform="translate(36 6) scale(.9)">${shapeSwatch('tin','pink').replace(/<svg[^>]*>|<\/svg>/g,'')}</g>`);
   if(it.front||/^fr_/.test(id)){const o=it.front?{[it.front[0]]:it.front[1]}:{};const AW=FRONT.awn.opts[o.awn||'pink'],WL=FRONT.wall.opts[o.wall||'pink'][1],DR=FRONT.door.opts[o.door||'wood'][1];
     const ex={fr_boxes:'<rect x="10" y="44" width="14" height="4" fill="#C9A07A"/>'+[0,1,2,3].map(k=>`<circle cx="${12+k*3.4}" cy="42" r="2" fill="${['#EE8FA7','#F5CF4E','#fff','#D9435E'][k]}"/>`).join(''),fr_lamps:'<rect x="24" y="30" width="4" height="7" rx="1" fill="#3E3A40"/><rect x="25" y="31" width="2" height="4" fill="#FFE9A8"/><rect x="42" y="30" width="4" height="7" rx="1" fill="#3E3A40"/><rect x="43" y="31" width="2" height="4" fill="#FFE9A8"/>',
@@ -194,6 +239,7 @@ function itemArt(it){
   if(id==='bucket4'||id==='xbucket')return sv(A.bucket3);
   const numTag=n=>`<circle cx="50" cy="14" r="9" fill="#E0708C"/><text x="50" y="18" font-size="11" text-anchor="middle" fill="#fff" font-family="Jua,sans-serif">${n}</text>`;
   if(/^pickup\d/.test(id))return sv(A.pickup+numTag({pickup2:4,pickup3:6,pickup4:8}[id]));
+  if(id==='xfridge')return sv(A.fridge+'<circle cx="50" cy="14" r="9" fill="#7FB070"/><path d="M50 9 v10 M45 14 h10" stroke="#fff" stroke-width="2.4"/>');
   if(/^fridge\d/.test(id))return sv(A.fridge+numTag({fridge2:16,fridge3:20,fridge4:24}[id]));
   if(id==='xdisplay')return sv('<rect x="6" y="22" width="52" height="7" rx="2" fill="#B08560"/><rect x="6" y="36" width="52" height="8" rx="2" fill="#C99E78"/><rect x="9" y="44" width="3" height="14" fill="#9C6B4C"/><rect x="52" y="44" width="3" height="14" fill="#9C6B4C"/>'+[[14,22,'#EE8FA7'],[27,22,'#F5CF4E'],[40,22,'#D9435E'],[20,36,'#9DB8E8'],[34,36,'#fff'],[48,36,'#EE8FA7']].map(([x,y,c])=>`<path d="M${x-4} ${y-2} h8 l-1 6 h-6z" fill="#D98E6C"/><circle cx="${x-2}" cy="${y-7}" r="3" fill="${c}"/><circle cx="${x+2}" cy="${y-8}" r="3" fill="${c}"/>`).join(''));
   if(/^exp/.test(id)){const n=+id.slice(3);return sv(`<rect x="6" y="16" width="${20+n*3}" height="32" fill="#F0E4CF" stroke="#C9A07A" stroke-width="2"/><rect x="${26+n*3}" y="16" width="${8+n*2}" height="32" fill="#FBE6EA" stroke="#E08FA4" stroke-width="2" stroke-dasharray="3 2"/><path d="M${28+n*3} 32 h${n*2+2} m-4 -4 l4 4 l-4 4" stroke="#E0708C" stroke-width="2" fill="none"/>${numTag(n)}`)}
@@ -446,7 +492,7 @@ function drawItemV(g,it,x,y){
       else{poly(g,[x-7,y-9,x+7,y-9,x,y+1],P.c);poly(g,[x-7,y-9,x-2,y-8,x,y+1],P.l)}}
     else{for(let k=0;k<5;k++)ln(g,x,y,x-3+k*1.5,y-8,CO.leafD,.5);ln(g,x-2,y-3,x+2,y-3,CO.twine,.9)}
     st.slice(0,9).forEach((s,k)=>{const a=k*2.4,r=k?2+ (k%3):0;flowerHead(g,s.t,x+Math.cos(a)*r*1.1,y-10+Math.sin(a)*r*.6,3,s.f)});
-    if(it.wrapped){const R=RIBBONS[it.ribbon];el(g,x-1.6,y-3,1.8,1,R.c);el(g,x+1.6,y-3,1.8,1,R.c);el(g,x,y-3,.8,.8,R.d)}
+    if(it.wrapped){const R=RIBBONS[it.ribbon]||RIBBONS.pink,bw=it.bow||'classic';if(bw==='rosette'){el(g,x,y-3,2.2,2.2,R.c);el(g,x,y-3,1,1,R.d)}else if(bw==='knot'||bw==='twine'){ln(g,x-3,y-3,x+3,y-3,R.c,1.2);el(g,x,y-3,.9,.9,R.d)}else{const k=bw==='big'||bw==='loops'?1.35:1;el(g,x-2*k,y-3.2,2.2*k,1.3*k,R.c,-.3);el(g,x+2*k,y-3.2,2.2*k,1.3*k,R.c,.3);el(g,x,y-3,.9,.9,R.d);if(bw==='tails'){ln(g,x,y-3,x-1.5,y+2,R.c,.7);ln(g,x,y-3,x+1.5,y+2,R.c,.7)}}}
   }
 }
 
@@ -468,14 +514,67 @@ function hairGrad(g,p){const q=g.createLinearGradient(0,-134,0,-60);q.addColorSt
 function skinGrad(g,p){const q=g.createLinearGradient(0,-126,0,-74);q.addColorStop(0,mix(p.skin,'#FFFFFF',.18));q.addColorStop(.55,p.skin);q.addColorStop(1,mix(p.skin,p.skinSh,.55));return q}
 function clothGrad(g,col,x0,x1){const q=g.createLinearGradient(x0,0,x1,0);const d=mix(col,'#1E1622',.16),l=mix(col,'#FFFFFF',.1);q.addColorStop(0,d);q.addColorStop(.3,l);q.addColorStop(.7,col);q.addColorStop(1,d);return q}
 function hairShine(g,hx,y,w,col){g.save();g.globalAlpha=.55;g.strokeStyle=col;g.lineWidth=2.4;g.lineCap='round';g.beginPath();g.arc(hx-2,y+26,w,Math.PI*1.22,Math.PI*1.5);g.stroke();g.lineWidth=1.4;g.beginPath();g.arc(hx+2,y+26,w,Math.PI*1.56,Math.PI*1.68);g.stroke();g.restore()}
+/* ---------- 머리 스타일 덧그림(리트헤어): p.hm = HAIRS의 설정 ---------- */
+function hmLen(p){return (p.hm&&p.hm.len)||1}
+function hdark(p,a){return mix(p.hair,'#000',a||.3)}
+/* 얼굴 뒤(정면)에 그리는 것: 양갈래·물결·층·끝 컬 */
+function hairModBehind(g,p,H,hx,hs,bob){const m=p.hm;if(!m)return;const L=hmLen(p);
+  if(m.twin){for(const s of [-1,1]){g.save();g.translate(hx+s*30,-104-bob);g.rotate(s*-.12);rr(g,-6,0,12,46,6,H);g.restore();el(g,hx+s*27,-102-bob,4,3,'#E07A7A')}}
+  if(m.wave&&hs==='long'){for(const s of [-1,1])for(let k=0;k<5;k++)el(g,hx+s*(25+(k%2?3:-1)),-104-bob+k*12*L,7,7,H)}
+  if(m.layer&&hs==='long'){const y=-118-bob+66*L;for(const s of [-1,1]){poly(g,[hx+s*24,y-16,hx+s*33,y-4,hx+s*22,y-6],H);poly(g,[hx+s*16,y-6,hx+s*22,y+4,hx+s*12,y-2],H)}}
+  if(m.cc&&hs==='long'){const y=-118-bob+66*L;for(const s of [-1,1]){g.strokeStyle=H;g.lineWidth=7;g.lineCap='round';g.beginPath();g.arc(hx+s*20,y-8,7,s<0?Math.PI*.5:-.2,s<0?Math.PI*1.2:Math.PI*.5);g.stroke()}}}
+/* 앞머리·윗머리(정면, hairFrontV 안: 이미 hx로 옮겨진 상태) */
+function hairModFront(g,p,H,HL,t){const m=p.hm;if(!m)return;const o=t*5,D=hdark(p);
+  if(m.buzz){g.save();g.globalAlpha=.72;g.beginPath();g.ellipse(o,-101,25.5,22,0,Math.PI,Math.PI*2);g.fillStyle=H;g.fill();g.restore();for(let k=0;k<14;k++)el(g,-16+k*2.4+o,-116+Math.abs(k-6.5)*.9,.6,.6,D)}
+  if(m.crest){rr(g,-6+o,-144,12,36,6,H);for(let k=0;k<4;k++)poly(g,[-6+o,-140+k*8,o,-150+k*8,6+o,-140+k*8],H);ln(g,o,-142,o,-112,p.hairHi,1.6)}
+  if(m.sides){const c=mix(p.hair,p.skin,.55);rr(g,-27,-104,7,15,3,c);rr(g,20,-104,7,15,3,c);el(g,o,-117,18,5,H)}
+  if(m.crop){rr(g,-23+o,-124,46,10,5,H);g.save();g.globalAlpha=.3;for(let k=0;k<5;k++)ln(g,-18+k*9+o,-123,-18+k*9+o,-115,D,1);g.restore()}
+  if(m.vol)el(g,o,-119,17,5,H);
+  if(m.fr==='full'){g.beginPath();g.moveTo(-23+o,-97);g.bezierCurveTo(-22+o,-118,22+o,-118,23+o,-97);[18,13,8,3,-2,-7,-12,-17].forEach((x,k)=>g.lineTo(x+o,k%2?-97:-100.5));g.closePath();g.fillStyle=H;g.fill();g.strokeStyle=D;g.globalAlpha=.35;g.lineWidth=.8;for(const x of [-12,-3,6,14]){g.beginPath();g.moveTo(x+o,-113);g.lineTo(x+o-1,-100);g.stroke()}g.globalAlpha=1}
+  if(m.fr==='leaf'){for(const s of [-1,1]){g.beginPath();g.moveTo(o,-117);g.quadraticCurveTo(s*14+o,-114,s*26+o,-92);g.quadraticCurveTo(s*14+o,-101,o+s*2,-104);g.closePath();g.fillStyle=H;g.fill()}}
+  if(m.fr==='up'){el(g,o+2,-120,18,7,H);g.strokeStyle=HL;g.lineWidth=1.3;for(const x of [-12,-5,2,9]){g.beginPath();g.moveTo(x+o,-104);g.quadraticCurveTo(x+o-2,-116,x+o+4,-125);g.stroke()}}
+  if(m.fr==='part'){g.beginPath();g.moveTo(-4+o,-120);g.quadraticCurveTo(-20+o,-114,-25+o,-94);g.lineTo(-18+o,-98);g.quadraticCurveTo(-12+o,-106,6+o,-108);g.closePath();g.fillStyle=H;g.fill();ln(g,-4+o,-122,-1+o,-110,D,1.1)}
+  if(m.fr==='side'){g.beginPath();g.moveTo(20+o,-116);g.quadraticCurveTo(2+o,-114,-21+o,-99);g.lineTo(-15+o,-99);g.quadraticCurveTo(4+o,-105,21+o,-106);g.closePath();g.fillStyle=H;g.fill()}
+  if(m.wave){g.strokeStyle=D;g.lineWidth=1.1;g.globalAlpha=.55;for(let k=0;k<4;k++){g.beginPath();g.arc(-13+k*9+o,-108+Math.abs(k-1.5)*1.5,3.6,Math.PI*.1,Math.PI*1.1);g.stroke()}g.globalAlpha=1}
+  if(m.swirl){for(let k=0;k<7;k++){const x=-19+k*6.3+o,y=-121+Math.abs(k-3)*2.4;el(g,x,y,4.6,4.4,H);g.strokeStyle=D;g.lineWidth=.9;g.beginPath();g.arc(x,y,2.6,0,Math.PI*1.5);g.stroke()}}
+  if(m.side&&hs0(p)==='curly'){for(const s of [-1,1])for(let k=0;k<3;k++)el(g,s*25,-100+k*8,5.5,5.5,H)}
+  if(m.bangs==='see'){g.save();g.globalAlpha=.85;g.strokeStyle=H;g.lineWidth=2.4;g.lineCap='round';for(const x of [-12,-6,0,6,12]){g.beginPath();g.moveTo(x*.6+o,-114);g.quadraticCurveTo(x+o,-108,x*1.1+o,-99);g.stroke()}g.restore();for(const s of [-1,1]){g.beginPath();g.moveTo(s*18+o,-104);g.quadraticCurveTo(s*26+o,-92,s*22+o,-80);g.strokeStyle=H;g.lineWidth=3;g.stroke()}}
+  if(m.half){el(g,o,-125,7,5,H);el(g,o-3,-127,2.6,1.4,HL);el(g,o,-121,5,1.6,'#E07A7A')}
+  if(m.blunt){const y=-74-(hmLen(p)>1?0:4)+((hmLen(p)-1)*20);g.fillStyle=H;g.fillRect(-26,-96,8,y+96);g.fillRect(18,-96,8,y+96)}}
+function hs0(p){return hairStyleOf(p)}
+/* 뒷모습 */
+function hairModBack(g,p,H,HL,hx,t,hs){const m=p.hm;if(!m)return;const D=hdark(p),L=hmLen(p);
+  if(m.buzz){g.save();g.globalAlpha=.8;el(g,hx,-104,24,20,H);g.restore()}
+  if(m.crest)rr(g,hx-6,-144,12,40,6,H);
+  if(m.sides){const c=mix(p.hair,p.skin,.55);rr(g,hx-26,-104,52,12,5,c)}
+  if(m.twin){for(const s of [-1,1]){g.save();g.translate(hx+s*28,-106);g.rotate(s*-.1);rr(g,-6,0,12,46,6,H);g.restore();el(g,hx+s*26,-104,4,3,'#E07A7A')}}
+  if(m.half){el(g,hx,-114,8,6,H);el(g,hx,-109,6,2.4,'#E07A7A')}
+  if(m.wave&&hs==='long')for(const s of [-1,1])for(let k=0;k<5;k++)el(g,hx+s*(26+(k%2?3:-1)),-108+k*11*L,7,7,H);
+  if(hs==='long'&&L!==1)rr(g,-27+hx,-118,54,58*L,20,H);
+  if(m.layer&&hs==='long'){const y=-118+58*L;for(const s of [-1,1])poly(g,[hx+s*20,y-10,hx+s*30,y+2,hx+s*14,y-2],H)}
+  if(m.cc&&hs==='long'){const y=-118+58*L;g.strokeStyle=H;g.lineWidth=6;g.lineCap='round';for(const s of [-1,1]){g.beginPath();g.arc(hx+s*20,y-7,6,s<0?Math.PI*.5:-.3,s<0?Math.PI*1.3:Math.PI*.5);g.stroke()}}
+  if(m.blunt&&hs==='bob'){g.fillStyle=H;g.fillRect(hx-27,-100,54,24+(L-1)*20);g.fillStyle=D;g.fillRect(hx-27,-77+(L-1)*20,54,1.4)}
+  if(m.swirl||m.wave)for(let k=0;k<5;k++){const a=Math.PI*(1.15+k*.17);g.strokeStyle=D;g.lineWidth=1;g.beginPath();g.arc(hx+Math.cos(a)*18,-102+Math.sin(a)*18,3,0,Math.PI*1.4);g.stroke()}}
+/* 옆모습 */
+function hairModSide(g,p,H,HL,bob){const m=p.hm;if(!m)return;const D=hdark(p);
+  if(m.buzz){g.save();g.globalAlpha=.75;g.beginPath();g.ellipse(3,-100,23,23,0,Math.PI,Math.PI*2);g.fillStyle=H;g.fill();g.restore()}
+  if(m.crest)rr(g,-4,-144,11,38,5,H);
+  if(m.sides){const c=mix(p.hair,p.skin,.55);rr(g,-20,-104,16,13,4,c)}
+  if(m.twin){g.save();g.translate(-20,-106-bob);g.rotate(.3);rr(g,-5,0,10,40,5,H);g.restore()}
+  if(m.half)el(g,-15,-118,6,5,H);
+  if(m.fr==='full'||m.fr==='side'||m.bangs==='see'){g.beginPath();g.moveTo(10,-114);g.quadraticCurveTo(22,-110,24,-99);g.lineTo(16,-100);g.closePath();g.fillStyle=H;g.fill()}
+  if(m.fr==='up')el(g,8,-126,14,6,H);
+  if(m.wave||m.swirl)for(let k=0;k<4;k++){g.strokeStyle=D;g.lineWidth=1;g.beginPath();g.arc(-8+k*6,-118+Math.abs(k-1.5)*2,3,0,Math.PI*1.4);g.stroke()}
+  if(m.blunt){g.fillStyle=H;g.fillRect(-14,-104,14,24+((m.len||1)-1)*20)}}
 function hairBack(g,p,H,hx,hs,bob){
-  if(hs==='long'){rr(g,-27+hx,-118-bob,54,66,20,H);g.save();g.globalAlpha=.18;for(let k=-3;k<=3;k++)ln(g,hx+k*6,-100-bob,hx+k*6.6,-56-bob,'#000',1);g.restore()}
-  else if(hs==='bob')rr(g,-27+hx,-117-bob,54,44,18,H);
+  hairModBehind(g,p,H,hx,hs,bob);
+  if(hs==='long'){rr(g,-27+hx,-118-bob,54,66*hmLen(p),20,H);g.save();g.globalAlpha=.18;for(let k=-3;k<=3;k++)ln(g,hx+k*6,-100-bob,hx+k*6.6,-56-bob,'#000',1);g.restore()}
+  else if(hs==='bob')rr(g,-27+hx,-117-bob,54,44*hmLen(p),p.hm&&p.hm.blunt?5:18,H);
   else if(hs==='curly'&&p.style==='f'){for(let k=0;k<9;k++){const a=Math.PI*(.95+k*.14);el(g,hx+Math.cos(a)*27,-98-bob-Math.sin(a)*-20,9,9,H)}rr(g,-28+hx,-112-bob,56,44,18,H)}
 }
 function hairFrontV(g,p,H,HL,hx,t){
   const hs=hairStyleOf(p);g.save();g.translate(hx,0);
-  if(hs==='bald'){el(g,-21+t*5,-98,5,9,H);el(g,21,-98,5,9,H);el(g,t*6,-118,10,3,'rgba(255,255,255,.25)');g.restore();return}
+  if(hs==='bald'){el(g,-21+t*5,-98,5,9,H);el(g,21,-98,5,9,H);el(g,t*6,-118,10,3,'rgba(255,255,255,.25)');hairModFront(g,p,H,HL,t);g.restore();return}
   const fem=['long','bob','pony','bun'].includes(hs)||(hs==='curly'&&p.style==='f');
   if(!fem){
     g.beginPath();g.moveTo(-26,-94);g.bezierCurveTo(-30,-126,30,-128,26,-94);g.bezierCurveTo(22,-100,14,-102,6+t*6,-100);
@@ -498,6 +597,7 @@ function hairFrontV(g,p,H,HL,hx,t){
     g.save();g.globalAlpha=.22;g.strokeStyle=mix(p.hair,'#000',.4);g.lineWidth=.9;for(const [a,b] of [[-14,-20],[-8,-19],[9,19],[14,21]]){g.beginPath();g.moveTo(a*.5+part*.3,-110);g.quadraticCurveTo(a,-104,b,-86);g.stroke()}g.restore();
     g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-8,-118);g.quadraticCurveTo(-16,-112,-20,-100);g.stroke();g.beginPath();g.moveTo(9,-119);g.quadraticCurveTo(14,-116,17,-110);g.stroke();
   }
+  hairModFront(g,p,H,HL,t);
   hairShine(g,0,-124,14,'#FFFFFF');
   g.restore();
 }
@@ -691,8 +791,8 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
   el(g,0,0,26,6,'rgba(80,55,50,.16)');
   const shoe=(sx,sy,rot,col)=>{el(g,sx,sy,11,5.5,col,rot);el(g,sx,sy+2.6,11,2.2,mix(col,'#000',.18),rot);el(g,sx-3,sy-2,3.4,1.3,'rgba(255,255,255,.4)',rot)};
   if(side){
-    if(style==='long')rr(g,-24-Math.abs(hs),-116-bob-(slim?4:0),28,64,14,H);
-    if(style==='pony'){g.save();g.translate(-18,-108-bob);g.rotate(.35+hs*.05);rr(g,-5,0,10,34,5,H);g.restore()}
+    if(style==='long')rr(g,-24-Math.abs(hs),-116-bob-(slim?4:0),28,64*hmLen(p),14,H);
+    if(style==='pony'&&!(p.hm&&p.hm.twin)){g.save();g.translate(-18,-108-bob);g.rotate(.35+hs*.05);rr(g,-5,0,10,34,5,H);g.restore()}
     const a=sw*8;
     if(p.skirt){rr(g,-5+a,-22,9,20,4,p.legC||p.skinSh);el(g,3+a,-4,11,5,mix(p.shoe,'#000',.08));rr(g,-4-a,-22,9,20,4,p.legC||p.skin);shoe(4-a,-4,0,p.shoe)}
     else{rr(g,-7+a,-40,13,36,5,dark);el(g,3+a,-4,11,5,mix(p.shoe,'#000',.08));
@@ -713,7 +813,7 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
     headT(2);
     if(slim){el(g,1,-101,20,21,SKG);g.beginPath();g.moveTo(-14,-94);g.quadraticCurveTo(-2,-76,14,-76.5);g.quadraticCurveTo(23,-77,23,-85);g.quadraticCurveTo(24,-92,21,-100);g.lineTo(0,-106);g.closePath();g.fillStyle=SKG;g.fill();g.strokeStyle=p.skinSh;g.globalAlpha=.4;g.lineWidth=1.1;g.beginPath();g.moveTo(-6,-86);g.quadraticCurveTo(2,-78,15,-77.3);g.stroke();g.globalAlpha=1;el(g,24,-93,2.6,2.6,p.skin)}
     else{el(g,4,-98,22,24,SKG);el(g,25,-93,3.2,3,p.skin)}
-    if(style==='bald'){el(g,-8,-96,14,12,H);el(g,2,-112,14,8,'rgba(255,255,255,.2)')}
+    if(style==='bald'){el(g,-8,-96,14,12,H);el(g,2,-112,14,8,'rgba(255,255,255,.2)');hairModSide(g,p,H,HL,bob)}
     else{
       el(g,-6,-100,20,24,H);
       g.beginPath();g.moveTo(-22,-96);g.bezierCurveTo(-24,-126,26,-130,24,-102);g.bezierCurveTo(18,-104,10,-101,5,-105);g.bezierCurveTo(1,-98,-6,-94,-7,-82);g.lineTo(-22,-82);g.closePath();g.fillStyle=H;g.fill();
@@ -721,7 +821,7 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
       if(style==='bun'){el(g,-10,-124,10,9,p.hair);if(p.hairpin)ln(g,-18,-127,-2,-121,'#C9A24A',1.4)}
       if(style==='curly'||p.perm)for(let k=0;k<5;k++)el(g,-16+k*8,-120+Math.abs(k-2)*2,5.5,5.5,H);
       g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-10,-118);g.quadraticCurveTo(4,-124,16,-114);g.stroke();
-      hairShine(g,2,-124,13,'#FFFFFF');
+      hairShine(g,2,-124,13,'#FFFFFF');hairModSide(g,p,H,HL,bob);
     }
     const ex=p.expr||'smile';
     if(ex==='sleepy'){g.strokeStyle=EYE;g.lineWidth=1.6;g.beginPath();g.arc(14,-93,3,Math.PI*1.1,Math.PI*1.9);g.stroke()}else eyeV(g,14,-94,.82,p,false);
@@ -782,11 +882,12 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
       else{el(g,hx-t*2,-99,26-t*2,26,H);
         if(style==='long'){rr(g,-27+hx-t*3+hs,-118,54-t*6,58,20,H);g.save();g.globalAlpha=.16;for(let k=-3;k<=3;k++)ln(g,hx+k*6+hs,-104,hx+k*6.8+hs,-64,'#000',1);g.restore()}
         if(style==='bob')rr(g,-27+hx-t*3,-116,54-t*6,40,18,H);
-        if(style==='pony'){el(g,hx,-110,8,6,mix(p.hair,'#E07A7A',.5));g.save();g.translate(hx-t*3,-108);g.rotate(hs*.04);rr(g,-6,0,12,38,6,H);g.restore()}
+        if(style==='pony'&&!(p.hm&&p.hm.twin)){el(g,hx,-110,8,6,mix(p.hair,'#E07A7A',.5));g.save();g.translate(hx-t*3,-108);g.rotate(hs*.04);rr(g,-6,0,12,38,6,H);g.restore()}
         if(style==='bun'){el(g,hx,-124,11,10,p.hair);el(g,hx,-122,9,6,mix(p.hair,'#000',.08));if(p.hairpin){ln(g,hx-9,-128,hx+10,-121,'#C9A24A',1.4);el(g,hx+10,-121,1.6,1.6,'#E07A7A')}}
         if(style==='curly')for(let k=0;k<8;k++){const a=Math.PI*(1.05+k*.12);el(g,hx+Math.cos(a)*24,-99+Math.sin(a)*24,6,6,H)}
         if(p.perm)for(let k=0;k<5;k++){const a=Math.PI*(1.2+k*.15);el(g,hx+Math.cos(a)*23,-100+Math.sin(a)*23,4.6,4.2,H)}
         g.strokeStyle=HL;g.lineWidth=2;g.beginPath();g.moveTo(-12+hx,-116);g.quadraticCurveTo(hx,-124,12+hx,-116);g.stroke();hairShine(g,hx,-124,13,'#FFFFFF')}
+      hairModBack(g,p,H,HL,hx,t,style);
       pinV(g,p,hx,t,true);hatV(g,p,hx,t,true);
       if(p.num&&!p.coat){g.save();if(flip)g.scale(-1,1);const tx=(flip?-1:1)*(st-t*6);g.fillStyle='#FFFFFF';g.textAlign='center';g.textBaseline='alphabetic';
         g.save();g.translate(tx,0);g.scale(1-.3*t,1);
@@ -816,7 +917,7 @@ function drawCat(g,c){
   const flip=c.dir==='left'||c.dir==='ul'||c.dir==='dl',side=c.dir==='left'||c.dir==='right'||c.dir==='ul'||c.dir==='ur'||c.dir==='dl'||c.dir==='dr',back=c.dir==='up',t=performance.now()/1000;
   const CP=c.pal||{},G1=CP.G1||'#9A98A2',G2=CP.G2||'#B9B7C0',GD=CP.GD||'#6F6D77',W=CP.W||'#FAF8F4',PK='#F2B8C2',NS=CP.stripes===false,PAT=CP.patch||null,COL=CP.collar;
   const patch=(pts)=>{if(!PAT)return;pts.forEach(([x,y,rx,ry],k)=>el(g,x,y,rx,ry,PAT[k%PAT.length]))};
-  g.save();g.translate(c.x,c.y);if(flip)g.scale(-1,1);g.scale(.22,.22);
+  g.save();g.translate(c.x,c.y);if(flip)g.scale(-1,1);g.scale(.22*(CP.sc||1),.22*(CP.sc||1));
   el(g,0,1,17,4.5,'rgba(80,55,50,.18)');
   const eyes=(ex,ey,happy)=>{if(happy){g.strokeStyle='#3E3A44';g.lineWidth=1.3;g.beginPath();g.arc(ex,ey+.8,2.6,Math.PI*1.1,Math.PI*1.9);g.stroke();return}
     el(g,ex,ey,3.1,3,'#E6AE2C');el(g,ex,ey-.4,2.6,2.3,lgr(g,0,ey-3,0,ey+3,'#FFE58A','#E0A82A'));el(g,ex,ey,.9,2.5,'#1E1A1A');el(g,ex-1,ey-1.2,.9,.9,'#FFFFFF')};

@@ -3,6 +3,7 @@
    (파일은 index.html 에 적힌 순서대로 불러와요. 앞 파일의 함수·변수를 뒤 파일이 이어서 씀) */
 /* ---------- save ---------- */
 function saveGame(mid){
+  if(window.__noSave)return; // 백업 되돌리기 직후 다시 불러오는 동안은 저장하지 않아요
   try{
     const slots={};S.stList.forEach(s=>{if(s.slots&&s.slots.some(Boolean))slots[s.id]=s.slots});
     const pos={};S.stList.forEach(s=>{if(s.home==='shop')pos[s.id]=s.area==='shop'?[s.x,s.y]:[s.x,s.y,s.area]});
@@ -16,6 +17,15 @@ const SAVE_VER=9;
 /* 앞으로 저장 형식이 바뀌면 여기서 예전 저장을 새 형식으로 옮겨요 (v4 → v5 → …) */
 const MIGRATE={8:d=>{d.v=9;d.up=d.up||{};d.pos=d.pos||{};return d} /* v9: 설비 위치에 장소(가게 밖) · 늘어난 칸 수 · 추가 설비 개수(up.n_bucket 등) */,7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
 function migrateSave(d){if(!d||typeof d.v!=='number'||d.v<4)return null;while(d.v<SAVE_VER){const f=MIGRATE[d.v];if(!f)return null;d=f(d)}return d}
+/* ---------- 자동 백업: 하루를 시작할 때마다 저장을 복사해 최근 3개를 보관해요 ----------
+   TV 안 저장공간(수십 KB)만 써서 게임 메모리에는 영향이 없어요. 설정 → '백업에서 되돌리기' */
+const BAK_KEY='ourflowershop_backup_v1';
+function backupList(){try{const a=JSON.parse(localStorage.getItem(BAK_KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function backupSave(){try{const cur=localStorage.getItem(SAVE_KEY);if(!cur)return;const d=JSON.parse(cur);if(!d||typeof d.day!=='number')return;
+  const L=backupList();if(L.length&&L[L.length-1].data===cur)return;
+  L.push({day:d.day,money:d.money,at:Date.now(),data:cur});while(L.length>3)L.shift();localStorage.setItem(BAK_KEY,JSON.stringify(L))}catch(e){}}
+function restoreBackup(k){const L=backupList(),b=L[k];if(!b)return false;try{backupSave();localStorage.setItem(SAVE_KEY,b.data);window.__noSave=true;
+  /* 되돌리기 직전 저장도 백업에 남겨 둬요(실수로 되돌려도 다시 돌아갈 수 있게) */return true}catch(e){return false}}
 function loadSave(){try{const d=migrateSave(JSON.parse(localStorage.getItem(SAVE_KEY)||'null'));dropSurnames(d,0);return d}catch(e){return null}}
 function continueGame(mode){mode='duo';
   const d=loadSave();if(!d){newGame(mode);return}
@@ -137,7 +147,7 @@ function wallFlags(){if(!S.decor||!S.up)return;const f=wallCover(176,208),s2=wal
 function odecChanged(){ODEC_V++;if(typeof CNAV!=='undefined')CNAV=null;BG_CACHE={};bump()}
 function carryList(c){if(c.area==='shop')return movables();if(OUT_AREAS.includes(c.area))return odec(c.area).filter(d=>!d.carried).concat(stationsIn(c.area).filter(s=>s.home==='shop'));return []}
 /* 가게 밖에 둘 수 있는 설비: 진열대·물올림 통(나머지 설비는 가게 안에서만 옮겨요) */
-function outOK(f){return !!(f.type&&XST[f.type])}
+function outOK(f){return !!(f.type&&(f.type==='display'||f.type==='bucket'))}
 function furnAny(c){const [dx,dy]=DIRV[c.dir]||[0,1];const fx=c.x+dx*12,fy=c.y-3+dy*12;
   for(const f of carryList(c)){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}return null}
 function placeSpotO(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),Math.round(cy/TILE-f.h/2)]}
@@ -145,8 +155,8 @@ function spotOKO(area,f,x,y){const A=AREAS[area];if(x<1||y<1||x+f.w>A.w-1||y+f.h
   for(let yy=y;yy<y+f.h;yy++)for(let xx=x;xx<x+f.w;xx++)for(const [ox,oy] of [[4,4],[12,4],[4,12],[12,12]])if(solid(area,xx*TILE+ox,yy*TILE+oy))return false;
   for(const o of odec(area)){if(o===f||o.carried||(f.walk&&o.walk))continue;if(!f.walk&&!o.walk&&x<o.x+o.w&&x+f.w>o.x&&y<o.y+o.h&&y+f.h>o.y)return false}
   for(const c of S.chars){if(c.area!==area)continue;const tx=c.x/TILE,ty=(c.y-2)/TILE;if(!f.walk&&tx>x-.3&&tx<x+f.w+.3&&ty>y&&ty<y+f.h+.2)return false}return true}
-function carrySpot(c){const f=c.carry;if(c.area==='shop'){const p=placeSpot(c,f);return [p[0],p[1],spotOK(f,p[0],p[1])]}
-  if(!OUT_AREAS.includes(c.area)||(f.type&&!outOK(f))||f.wall)return [0,0,false];const p=placeSpotO(c,f);
+function carrySpot(c){const f=c.carry;if(c.area==='shop'){const p=c.place?[c.place.x,f.wall?2:c.place.y]:placeSpot(c,f);return [p[0],p[1],spotOK(f,p[0],p[1])]}
+  if(!OUT_AREAS.includes(c.area)||(f.type&&!outOK(f))||f.wall)return [0,0,false];const p=c.place?[c.place.x,c.place.y]:placeSpotO(c,f);
   /* 설비는 손님이 다니는 큰길(가게 앞 9~11번 줄)과 가게 문 앞을 막지 않게 */
   if(f.type&&c.area==='town'&&((p[1]<=11&&p[1]+f.h>9)||(p[0]<9&&p[0]+f.w>5&&p[1]<=11)))return [p[0],p[1],false];
   return [p[0],p[1],spotOKO(c.area,f,p[0],p[1])]}
@@ -157,13 +167,19 @@ function placeCarry(c){const f=c.carry;const [x,y,ok]=carrySpot(c);
   if(!ok){toast(c.i,f.type&&c.area!=='shop'&&!outOK(f)?'이 설비는 가게 안에서만 옮길 수 있어요. 진열대·물올림 통은 밖에도 놓을 수 있어요':f.type&&c.area==='town'?'여기에는 놓을 수 없어요. 손님이 다니는 큰길과 가게 문 앞은 비워 두세요':f.wall&&c.area!=='shop'?'벽 장식은 가게 벽에만 걸 수 있어요':!OUT_AREAS.includes(c.area)&&c.area!=='shop'?'여기에는 놓을 수 없어요':'여기에는 놓을 수 없어요. 조금 옮겨 보세요');return}
   if(!f.type){const from=listOf(f),to=c.area==='shop'?S.decor:odec(c.area);if(from!==to){if(from)from.splice(from.indexOf(f),1);to.push(f)}}
   else if(f.area!==c.area){f.area=c.area;if(typeof NAV!=='undefined')for(const k in NAV)if(NAV[k])NAV[k].chk=0}
-  f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('thud');saveMid&&saveMid()}
+  f.x=x;f.y=y;f.carried=false;c.carry=null;c.place=null;BG_CACHE={};odecChanged();sfx('thud');saveMid&&saveMid()}
 /* 들고 있던 가구·설비는 하루가 끝나거나 새로 시작할 때 모두 제자리로(예전엔 들고 마감하면 사라졌어요) */
-function dropCarries(){(S.chars||[]).forEach(c=>{if(c.carry){c.carry.carried=false;c.carry=null}c.pend=null});
+function dropCarries(){(S.chars||[]).forEach(c=>{if(c.carry){c.carry.carried=false;c.carry=null}c.pend=null;c.place=null});
   (S.stList||[]).forEach(s=>{s.carried=false});(S.decor||[]).forEach(d=>{d.carried=false});for(const a in (S.odecor||{}))S.odecor[a].forEach(d=>{d.carried=false});
   if(typeof odecChanged==='function')odecChanged()}
-function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();sfx('thud');toast(c.i,'제자리에 두었어요')}
-function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
+/* ---------- 칸 맞추기: 들고 걷다가 행동 버튼 → 캐릭터는 멈추고 스틱으로 한 칸씩 위치 조정 → 행동 버튼으로 놓기 ---------- */
+function startPlace(c){const p=carrySpot(c);c.place={x:p[0],y:p[1],d:null,h:0};sfx('tap');toast(c.i,'칸 맞추기: 스틱으로 한 칸씩 옮기고 행동 버튼으로 놓아요. 닫기 버튼은 다시 걷기')}
+function placeStep(c,ix,iy,dt){const P=c.place,f=c.carry;if(!P||!f)return;const m=Math.hypot(ix,iy);
+  const d=m>.5?(Math.abs(ix)>Math.abs(iy)?(ix>0?'right':'left'):(iy>0?'down':'up')):null;
+  const go=()=>{const [dx,dy]=DIRV[d];const A=AREAS[c.area];P.x=clamp(P.x+dx,0,A.w-f.w);if(!f.wall)P.y=clamp(P.y+dy,0,A.h-f.h);sfx('nav')};
+  if(!d){P.d=null;return}if(d!==P.d){P.d=d;P.h=0;go();return}P.h+=dt;if(P.h>.32){P.h=.2;go()}}
+function cancelCarry(c){if(!c.carry)return;c.place=null;c.carry.carried=false;c.carry=null;odecChanged();sfx('thud');toast(c.i,'제자리에 두었어요')}
+function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&c.place){c.place=null;sfx('tap');toast(slot,'다시 걸어서 옮길 수 있어요. 한 번 더 닫기를 누르면 제자리에 둬요');return}if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
 function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(n=>!S.chars.some(o=>o!==c&&o.rest&&o.rest.deco===d&&o.rest.seat===n));
   if(seat===undefined){toast(c.i,S0.lie?'돗자리가 꽉 찼어요':'자리가 꽉 찼어요');return}
   if(S0.lie){c.rest={bench:{x:d.x+1,y:d.y+1,up:false},seat:0,start:S.t,deco:d,lie:true};c.rest.seat=seat;c.x=(d.x+d.w/2)*TILE+(seat?1:-1);c.y=(d.y+d.h/2)*TILE+(seat?10:0); /* 둘이 나란히(위아래로) 누워요 — 예전엔 좌우로 겹쳐서 한 사람이 가려졌어요 */c.dir='down';c.face=c.ang=0;sfx('sit');toast(c.i,'돗자리에 누웠어요. 움직이면 일어나요');return}
@@ -171,7 +187,7 @@ function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(
 function toggleEdit(){
   if(S.phase!=='play')return;
   S.edit=!S.edit;
-  if(!S.edit)S.chars.forEach(c=>{if(c.carry){c.carry.carried=false;c.carry=null}});
+  if(!S.edit)S.chars.forEach(c=>{if(c.carry){c.carry.carried=false;c.carry=null}c.place=null});
   [0,1].forEach(i=>closeModal(i));
   toastAll(S.edit?'가구 배치 중이에요. 가구 앞에서 행동 버튼으로 들고, 원하는 곳에서 내려놓으세요':'가구 배치를 마쳤어요');hudKey='';
 }
@@ -184,7 +200,7 @@ function doAction(i){
   if(c.modal){if(c.modal.type==='talk'){if(talkSkip(i))return;if(c.modal.choose)return;talkNext(i)}return}
   const now=performance.now();if(now-(c.lastAct||0)<300)return;c.lastAct=now;sfx('tap');
   if(c.waterT>0)return;
-  if(c.carry){placeCarry(c);return}
+  if(c.carry){if(!c.place){startPlace(c);return}placeCarry(c);return}
   if(S.edit&&c.area==='shop'){
     const f=furnAt(c);if(!f){toast(i,'옮길 가구 앞에 서 주세요');return}
     if(S.chars.some(o=>o.carry===f))return;
@@ -259,8 +275,10 @@ function doAction(i){
     case 'trash':openModal(i,{type:'trash',sel:-1});return;
     case 'phone':{const k=ringingCall();if(!k){toast(i,'조용한 전화기예요');return}k.state='talk';openModal(i,{type:'phone',call:k});return}
     case 'board':openModal(i,{type:'board'});return;
+    default:if(STATION_ACT[s.type])STATION_ACT[s.type](i,s,c);
   }
 }
+const STATION_ACT={}; // 새 장소 파일이 설비 행동을 등록하는 곳
 function faceTo(w,c){const dx=c.x-w.x,dy=c.y-w.y;return Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')}
 function plantSeed(c,s,k){const it=c.bag[k];s.plot={t:it.t,prog:0,watered:false,wetAt:0};if(S.stList.some(sp=>sp.on&&sprCover(sp).includes(s)))s.plot.watered=true;it.n--;if(it.n<=0)c.bag[k]=null;sfx('plant');toast(c.i,`${FL[it.t].name} 모종을 심었어요. 물을 주면 빨리 자라요`)}
 function waterOne(c,s){sfx('water');s.plot.watered=true;s.plot.wetAt=performance.now()+250;c.waterT=.9;c.vx=c.vy=0}
@@ -593,6 +611,7 @@ function update(dtReal){
   S.chars.forEach(c=>{
     c.fade=Math.max(0,c.fade-dtReal*3.5);
     let [ix,iy]=inputFor(c.i);if(c.modal){ix=0;iy=0}
+    if(c.place){if(c.carry)placeStep(c,ix,iy,dtReal);else c.place=null;ix=0;iy=0}
     if(c.waterT>0){c.waterT-=dtReal;ix=0;iy=0}
     if(c.rest){c.moving=false;if(Math.hypot(ix,iy)>.4)standUp(c);else return}
     const mag=Math.min(1,Math.hypot(ix,iy));

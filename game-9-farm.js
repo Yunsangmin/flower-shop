@@ -169,11 +169,19 @@ PR_DEB.lightpole=[-2,-44,182,1];
 /* ---------- 길냥이 5마리 ---------- */
 const FARM_CATS=[
   {name:'치즈',pal:{G1:'#E8A057',G2:'#F6C48A',GD:'#C2702F',W:'#FFF6EA',collar:null},lines:['냐앙~ (햇볕에 데워진 배를 보여 줘요)','냥! (밥그릇 쪽을 힐끔 봐요)','골골골… (치즈색 꼬리가 살랑살랑)'],spots:[[18.5,10.6],[12,9.6],[26,12]]},
-  {name:'고등어',pal:{G1:'#8E8878',G2:'#AEA897',GD:'#57524A',W:'#F4F1EA',collar:null},lines:['…냥. (목공소 나무 냄새를 좋아하나 봐요)','미야? (톱밥 묻은 발을 핥아요)','냐. (장작더미 위가 자기 자리래요)'],spots:[[28,9.4],[36,9.6],[33,9]]},
+  {name:'고등어',pal:{G1:'#8E8878',G2:'#AEA897',GD:'#57524A',W:'#F4F1EA',collar:null},lines:['…냥. (목공소 나무 냄새를 좋아하나 봐요)','미야? (톱밥 묻은 발을 핥아요)','냐. (장작더미 위가 자기 자리래요)','냐아. (꽁치를 핥아 주고 있어요. 엄마 고양이예요)','…냥. (꽁치가 멀리 가지 않게 지켜봐요)'],spots:[[28,9.4],[36,9.6],[33,9]]},
+  /* 고등어의 딸 꽁치: 작고, 늘 엄마 곁을 졸졸 따라다녀요 */
+  {name:'꽁치',mom:'고등어',pal:{G1:'#9C968A',G2:'#BDB7A8',GD:'#5E5950',W:'#F7F4EE',collar:null,sc:.68},lines:['미이~ (엄마 고등어 꼬리를 잡으려고 폴짝!)','먀! (엄마 옆에 꼭 붙어 있어요)','미야… (아직 목소리가 아기 같아요)','냥냥! (톱밥 더미에서 굴러다녀요)'],spots:[[27,9.8],[35,10],[32,9.4]]},
   {name:'삼색이',pal:{G1:'#F4F0E8',G2:'#FFFFFF',GD:'#D8CFC4',W:'#FFFFFF',stripes:false,patch:['#E39A4F','#3A3434'],collar:null},lines:['먀아~ (코스모스 사이로 폴짝!)','냥냥! (나비를 쫓다가 멈췄어요)','미야옹. (새침하게 고개를 돌려요)'],spots:[[29,18.6],[30.5,24.4],[27,20]]},
   {name:'턱시도',pal:{G1:'#2E2B2E',G2:'#4A464B',GD:'#1C1A1D',W:'#FFFFFF',stripes:false,collar:null},lines:['냥. (텐트 안이 제일 따뜻하대요)','…미야. (모닥불 쪽을 바라봐요)','냥! (의자 위를 먼저 차지했어요)'],spots:[[27.5,18.8],[22.5,19.2],[31,15]]},
   {name:'모찌',pal:{G1:'#F4F2EE',G2:'#FFFFFF',GD:'#D6D2CC',W:'#FFFFFF',stripes:false,patch:['#A9A6AE'],collar:null},lines:['미야~ (말랑한 앞발로 꾹꾹이를 해요)','냐아… (피크닉 테이블 밑이 시원하대요)','냥? (눈을 천천히 깜빡여요. 좋아한다는 뜻이래요)'],spots:[[6.5,18.2],[16,12],[4,12.5]]}
 ];
-function makeFarmCats(){if(S.fcats&&S.fcats.length)return;S.fcats=FARM_CATS.map((C,k)=>{const [sx,sy]=C.spots[0];return {kind:'cat',area:'farm',name:C.name,who:'농막 길냥이',pal:C.pal,lines:C.lines,spots:C.spots,x:sx*TILE,y:sy*TILE,tx:sx*TILE,ty:sy*TILE,dir:'down',walk:0,state:pick(['sit','sleep','groom']),timer:rnd(2,8),talking:false,hearts:0,speed:18+k*2}})}
+function makeFarmCats(){if(S.fcats&&S.fcats.length)return;S.fcats=FARM_CATS.map((C,k)=>{const [sx,sy]=C.spots[0];return {kind:'cat',area:'farm',name:C.name,mom:C.mom||null,who:C.mom?'농막 아기 고양이 · '+C.mom+'의 딸':'농막 길냥이',pal:C.pal,lines:C.lines,spots:C.spots,x:sx*TILE,y:sy*TILE,tx:sx*TILE,ty:sy*TILE,dir:'down',walk:0,state:pick(['sit','sleep','groom']),timer:rnd(2,8),talking:false,hearts:0,speed:18+k*2}})}
 {const _mw=makeWalkers;makeWalkers=function(){_mw();makeFarmCats()}}
+/* 아기 고양이: 엄마가 가는 곳을 따라가고, 엄마가 쉬면 옆에서 같이 쉬어요 */
+{const _u=updateOneCat;updateOneCat=function(c,dt){if(!c.mom)return _u(c,dt);
+  const m=allCats().find(k=>k.name===c.mom&&k.area===c.area);if(!m)return _u(c,dt);c.mv=false;if(c.talking){c.state='sit';return}
+  const tx=m.x+(m.dir==='left'?9:-9),ty=m.y+3,dx=tx-c.x,dy=ty-c.y,d=Math.hypot(dx,dy);
+  if(d>6){const sp=Math.min(d,(d>30?34:22)*dt);c.x+=dx/d*sp;c.y+=dy/d*sp;c.state='walk';c.mv=true;c.walk+=dt*12;c.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');return}
+  if(c.state==='walk'||m.state!=='walk'){c.state=m.state==='walk'?'sit':m.state;c.dir=m.x>c.x?'right':'left'}}}
 CAT_SPOTS.farm=[3,37,9,22];

@@ -220,6 +220,7 @@ function newGame(mode){mode='duo';
 }
 function bump(){S.rev=(S.rev||0)+1}
 function startDaySetup(){
+  if(typeof backupSave==='function')backupSave();
   S.urgentAt=S.day>=2?[rnd(60,240)].concat(Math.random()<.5?[rnd(280,420)]:[]):[];
   S.t=0;S.customers=[];S.paused=false;S.puffs=[];S.drops=[];S.edit=false;S.nextWalkin=rnd(15,30);S.reserveAt=[rnd(60,200),rnd(250,420)];
   if(typeof dropCarries==='function')dropCarries();S.chars=[makeChar(0),makeChar(1)];

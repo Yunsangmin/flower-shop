@@ -287,7 +287,8 @@ function prDecSig(d,area){
   if(d.t==='clocktower'||d.t==='schoolclock')x+=Math.floor(S.t/3); // 마을 시계는 3분마다(가게 벽시계는 1분마다)
   if(d.t==='hoursSign')x+=(S.t>=MARKET_CLOSE); // 영업 안내판은 '열림/닫힘'만 바뀌어요(예전엔 1분마다 다시 구웠어요)
   if(d.t==='swing')x+='|'+(S.swingOcc||[]).join();
-  if(d.t==='w_neon')x+=(lampAt(S.t)>.2); // 네온사인은 저녁에 켜질 때만 다시 구워요
+  if(d.t==='w_neon')x+=(lampAt(S.t)>.2);
+  if(d.t==='shopfacade')x+=townSig(); // 네온사인은 저녁에 켜질 때만 다시 구워요
   if(d.t==='lamp')x+=Math.round(lampAt(S.t)*12); // 가로등 밝기 단계(예전엔 40단계+10분마다 → 가로등 8개가 계속 다시 구워졌어요)
   return x+'|'+prBakeScale(area);
 }
