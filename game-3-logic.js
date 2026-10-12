@@ -32,7 +32,7 @@ function continueGame(mode){mode='duo';
 
 function resumeMid(m){
   S.t=m.t;S.customers=[];S.paused=false;S.puffs=[];S.drops=[];S.edit=false;S.nextWalkin=S.t+rnd(10,25);S.reserveAt=m.reserveAt||[null,null];
-  S.chars=[makeChar(0),makeChar(1)];(m.chars||[]).forEach((p,k)=>Object.assign(S.chars[k],p));
+  dropCarries();S.chars=[makeChar(0),makeChar(1)];(m.chars||[]).forEach((p,k)=>Object.assign(S.chars[k],p));S.chars.forEach(c=>{c.carry=null});
   S.stats=m.stats;S.prices=m.prices;S.tomorrow=m.tomorrow||[];S.calls=(m.calls||[]).map(k=>({...k,state:k.state==='talk'||k.state==='ring'?'missed':k.state}));S.offers=m.offers||[null,null];
   makeWalkers();BG_CACHE={};S.tut=m.tut==null?-1:m.tut;S._as=Math.floor(S.t/30);
   S.orders.forEach(o=>{if(o.arrived&&(o.status==='pending'||o.status==='crafted'))o.arrived=false});
@@ -158,6 +158,10 @@ function placeCarry(c){const f=c.carry;const [x,y,ok]=carrySpot(c);
   if(!f.type){const from=listOf(f),to=c.area==='shop'?S.decor:odec(c.area);if(from!==to){if(from)from.splice(from.indexOf(f),1);to.push(f)}}
   else if(f.area!==c.area){f.area=c.area;if(typeof NAV!=='undefined')for(const k in NAV)if(NAV[k])NAV[k].chk=0}
   f.x=x;f.y=y;f.carried=false;c.carry=null;BG_CACHE={};odecChanged();sfx('thud');saveMid&&saveMid()}
+/* 들고 있던 가구·설비는 하루가 끝나거나 새로 시작할 때 모두 제자리로(예전엔 들고 마감하면 사라졌어요) */
+function dropCarries(){(S.chars||[]).forEach(c=>{if(c.carry){c.carry.carried=false;c.carry=null}c.pend=null});
+  (S.stList||[]).forEach(s=>{s.carried=false});(S.decor||[]).forEach(d=>{d.carried=false});for(const a in (S.odecor||{}))S.odecor[a].forEach(d=>{d.carried=false});
+  if(typeof odecChanged==='function')odecChanged()}
 function cancelCarry(c){if(!c.carry)return;c.carry.carried=false;c.carry=null;odecChanged();sfx('thud');toast(c.i,'제자리에 두었어요')}
 function backAct(slot){const c=S.chars[slot];if(!c)return;if(c.carry&&!(S.edit&&c.area==='shop')){cancelCarry(c);return}if(c.rest)doAction(slot)}
 function sitOn(c,d){const S0=SEATS[d.t];const seat=[...Array(S0.n).keys()].find(n=>!S.chars.some(o=>o!==c&&o.rest&&o.rest.deco===d&&o.rest.seat===n));

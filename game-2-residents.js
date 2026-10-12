@@ -222,7 +222,7 @@ function bump(){S.rev=(S.rev||0)+1}
 function startDaySetup(){
   S.urgentAt=S.day>=2?[rnd(60,240)].concat(Math.random()<.5?[rnd(280,420)]:[]):[];
   S.t=0;S.customers=[];S.paused=false;S.puffs=[];S.drops=[];S.edit=false;S.nextWalkin=rnd(15,30);S.reserveAt=[rnd(60,200),rnd(250,420)];
-  S.chars=[makeChar(0),makeChar(1)];
+  if(typeof dropCarries==='function')dropCarries();S.chars=[makeChar(0),makeChar(1)];
   S.stats={rev:[],spent:0,invest:0,waste:0,display:0,displayN:0,cancel:[]};
   ensureBags();rollPrices();planCalls();makeWalkers();BG_CACHE={};S._as=0;if(S.day>1)S.tut=-1;
   buildControls();showIntro();

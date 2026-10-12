@@ -124,13 +124,25 @@ function sprSVG(){return `<svg viewBox="0 0 40 40"><rect x="18" y="14" width="4"
 const ART_BG='<rect width="64" height="64" rx="12" fill="#FBF6F0"/>';
 function sv(inner){return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${ART_BG}${inner}</svg>`}
 function artPerson(extra,tee){return `<ellipse cx="32" cy="58" rx="16" ry="3" fill="#0001"/><rect x="18" y="38" width="28" height="22" rx="9" fill="${tee||'#4C82D4'}"/><rect x="28" y="30" width="8" height="10" rx="3" fill="#E0B597"/><ellipse cx="32" cy="24" rx="13" ry="14" fill="#F4D3B7"/><path d="M19 22 C19 8 45 8 45 22 C41 17 36 16 32 15 C28 16 23 17 19 22Z" fill="#3B2A22"/><ellipse cx="27" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><ellipse cx="37" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><path d="M29.5 31 Q32 33 34.5 31" stroke="#C0707E" stroke-width="1.1" fill="none"/>${extra}`}
+/* 액세서리·귀걸이는 사람 그림에선 작아서, 상점에는 물건 자체를 크게 그려 보여 줘요 */
+function accArt(v){
+  const pearls=(cx,cy,rx,ry,n,r)=>[...Array(n)].map((_,k)=>{const a=Math.PI*(.08+k*.84/(n-1));const x=cx+Math.cos(a)*rx,y=cy+Math.sin(a)*ry;return `<circle cx="${x.toFixed(1)}" cy="${(y+.6).toFixed(1)}" r="${r}" fill="#C9BFB4"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="#FFFDF8"/><circle cx="${(x-1).toFixed(1)}" cy="${(y-1).toFixed(1)}" r="${r*.35}" fill="#fff"/>`}).join('');
+  const bow=c=>`<path d="M10 22 L30 32 L10 44Z" fill="${c}"/><path d="M54 22 L34 32 L54 44Z" fill="${c}"/><rect x="27" y="26" width="10" height="12" rx="3" fill="${mix(c,'#000',.28)}"/>`;
+  const cors=c=>`<ellipse cx="22" cy="44" rx="10" ry="4" fill="#6FA35E" transform="rotate(30 22 44)"/><ellipse cx="42" cy="44" rx="10" ry="4" fill="#7FB070" transform="rotate(-30 42 44)"/>${[0,1,2,3,4,5].map(k=>`<circle cx="${(32+Math.cos(k*1.047)*9).toFixed(1)}" cy="${(30+Math.sin(k*1.047)*9).toFixed(1)}" r="7.5" fill="${c}" stroke="${c==='#FFFFFF'?'#D8CFC4':mix(c,'#000',.15)}"/>`).join('')}<circle cx="32" cy="30" r="5" fill="#F5CF4E"/>`;
+  const scarf=c=>`<path d="M12 18 Q32 30 52 18 L52 28 Q32 40 12 28Z" fill="${c}"/><rect x="36" y="28" width="10" height="26" rx="3" fill="${c}"/><path d="M38 54 v4 M41 54 v4 M44 54 v4" stroke="${mix(c,'#000',.25)}" stroke-width="1.5"/>`;
+  const ear=k=>{const one=x=>k==='earP'?`<circle cx="${x}" cy="31" r="7" fill="#C9BFB4"/><circle cx="${x}" cy="30" r="7" fill="#FFFDF8"/><circle cx="${x-2.4}" cy="27.6" r="2.2" fill="#fff"/>`:k==='earG'?`<circle cx="${x}" cy="34" r="9" fill="none" stroke="#D8B04A" stroke-width="3.6"/><path d="M${x-7} 30 a9 9 0 0 1 5 -5" stroke="#FFF0B0" stroke-width="1.4" fill="none"/>`:`<circle cx="${x}" cy="16" r="3" fill="#E2C27A"/><path d="M${x} 18 v6" stroke="#C9A24A" stroke-width="1.5"/><path d="M${x} 22 C${x-8} 32 ${x-6} 42 ${x} 42 C${x+6} 42 ${x+8} 32 ${x} 22Z" fill="#E886A8"/><ellipse cx="${x-2}" cy="33" rx="2" ry="3.4" fill="#FFD6E4"/>`;return `<path d="M${18} 12 v6 M${46} 12 v6" stroke="#C9A24A" stroke-width="1.4"/>`+one(18)+one(46)};
+  const vel='<rect x="6" y="6" width="52" height="52" rx="10" fill="#5A4A6E"/>'; /* 흰 진주는 진한 받침 위에 */
+  const A={pearlN:vel+pearls(32,14,22,30,13,3.6),goldN:`<path d="M10 16 Q32 52 54 16" stroke="#C9A24A" stroke-width="2.2" fill="none"/><path d="M32 54 C22 46 22 36 32 40 C42 36 42 46 32 54Z" fill="#E8C24E" stroke="#A8822E"/><ellipse cx="28" cy="42" rx="2" ry="1.4" fill="#FFF2B8"/>`,
+    bowR:bow('#C0463E'),bowN:bow('#3A4C80'),corsP:cors('#F29AB0'),corsW:cors('#FFFFFF'),scarfR:scarf('#C65C5C'),scarfC:scarf('#EFE4D0')};
+  return sv(A[v]||((v==='earP'?vel:'')+ear(v)))}
 function itemArt(it){
   const id=it.id;
   if(it.styleSet&&STYLES[it.styleSet]&&STYLES[it.styleSet].deco&&!it._plain)return themeArt(it);
   if(it.floor&&/^f_/.test(id||'')&&DECOR_DRAW[it.floor.t])return decorArt(it.floor.t,it.floor.w,it.floor.h,!!it.floor.wall);
   if(it.style){const [k,v]=it.style;
     const known={glasses:['horn','gold'],hat:['beret','sunhat','beanie','cap'],pin:['ribbon','flower','band']}[k];
-    if(k==='dress'||k==='bag'||(known&&!known.includes(v))||v==='knit'||['pants','shoes','acc','ear'].includes(k)||(k==='tee'&&String(v).includes('|')))return wearArt(k,v);
+    if(k==='acc'||k==='ear')return accArt(v);
+    if(k==='dress'||k==='bag'||(known&&!known.includes(v))||v==='knit'||['pants','shoes'].includes(k)||(k==='tee'&&String(v).includes('|')))return wearArt(k,v);
     if(k==='glasses')return sv(artPerson(v==='gold'?'<circle cx="27" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><circle cx="37" cy="25" r="4.4" fill="#dcecf633" stroke="#C9A24A" stroke-width="1.1"/><path d="M31.4 25 L32.6 25" stroke="#C9A24A"/>':'<rect x="21.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/><rect x="31.5" y="20.5" width="11" height="9" rx="3" fill="#dcecf633" stroke="#2A2230" stroke-width="1.8"/>'));
     if(k==='hat'){const h={beret:'<ellipse cx="30" cy="11" rx="15" ry="6" fill="#C65C79" transform="rotate(-8 30 11)"/><circle cx="31" cy="5" r="1.5" fill="#A84C66"/>',sunhat:'<ellipse cx="32" cy="14" rx="22" ry="5" fill="#E9D3A4"/><rect x="21" y="3" width="22" height="12" rx="6" fill="#F0DEB4"/><rect x="21" y="11" width="22" height="3" fill="#E07A7A"/>',beanie:'<rect x="18" y="2" width="28" height="17" rx="9" fill="#E3A04A"/><rect x="17" y="14" width="30" height="5" rx="2.5" fill="#F0C27A"/><circle cx="32" cy="2" r="3" fill="#FFF1D6"/>',cap:'<path d="M18 16 C18 2 46 2 46 16Z" fill="#5C7FB8"/><ellipse cx="40" cy="16" rx="12" ry="3" fill="#46679C"/>'}[v];return sv(artPerson(h))}
     if(k==='pin'){const h={ribbon:'<ellipse cx="38" cy="10" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(-25 38 10)"/><ellipse cx="45" cy="9" rx="4" ry="2.6" fill="#EE7F9C" transform="rotate(25 45 9)"/><circle cx="41.5" cy="9.5" r="1.6" fill="#C65C79"/>',flower:[0,1,2,3,4].map(q=>`<circle cx="${40+Math.cos(q*1.256)*2.6}" cy="${11+Math.sin(q*1.256)*2.6}" r="2" fill="#fff"/>`).join('')+'<circle cx="40" cy="11" r="1.5" fill="#F5CF4E"/>',band:'<path d="M19 20 C19 6 45 6 45 20" stroke="#B9A2E0" stroke-width="3" fill="none"/>'}[v];return sv(artPerson(h))}
@@ -596,11 +608,19 @@ function topV(g,p,st,hw,t,back){const c=p.tee,d=mix(c,'#1E1622',.2),L=mix(c,'#FF
   else if(p.top==='stripe'){g.save();g.globalAlpha=.85;for(let y=-72;y<-40;y+=6)rr(g,-hw-1+st,y,2*hw+2,2.6,1,p.topL||'#FFFFFF');g.restore()}}
 /* 액세서리: 목걸이·나비넥타이·코르사주(정면/3/4에서만) · 귀걸이는 얼굴 그릴 때 */
 function accV(g,p,st,hw,t,back){if(back)return;const cx=st+t*5;
-  if(p.neck==='pearl'){for(let k=0;k<9;k++){const a=Math.PI*(.15+k*.0875);el(g,cx+Math.cos(a)*9,-79+Math.sin(a)*7,1.5,1.5,'#FBF7EF')}}
-  else if(p.neck==='gold'){g.strokeStyle='#D8B25E';g.lineWidth=.9;g.beginPath();g.arc(cx,-80,8,Math.PI*.15,Math.PI*.85);g.stroke();el(g,cx,-72,2.2,2.6,'#E2C27A')}
-  if(p.bow){const c=p.bow;poly(g,[cx-8,-81,cx,-78,cx-8,-74],c);poly(g,[cx+8,-81,cx,-78,cx+8,-74],c);el(g,cx,-78,2,2,mix(c,'#000',.2))}
-  if(p.corsage){const x=cx-hw*.45,y=-66,c=p.corsage;for(let k=0;k<5;k++){const a=k*1.2566;el(g,x+Math.cos(a)*2.6,y+Math.sin(a)*2.6,2.3,2.3,c)}el(g,x,y,1.4,1.4,'#F5CF4E');el(g,x+3,y+4,2.4,1,'#6FA35E',.6)}}
-function earV(g,p,f){if(!p.ear)return;const ex=f?22:25,c=p.ear==='pearl'?'#FBF7EF':'#E2C27A';el(g,-ex,-89,1.8,1.8,c);el(g,ex,-89,1.8,1.8,c);if(p.ear==='drop'){el(g,-ex,-85,1.4,2.4,'#E2C27A');el(g,ex,-85,1.4,2.4,'#E2C27A')}}
+  /* 16차 보완: 작은 화면(TV)에서도 알아볼 수 있게 크고 색이 또렷하게 */
+  if(p.neck==='pearl'){for(let k=0;k<11;k++){const a=Math.PI*(.1+k*.08);const x=cx+Math.cos(a)*12,y=-80+Math.sin(a)*10;el(g,x,y+.6,2.9,2.9,'#B9AFA4');el(g,x,y,2.7,2.7,'#FFFDF8');el(g,x-.9,y-.9,.9,.9,'#FFFFFF')}}
+  else if(p.neck==='gold'){g.strokeStyle='#C9A24A';g.lineWidth=1.6;g.beginPath();g.arc(cx,-82,11,Math.PI*.12,Math.PI*.88);g.stroke();
+    const hx=cx,hy=-66;g.beginPath();g.moveTo(hx,hy+5);g.bezierCurveTo(hx-7,hy,hx-5,hy-6,hx,hy-3);g.bezierCurveTo(hx+5,hy-6,hx+7,hy,hx,hy+5);g.fillStyle='#E8C24E';g.fill();g.strokeStyle='#A8822E';g.lineWidth=.8;g.stroke();el(g,hx-2,hy-2,1,.8,'#FFF2B8')}
+  if(p.bow){const c=p.bow,d=mix(c,'#000',.28);poly(g,[cx-13,-84,cx-1,-78,cx-13,-71],c);poly(g,[cx+13,-84,cx+1,-78,cx+13,-71],c);ln(g,cx-10,-80,cx-4,-78,d,1);ln(g,cx+10,-80,cx+4,-78,d,1);rr(g,cx-3,-81.5,6,7,2,d)}
+  if(p.corsage){const x=cx-hw*.5,y=-64,c=p.corsage,d=c==='#FFFFFF'?'#D8CFC4':mix(c,'#000',.18);el(g,x+5,y+6,4.5,1.8,'#6FA35E',.6);el(g,x-5,y+6,4.5,1.8,'#7FB070',-.6);
+    for(let k=0;k<6;k++){const a=k*1.047;el(g,x+Math.cos(a)*4.2,y+Math.sin(a)*4.2,3.6,3.6,d);el(g,x+Math.cos(a)*4,y+Math.sin(a)*4,3.2,3.2,c)}el(g,x,y,2.4,2.4,'#F5CF4E')}}
+/* 귀걸이: 머리카락 위에 그려서 긴 머리여도 보여요(정면은 양쪽, 비스듬하면 보이는 한쪽) */
+function earV(g,p,f,hx,t){if(!p.ear)return;const ex=f?22:25,pts=t>0?(t<.8?[[hx-ex+t*6,1]]:[]):[[-ex,1],[ex,1]];
+  for(const [x] of pts){const y=-87;
+    if(p.ear==='pearl'){el(g,x,y+.7,3.6,3.6,'#B9AFA4');el(g,x,y,3.4,3.4,'#FFFDF8');el(g,x-1.1,y-1.1,1.1,1.1,'#FFFFFF')}
+    else if(p.ear==='gold'){g.strokeStyle='#D8B04A';g.lineWidth=2;g.beginPath();g.arc(x,y+2,4,0,Math.PI*2);g.stroke();g.strokeStyle='#FFF0B0';g.lineWidth=.7;g.beginPath();g.arc(x,y+2,4,Math.PI*1.1,Math.PI*1.5);g.stroke()}
+    else{el(g,x,y-1,1.8,1.8,'#E2C27A');ln(g,x,y,x,y+4,'#C9A24A',.8);g.beginPath();g.moveTo(x,y+3);g.bezierCurveTo(x-4,y+8,x-3,y+12,x,y+12);g.bezierCurveTo(x+3,y+12,x+4,y+8,x,y+3);g.fillStyle='#E886A8';g.fill();el(g,x-1,y+8,1,1.5,'#FFD6E4')}}}
 function scarfV(g,p,st,hw,t,back){if(!p.scarf)return;const c=p.scarf,d=mix(c,'#1E1622',.22);
   rr(g,-hw*.72+st,-80,hw*1.44,9,4.5,c);g.save();g.globalAlpha=.3;for(let k=-3;k<=3;k++)ln(g,st+k*4.5,-79,st+k*4.5+1.5,-72,'#FFFFFF',.9);g.restore();
   if(!back){const tx=st+t*5+5;rr(g,tx,-74,7,17,3,c);for(let k=0;k<3;k++)ln(g,tx+1.2+k*2.3,-57,tx+1.2+k*2.3,-54,d,.9)}}
@@ -778,8 +798,7 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
       if(t>0)el(g,-22+hx+t*6,-96,4.5,6,p.skinSh);else{el(g,-(f?22:25),-96,4.5,6,p.skinSh);el(g,f?22:25,-96,4.5,6,p.skinSh);el(g,-(f?22:25),-96,2.2,3.2,mix(p.skinSh,'#CC7777',.2));el(g,f?22:25,-96,2.2,3.2,mix(p.skinSh,'#CC7777',.2))}
       if(slim)slimHead(g,hx,t,SKG,p.skinSh);else el(g,hx,-98,(f?22:25)*(1-.14*t),f?25:23,SKG);
       if(t>0){el(g,hx-14,-96,8,16,'rgba(0,0,0,.04)')}
-      if(t===0)earV(g,p,f);
-      hairFrontV(g,p,H,HL,hx,t);
+      hairFrontV(g,p,H,HL,hx,t);earV(g,p,f,hx,t);
       faceV(g,p,gl,hx+t*7,t);
       pinV(g,p,hx,t,false);hatV(g,p,hx,t,false);
     }

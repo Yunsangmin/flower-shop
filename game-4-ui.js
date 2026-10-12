@@ -343,7 +343,7 @@ function renderModal(i){
     const pit=m.pending&&SHOP_ITEMS.find(x=>x.id===m.pending);
     h=head(i,'용품상점')+(pit?`<div class="confirm"><div class="sart">${itemArt(pit)}</div><div class="grow"><b style="font-weight:normal">${pit.name}</b>${pit.part?` <small>· ${pit.part}</small>`:''}<br>${won(pit.price)}에 살까요?</div><button class="btn primary small" data-a="buyok">살게요</button><button class="btn small" data-a="buyno">아니요</button></div>`:'')+`<p class="req">가진 돈 ${won(S.money)}</p><div class="row tabs">${SHOP_CATS.map(([k,n])=>`<button class="btn small ${k===cat?'soft':''}" data-a="cat" data-v="${k}">${n}</button>`).join('')}</div>${cat==='style'?`<div class="row tabs">${Object.keys(STYLE).map(k=>`<button class="btn small ${k===(m.sub||'tee')?'primary':''}" data-a="sub" data-v="${k}">${STYLE_PART[k]}</button>`).join('')}</div>`:''}<div class="shopgrid${imgOnly?' img':''}">`+SHOP_ITEMS.filter(it=>it.cat===cat&&(cat!=='style'||it.style[0]===(m.sub||'tee'))).map(it=>{
       const cur=(it.styleSet&&S.style===it.styleSet)||(it.front&&(S.up['fr_'+it.front[0]]||FRONT[it.front[0]].def)===it.front[1]),full=it.max&&(S.up['n_'+it.addSt]||0)>=it.max,have=cur||full||((!!S.up[it.id]||!!S.closet[it.id])&&!it.repeat),lock=it.need&&!S.up[it.need];
-      return `<div class="scard${have?' own':''}"><div class="sart" data-id="${it.id}">${itemArt(it)}</div>${it.part?`<div class="spart">${it.part}</div>`:''}${imgOnly?'':`<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock?' (앞 단계를 먼저 사야 해요)':''}</div>`}${have?`<span class="sbad">${cur?'사용 중':'보유'}</span>`:`<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} · ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock||S.money<it.price?'disabled':''}>${won(it.price)}</button>`}</div>`}).join('')+'</div>';
+      return `<div class="scard${have?' own':''}"><div class="sart" data-id="${it.id}">${itemArt(it)}</div>${it.part?`<div class="spart">${cat==='style'?it.name:it.part}</div>`:''}${imgOnly?'':`<div class="sname">${it.name}</div><div class="sdesc">${it.desc}${lock?' (앞 단계를 먼저 사야 해요)':''}</div>`}${have?`<span class="sbad">${cur?'사용 중':'보유'}</span>`:`<button class="btn small soft" data-a="shopbuy" data-v="${it.id}" data-tip="${esc(it.name)} · ${won(it.price)}" aria-label="${esc(it.name)} ${won(it.price)}" ${lock||S.money<it.price?'disabled':''}>${won(it.price)}</button>`}</div>`}).join('')+'</div>';
   }
   else if(m.type==='seedbuy'){
     const t=m.flower,p=SEED_PRICE[t],tot=p*m.qty,has=c.bag.some(it=>it&&it.kind==='seed'&&it.t===t)||bagFree(i)>0;
@@ -671,7 +671,7 @@ function prepGate(sel,then){const b=$(sel);if(!b)return;const txt=b.textContent;
   setTimeout(()=>{const bb=$(sel);if(bb&&bb.disabled){bb.disabled=false;bb.textContent=txt}},20000)} // 혹시 몰라 20초 뒤엔 무조건 풀어요
 function endDay(){
   if(S.phase!=='play')return;
-  [0,1].forEach(closeModal);$('#orderPop').className='';
+  [0,1].forEach(closeModal);$('#orderPop').className='';dropCarries();
   S.orders.forEach(o=>{if(o.status==='pending'||o.status==='crafted'){o.status='cancelled';S.stats.cancel.push(o)}});
   S.phase='settle';sfx('dayend');$('#hud').style.display='none';updateControlVisibility();
   const st=S.stats;const rev=st.rev.reduce((a,r)=>a+r.price,0);const dayNo=S.day;const tmr=S.tomorrow.slice();
