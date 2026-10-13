@@ -143,10 +143,10 @@ const EARV={earP:'pearl',earG:'gold',earD:'drop'};
    len=뒷머리(nape·bob·shoulder·long·xlong), tex=결(straight·wave·curl·layer·spiky), vol=정수리 볼륨, x=묶음(pony·sidepony·braids·bun·buns·halfbun), perm=펌 가격 */
 const HAIRS={
   m:[['dandy','댄디컷',{fr:'full',sd:'ear',len:'nape',tex:'straight',vol:2}],['comma','쉼표머리',{fr:'comma',sd:'ear',len:'nape',tex:'straight',vol:2}],
-     ['gareuma','가르마펌',{fr:'split',sd:'ear',len:'nape',tex:'wave',vol:3,perm:1}],['twoblock','투블럭',{fr:'side',sd:'under',len:'nape',tex:'straight',vol:4}],
+     ['gareuma','가르마펌',{fr:'part8',sd:'ear',len:'nape',tex:'wave',vol:3,perm:1}],['twoblock','투블럭',{fr:'side',sd:'under',len:'nape',tex:'straight',vol:4}],
      ['leaf','리프컷',{fr:'curtain',sd:'cheek',len:'nape',tex:'straight',vol:2}],['ez','애즈펌',{fr:'split',sd:'ear',len:'nape',tex:'cc',vol:3,perm:1}],
      ['wolf','울프컷',{fr:'see',sd:'cheek',len:'shoulder',tex:'layer',vol:3}],['slick','슬릭백',{fr:'none',sd:'under',len:'nape',tex:'straight',vol:4}],
-     ['crop','크롭컷',{fr:'crop',sd:'under',len:'nape',tex:'spiky',vol:1}],['shadow','쉐도우펌',{fr:'full',sd:'ear',len:'nape',tex:'wave',vol:4,perm:1}],
+     ['crop','크롭컷',{fr:'crop',sd:'under',len:'nape',tex:'straight',vol:1}],['shadow','쉐도우펌',{fr:'full',sd:'ear',len:'nape',tex:'wave',vol:4,perm:1}],
      ['hippiem','히피펌',{fr:'see',sd:'cheek',len:'nape',tex:'curl',vol:5,perm:1}],['longm','장발 레이어드',{fr:'split',sd:'chin',len:'shoulder',tex:'layer',vol:2}],
      ['wavem','볼륨 웨이브펌',{fr:'split',sd:'chin',len:'bob',tex:'wave',vol:5,big:1,perm:1}],['natural','내추럴 사이드',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:4}],
      ['mush','볼륨 머쉬룸컷',{fr:'mush',sd:'ear',len:'nape',tex:'straight',vol:5}],['volpart','볼륨 가르마펌',{fr:'curtain',sd:'cheek',len:'nape',tex:'wave',vol:5,perm:1}]],
@@ -433,7 +433,7 @@ function makeChar(i){
   return {i,pal:PAL[i],area:'shop',x:p[0],y:p[1],vx:0,vy:0,dir:'down',ang:0,face:0,anim:0,moving:false,bag:S.bags[i],modal:null,rest:null,carry:null,waterT:0,boostUntil:-1,fade:0,lastAct:0};
 }
 function palOf(c){const p=palFromOutfit(PAL[c.i],S.outfit[c.i]||{});if(c.rest&&c.rest.lie){p.pose='lie';p.expr='sleepy'}return p}
-function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};
+function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.hat||null,pin:o.pin||null,apron:o.apron||null};if(base.style!=='f'&&base.jersey)p.mface=1;
   if(o.apron==='knit'){p.apron='#F6D3DB';p.apronPat='flower'}
   if(o.tee){const [a,b,c]=String(o.tee).split('|');if(b){p.top=a;p.tee=b;p.topL=c;p.num=null}else p.tee=o.tee;p.teeSh=mix(p.tee,'#3B2F3F',.15)}
   if(o.pants){if(String(o.pants).startsWith('s:'))p.skirt=o.pants.slice(2);else p.pants=o.pants}
