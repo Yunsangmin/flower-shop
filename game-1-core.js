@@ -157,7 +157,7 @@ const HAIRS={
      ['braids','양갈래 땋기',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'braids'}],['sidepony','사이드 포니테일',{fr:'curtain',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'sidepony'}],
      ['pony','하이 포니테일',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:2,x:'pony'}],['bun','똥머리',{fr:'see',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'bun'}],
      ['buns','만두머리',{fr:'full',sd:'wisp',len:'nape',tex:'straight',vol:1,x:'buns'}],['halfup','반묶음',{fr:'curtain',sd:'chest',len:'long',tex:'straight',vol:2,x:'halfbun'}],
-     ['hiponyw','하이포니 웨이브',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:4,x:'hipony',big:1,perm:1,price:70000}],['wpony','웨이브 포니테일',{fr:'side',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'wpony',perm:1}],['superlong','슈퍼 롱 스트레이트',{fr:'see',sd:'chest',len:'xxlong',tex:'straight',vol:3}],['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}],['pixie','숏컷',{fr:'side',sd:'ear',len:'nape',tex:'straight',vol:2}]]};
+     ['hiponyw','하이포니 웨이브',{fr:'curtain',sd:'chest',len:'xlong',tex:'wave',vol:4,x:'hipony',big:1,perm:1,price:70000}],['wpony','웨이브 포니테일',{fr:'side',sd:'wisp',len:'nape',tex:'wave',vol:2,x:'wpony',perm:1}],['superlong','슈퍼 롱 스트레이트',{fr:'see',sd:'chest',len:'xxlong',tex:'straight',vol:3}],['hime','히메컷',{fr:'full',sd:'hime',len:'long',tex:'straight',vol:1}]]};
 const HAIR_DEFAULT={m:'gareuma',f:'seethru'};
 const HAIR_C=[['#221C21','흑발'],['#3B2A22','자연 갈색'],['#5A3A2A','초코 브라운'],['#8A6A50','밀크 브라운'],['#6E6258','애쉬 브라운'],['#8C8C90','애쉬 그레이'],['#6A5E44','카키 브라운'],
   ['#6E2A3A','와인'],['#8A4E4E','로즈 브라운'],['#23263A','블루 블랙'],['#A8783A','골드 브라운'],['#D8B36A','블론드'],['#D88AA0','핑크']];
@@ -441,7 +441,7 @@ function palFromOutfit(base,o){const p={...base,glasses:o.glasses||null,hat:o.ha
   if(o.hat&&HATV[o.hat]){p.hat=HATV[o.hat][0];p.hatC=HATV[o.hat][1]}
   if(o.acc&&ACCV[o.acc])Object.assign(p,ACCV[o.acc]);
   if(o.ear&&EARV[o.ear])p.ear=EARV[o.ear];
-  {const g=base.style==='f'?'f':'m',H=(o.hair&&hairDef(o.hair))||hairDef(HAIR_DEFAULT[g]);if(H){p.h2=H;p.hs=H.len==='long'||H.len==='xlong'||H.sd==='chest'?'long':H.len==='bob'||H.len==='shoulder'?'bob':'short';p.perm=false;p.bangs=false;p.hm=null}}
+  {const g=base.style==='f'?'f':'m',H=(o.hair&&hairDef(o.hair))||hairDef(HAIR_DEFAULT[g]);if(H){const hk=(o.hair&&hairDef(o.hair))?o.hair:HAIR_DEFAULT[g];if(typeof H3SPEC!=='undefined'&&H3SPEC[hk])p.h3=hk;p.h2=H;p.hs=H.len==='long'||H.len==='xlong'||H.sd==='chest'?'long':H.len==='bob'||H.len==='shoulder'?'bob':'short';p.perm=false;p.bangs=false;p.hm=null}}
   if(o.hairC){p.hair=o.hairC;p.hairHi=mix(o.hairC,'#FFFFFF',.22)}
   const D=o.dress&&DRESS[o.dress];if(D){p.tee=D.c;p.teeSh=mix(D.c,'#3B2F3F',.15);p.num=null;if(D.dress){p.skirt=D.c;p.dress=1}else{p.shirt=D.shirt;if(D.l)p.shirtL=D.l}}
   const B=o.bag&&BAGS[o.bag];if(B)Object.assign(p,B);
