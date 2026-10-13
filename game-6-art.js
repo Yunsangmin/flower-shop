@@ -936,11 +936,13 @@ function drawChar(g,x,y,p,dir,phase,moving,glasses,work,sit){
   rope(false);drawChar0(g,x,y-jump,p,dir,phase,moving,glasses,work,sit);rope(true);
   rr(g,lx-.7,hy-1.6,1.4,3.2,.6,'#F4F2EE');rr(g,rx-.7,hy-1.6,1.4,3.2,.6,'#F4F2EE');
   if(jump<1)el(g,x,y+.4,5*s*4,1.1*s*4,'rgba(80,55,50,.08)')}
+const H3V={flip:false,t:0};
 function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
   if(BAKE&&BAKE.onChar){BAKE.onChar({x,y,p,dir,phase,moving,glasses,work,sit});return}
-  const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=Math.round(an/(Math.PI/8));if(q<=-8)q=8;if(q>8)q-=16;
-  const aq=Math.abs(q),kk=aq<=4?aq:8-aq;const t=kk/4;
-  const side=aq===4,back=aq>4,flip=q<0;
+  /* 방향: 15° 단위(24칸)로 맞춰요. 주인공(SM·SK)은 30° 단위 = 12방향, 주민은 45° 단위 = 8방향 */
+  const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=p.jersey?2*Math.round(an/(Math.PI/6)):Math.round(an/(Math.PI/12));if(q<=-12)q=12;if(q>12)q-=24;
+  const aq=Math.abs(q),kk=aq<=6?aq:12-aq;const t=kk/6;
+  const side=aq===6,back=aq>6,flip=q<0;H3V.flip=flip;H3V.t=t;
   const po=p.pose,jog=po==='jog'&&moving,armUp=po==='stretch',armOut=po==='rope',readA=po==='read',phoneA=po==='phone';
   const sw=moving?Math.sin(phase):0,bob=moving?Math.abs(Math.cos(phase))*3.6*(jog?1.5:1):(CHT?CHT.bob:Math.sin(performance.now()/600+(x%7))*1.1),hs=moving?Math.sin(phase+1)*2.4:0,wk=work?(CHT?CHT.wk:Math.sin(performance.now()/90)*.18):0;
   const longSl=!!p.coat;

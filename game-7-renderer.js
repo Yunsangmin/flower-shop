@@ -247,8 +247,8 @@ function prPalKey(p){const vol=(p.pose||'')+'|'+(p.pf||'')+'|'+(p.prop||'')+'|'+
 const PR_CB=[-16,-46,32,52];
 function prCharTex(area,x,p,dir,phase,moving,glasses,work,sit){
   const sc=PR.npc?Math.max(1,Math.round(prBakeScale(area)*(prIsTV()?.6:.8)*4)/4):prBakeScale(area); // 주민·손님은 도장을 조금 작게(메모리 절약, TV는 더 작게)
-  const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=Math.round(an/(Math.PI/8));if(q<=-8)q=8;if(q>8)q-=16;
-  if(PR.npc){q=Math.round(q/2)*2;if(q<=-8)q=8} // 주민·손님은 8방향만(그림 수 절반 → 메모리·첫 굽기 부담 감소)
+  /* 방향(15° 단위 q, -12~12): 주인공 12방향(30°), 주민·손님 8방향(45°) — 그림 수를 줄여 메모리 절약 */
+  const an=typeof dir==='number'?dir:(DIR_ANG[dir]||0);let q=PR.npc||!p.jersey?3*Math.round(an/(Math.PI/4)):2*Math.round(an/(Math.PI/6));if(q<=-12)q=12;if(q>12)q-=24;
   let fk,ph=0,bob=0,wk=0;
   /* 주민·손님(PR.npc)은 걷기 8단계·서 있을 때 숨쉬기 없음 → 도장 수를 크게 줄여 메모리·첫 굽기 부담을 낮춤. SM·SK는 그대로 부드럽게 */
   if(moving){let f=Math.round((((phase%TAU)+TAU)%TAU)/(TAU/16))%16;if(PR.npc)f=prIsTV()?(f>>2)<<2:(f>>1)<<1;else if(prIsTV())f=(f>>1)<<1;/* TV: 주인공 걷기 8단계(그림 수 절반 → 다시 굽기·메모리 감소) */fk='m'+f;ph=f*TAU/16}
@@ -259,7 +259,7 @@ function prCharTex(area,x,p,dir,phase,moving,glasses,work,sit){
   if((PR_CHAR_LEFT<=0||prOverBudget())&&PR.allowSkip)return null;PR_CHAR_LEFT--;const tb=performance.now();
   const W=Math.ceil(PR_CB[2]*sc)+2,H=Math.ceil(PR_CB[3]*sc)+2;e=prTex(key,W,H);const g=e.g;
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);g.setTransform(sc,0,0,sc,-PR_CB[0]*sc+1,-PR_CB[1]*sc+1);
-  CHT={bob,wk};try{drawChar(g,0,0,p,q*Math.PI/8,ph,moving,glasses,work,sit)}catch(err){console.error(err)}CHT=null;
+  CHT={bob,wk};try{drawChar(g,0,0,p,q*Math.PI/12,ph,moving,glasses,work,sit)}catch(err){console.error(err)}CHT=null;
   g.setTransform(1,0,0,1,0,0);e.t.refresh();prShrink(e);PR.cbakes++;PR.bakeMsF+=performance.now()-tb;e.sc=sc;return e;
 }
 function prCharSprite(arr,i,area,x,y,p,dir,phase,moving,glasses,work,sit){
