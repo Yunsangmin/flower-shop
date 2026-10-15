@@ -156,7 +156,7 @@ function h3MaleRear(g,p,c,S,hx){g.save();g.translate(hx,0);const SK=skinGrad(g,p
   shine(g,0,-101,22,1.3,1.6);g.restore()}
 
 /* ---------- 얼굴 옆으로 내려오는 머리(여자 대부분 + 남자 장발/리프) ---------- */
-function h3Dims(p,S){const m=p.style!=='f',v=S.v||0;return {m,v,inn:m?20.8:18.6,out:(m?28.4:26.6)+v*.3+(S.tex==='curl'?3.2:S.tex==='wave'?1.4:0),yS:m?-101:-99.5,top:-132-v*.7}}
+function h3Dims(p,S){const m=p.style!=='f',v=S.v||0;return {m,v,inn:m?20.8:18.6,out:(m?28.4:26.6)+v*.3+(S.tex==='curl'?3.2:S.tex==='wave'?1.4:0),yS:m?-101:-99.5,top:m?-132-v*.7:-127.4-v*.25/* 35차: 여자 머리 높이를 묶은 머리와 비슷하게 */}}
 /* 긴 머리 앞머리: (X(1,inn),yS) → (X(-1,inn),yS) */
 function h3LongFringe(g,fr,q,R,L,yS,m){
   if(fr==='full'){const T=[R,[13+q,-100.8],[6.5+q,-102.4],[q,-103],[-6.5+q,-102.4],[-13+q,-100.8],L];tipsTo(g,T,1.4,true);return {px:q,tips:T.slice(1,-1)}}
@@ -384,8 +384,8 @@ function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v|
     if(x==='pony'||x==='wpony')el(g,(H3V.t>0&&H3V.t<1?-21.4:19.4)+q,-118.6,3.6,2.8,c.T);
     return}
   if(view==='sideB'){/* 옆모습: 머리 뒤쪽으로 처지는 것(머리보다 먼저) */
-    if(x==='pony')h3Tail(g,c,-24,-121,58,6.8,-6,false);
-    if(x==='wpony')h3Tail(g,c,-24,-119,64,9,-6,true);
+    if(x==='pony')h3Tail(g,c,-20.6,-120,58,6.8,-6,false);
+    if(x==='wpony')h3Tail(g,c,-20.6,-118.6,64,9,-6,true);
     if(x==='hipony'){/* 정수리 볼륨: 이마 위에서 부풀어 뒤쪽 묶은 곳으로 */g.beginPath();g.moveTo(16,-120);g.bezierCurveTo(10,-142,-12,-146,-18,-129);g.quadraticCurveTo(-4,-124,16,-120);g.closePath();fillClip(g,c.H,()=>waveLines(g,c,[6,-2,-10],-142,-124,.8));}
     if(x==='hipony'){/* 정수리 뒤 묶은 곳에서 위로 솟았다가 뒤로 넘어가는 꽁지 + 등으로 흘러내리는 웨이브 */
       g.beginPath();g.moveTo(-6,-128);g.bezierCurveTo(-34,-124,-37,-76,-31,-42);tipsTo(g,[[-31,-42],[-24,-38],[-17,-40],[-10,-38.6],[-4,-43]],2,true);g.bezierCurveTo(-2,-70,-4,-100,-2,-122);g.closePath();fillClip(g,c.H,()=>waveLines(g,c,[-28,-22,-16,-10],-120,-42,2));
@@ -395,7 +395,7 @@ function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v|
     return}
   if(view==='side'){
     if(x==='hipony')el(g,-15,-128.4,4.4,2.8,c.T,-.6);
-    if(x==='pony'||x==='wpony')el(g,-22,-121,3,3.4,c.T);
+    if(x==='pony'||x==='wpony')el(g,-19.4,-120.6,3,3.4,c.T);
     if(x==='braids'){g.beginPath();g.moveTo(-9,-100);g.quadraticCurveTo(-4,-98,-4.4,-90);g.lineTo(-9.4,-88);g.quadraticCurveTo(-12,-94,-9,-100);g.fillStyle=c.B;g.fill();h3Braid(g,c,-7,-90,-11,-54)}
     if(x==='sidepony'){g.beginPath();g.moveTo(-9,-100);g.quadraticCurveTo(-4,-98,-4.4,-90);g.lineTo(-9.4,-88);g.quadraticCurveTo(-12,-94,-9,-100);g.fillStyle=c.H;g.fill();h3Tail(g,c,-7.4,-91,42,6.6,-6,true);el(g,-7.2,-90.4,3.6,2.6,c.T)}
     return}
@@ -497,7 +497,7 @@ function h3SideLockSet(S,v,mode){const tex=S.tex,yL=S.yL,yF=S.yF||S.yL,Bx=(S.yL+
   if(tex==='layer'&&mode!=='far'){/* 허쉬컷: 중간층 하나 더 */L.push(Lk([-16,-104,-25,-94,-23,-96+H*.4,-17,-96+H*.72],9,1,8))}
   return L}
 /* 머리통(정수리~뒤통수) 덮개 + 앞머리. tuck이면 관자놀이 잔머리 → 귀 위를 살짝 덮고 귀 뒤로 */
-function h3SideCapF(g,p,c,S,mode){const v=S.v||0,top=(S.ears?-124.5:-133)-v*.7,tex=S.tex,Bx=(S.yL+96<=34?-25:-27.4)-v*.3-(tex==='curl'?1.4:0);
+function h3SideCapF(g,p,c,S,mode){const v=S.v||0,top=(S.ears?-124.5:-127.6)-v*.25,tex=S.tex,Bx=(S.yL+96<=34?-25:-27.4)-v*.3-(tex==='curl'?1.4:0);
   const FP={full:[[23.6,-101.4],[18.6,-100.6],[13.6,-100.8]],curtain:[[22.6,-104.8],[18,-103.6],[13.4,-103]],split:[[22.6,-105.4],[18,-104],[13.4,-103]],side:[[23,-102.6],[18.4,-101.6],[13.4,-101.6]],none:[[19.5,-113],[15,-110],[12.6,-105]]}[S.fr]||[[23,-102.4],[18.4,-101.4],[13.4,-101.4]];
   g.beginPath();g.moveTo(25.6,-106);g.quadraticCurveTo(25.2,-104,FP[0][0],FP[0][1]);tipsTo(g,FP,2,true);
   if(mode==='tuck'){g.quadraticCurveTo(9.8,-102,8.6,-100.4);
@@ -523,8 +523,9 @@ function h3TiedSideF(g,p,c,S){const v=S.v||0,top=-127-v*.7;
   g.beginPath();g.moveTo(FP[0][0],FP[0][1]);tipsTo(g,FP,2,true);g.quadraticCurveTo(9.6,-104,8.4,-102.6);
   g.bezierCurveTo(7.4,-99.4,5,-97.4,2.1,-96.2);
   g.quadraticCurveTo(-.8,-98.1,-4.4,-96.4);g.bezierCurveTo(-5.4,-95.4,-5.6,-92.6,-6.4,-89.8);g.bezierCurveTo(-7.6,-87,-9.8,-84.4,-12.2,-83);
-  g.bezierCurveTo(-18.6,-84.6,-25,-88.4,-28.4,-95);
-  g.bezierCurveTo(-31,-102,-31,-118,-17,-127.5);g.bezierCurveTo(-4,top,19,top+2,25,-113);g.quadraticCurveTo(26.3,-107,FP[0][0],FP[0][1]);g.closePath();
+  g.bezierCurveTo(-18,-84.6,-23.6,-88.6,-26.4,-95);
+  /* 35차: 뒤통수~정수리를 하나의 둥근 곡선으로(납작한 윗머리·뾰족한 뒷모서리 없이, 높이는 그대로) */
+  g.bezierCurveTo(-28,-106.6,-23.4,-126.2,-3,-127.4);g.bezierCurveTo(13.6,-128,23.6,-122.4,25.2,-113);g.quadraticCurveTo(26.3,-107,FP[0][0],FP[0][1]);g.closePath();
   fillClip(g,c.H,()=>{g.save();g.globalAlpha=.26;g.strokeStyle=c.D;g.lineWidth=.9;for(const [x0,y0,x1,y1,b] of [[18,-112,-14,-124,-3],[16,-106,-18,-116,-3],[10,-104,-22,-108,-2],[3,-100,-24,-100,-1],[-6,-93,-24,-94,0]]){g.beginPath();g.moveTo(x0,y0);g.quadraticCurveTo((x0+x1)/2,(y0+y1)/2+b,x1,y1);g.stroke()}g.restore()});
   h3Extra(g,p,c,S,'side');
   shine(g,0,-103-v*.3,21,1.28,1.52)}
