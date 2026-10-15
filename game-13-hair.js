@@ -167,7 +167,11 @@ function h3LongFringe(g,fr,q,R,L,yS,m){
   /* see: 가운데가 조금 짧고 양옆이 길게 */
   const T=[R,[12.4+q,-101],[6.2+q,-103],[q,-103.8],[-6.2+q,-103],[-12.4+q,-101],L];tipsTo(g,T,2.2,true);return {px:q,tips:T.slice(1,-1)}}
 function h3LongFront(g,p,c,S,o){const q=o*.6,t=o/5,{m,v,inn,out,yS,top}=h3Dims(p,S),tex=S.tex,yF=S.yF||S.yL;
+  /* 34차: 대각선에서 귀를 덮은 쪽(가까운 쪽)은 옆머리가 얼굴을 조금 더 덮어요(옆모습으로 이어지게) */
+  /*    귀를 넘긴 쪽도 귀·머리선이 얼굴 쪽(돌아간 쪽)으로 함께 옮겨가요. 앞머리와 만나는 곳(yS)부터 아래로 서서히 → 이음새가 벌어지지 않아요 */
+  const TK0=(S.yL>=-76&&S.shape!=='hime'&&S.shape!=='bob')?(H3V.flip?-1:1):0,dIn=(p.style==='f'&&H3V.t>0&&H3V.t<1)?(TK0===-1?6:7.5)*Math.sin(Math.PI*H3V.t):0;
   const X=(s,x)=>s*x*(s<0?1:1-.12*t)+q*(s<0?.3:1);
+  if(dIn){const TKn=TK0===-1,x0=X(-1,TKn?out+7:out),x1=X(-1,inn),yA=yS-10,yB=6;g=h3MapCtx(g,(x,y)=>{if(x>x1+4)return [x,y];const wx=Math.max(0,Math.min(1,(x-x0)/(x1-x0))),wy=Math.max(0,Math.min(1,(y-yA)/yB));return [x+dIn*wx*wy,y]})}
   /* 한쪽 옆머리: 안쪽선(얼굴선) 아래로 → 끝 → 바깥선 위로. s=-1 왼쪽(내려감), s=1 오른쪽(올라감) */
   const lockDown=(s)=>{/* (X(s,inn),yS) 에서 끝까지 */
     const ye=yF;g.bezierCurveTo(X(s,inn-.2),-94,X(s,inn-.4),-88,X(s,inn+.2),Math.max(ye,-80));
@@ -185,17 +189,18 @@ function h3LongFront(g,p,c,S,o){const q=o*.6,t=o/5,{m,v,inn,out,yS,top}=h3Dims(p
   const yEnd=S.shape==='bob'?yF-2:S.shape==='blunt'?yF:tex==='layer'?yF-5:yF+1;
   /* 한쪽은 귀 뒤로 넘긴 머리(왼쪽을 볼 때 보이는 쪽). 정면·대각선도 같은 쪽 귀가 보여요 */
   const TK=(S.yL>=-76&&S.shape!=='hime'&&S.shape!=='bob')?(H3V.flip?-1:1):0;
-  if(TK&&!(TK>0&&t>.35)){const SK=skinGrad(g,p);el(g,X(TK,21.8)+TK*.3,-95.4,3.3,5,SK)}
+  if(TK&&!(TK>0&&H3V.t>.35)){if(p.style==='f')h3EarHint(g,p,X(TK,21.8)+TK*.3,-92,TK);else{const SK=skinGrad(g,p);el(g,X(TK,21.8)+TK*.3,-95.4,3.3,5,SK)}}
+  const dE=p.style==='f'?3.4:0;
   const tuck=s=>{/* (X(s,inn),yS) → 귀 위를 감싸 → 귀 뒤 → 바깥선(-87) */
-    g.bezierCurveTo(X(s,inn+1.6),-103.6,X(s,24.4),-105,X(s,25.8),-99);g.quadraticCurveTo(X(s,26.6),-94,X(s,25.4),-89.4);g.lineTo(X(s,out-.6),-87)};
-  const tuckRev=s=>{g.lineTo(X(s,25.4),-89.4);g.quadraticCurveTo(X(s,26.6),-94,X(s,25.8),-99);g.bezierCurveTo(X(s,24.4),-105,X(s,inn+1.6),-103.6,X(s,inn),yS)};
+    g.bezierCurveTo(X(s,inn+1.6),-103.6+dE*.6,X(s,24.2),-104+dE,X(s,25.6),-98.4+dE);g.quadraticCurveTo(X(s,26.6),-94+dE,X(s,25.4),-89.4+dE);g.lineTo(X(s,out-.6),-87)};
+  const tuckRev=s=>{g.lineTo(X(s,25.4),-89.4+dE);g.quadraticCurveTo(X(s,26.6),-94+dE,X(s,25.6),-98.4+dE);g.bezierCurveTo(X(s,24.2),-104+dE,X(s,inn+1.6),-103.6+dE*.6,X(s,inn),yS)};
   g.beginPath();g.moveTo(X(-1,inn),yS);
   /* 왼쪽 옆머리(아래로) */
   if(TK===-1)tuck(-1);else{lockDown(-1);lockUp(-1,yEnd)}
   /* 정수리 → 오른쪽 */
   g.bezierCurveTo(X(-1,out+2),-100,X(-1,24),top,q,top);g.bezierCurveTo(X(1,24),top,X(1,out+2),-100,X(1,out-.6),-87);
   /* 오른쪽: 바깥선 아래로 → 끝 → 안쪽선 위로 (왼쪽을 거꾸로) */
-  if(TK===1)tuckRev(1);else h3LockReverse(g,S,X,inn,out,yS,yF,tex);
+  if(TK===1&&H3V.t<=.35)tuckRev(1);else h3LockReverse(g,S,X,inn,out,yS,yF,tex);
   const F=h3LongFringe(g,S.fr,q,[X(1,inn),yS],[X(-1,inn),yS],yS,m);g.closePath();
   fillClip(g,c.H,()=>{
     if(tex==='curl'){waveTop(g,c,F.px,-130,-96,8,1.6);g.save();g.beginPath();g.rect(-40,-140,80,110);g.ellipse(q,-112,16,22,0,0,Math.PI*2);g.clip('evenodd');ringLines(g,c,-34+q,34+q,-118,Math.max(yF,-90));g.restore()}
@@ -204,6 +209,8 @@ function h3LongFront(g,p,c,S,o){const q=o*.6,t=o/5,{m,v,inn,out,yS,top}=h3Dims(p
       g.save();g.lineCap='round';for(const s of [-1,1])for(const [d,a,col,w] of [[1.2,.3,c.D,.8],[3,.28,c.L,1],[5,.3,c.D,.8],[out-inn-1.4,.24,c.L,1]]){if(inn+d>out-.6)continue;g.globalAlpha=a;g.strokeStyle=col;g.lineWidth=w;g.beginPath();g.moveTo(F.px+s*(3+d*1.4),-128);g.quadraticCurveTo(X(s,inn+d+.6),-120,X(s,inn+d-.4),-106);g.bezierCurveTo(X(s,inn+d+1),-96,X(s,inn+d-1.4),-80,X(s,inn+d),Math.max(yF+4,-78));if(yF<-76)g.quadraticCurveTo(X(s,inn+d+.8),(yF-78)/2,X(s,inn+d+.4),yF+3);g.stroke()}g.restore()}});
   if(S.fr==='side')ln(g,F.px,-124,F.px+.3,-117.4,c.D,.9);else if(S.fr==='split'||S.fr==='curtain')ln(g,q,-124,q,-116.4,c.D,.9);
   if(tex==='cc'||tex==='layer')for(const s of [-1,1])if(s!==TK)h3FaceLayer(g,c,S,X,s,inn,out,yS,yF);
+  /* 귀를 넘긴 쪽: 귀와 눈 사이 잔머리 한두 가닥(옆모습과 같게) */
+  if(p.style==='f'&&TK&&!(TK>0&&H3V.t>.35))h3Wisps(g,c,X,TK,p);
   shine(g,q-1,-103-v*.3,23,1.27,1.47)}
 /* 얼굴 옆 짧은 층(레이어드): 볼~턱 높이에서 끝나는 앞쪽 층. C컬은 끝이 안으로 말려요 */
 function h3FaceLayer(g,c,S,X,s,inn,out,yS,yF){const cc=S.tex==='cc',yT=cc?-80:-82,w=(out-inn)*.62;
@@ -230,11 +237,12 @@ function h3LockReverse(g,S,X,inn,out,yS,yF,tex){const s=1,ye=yF,w=out-inn;
   g.bezierCurveTo(X(s,inn-.4),-88,X(s,inn-.2),-94,X(s,inn),yS)}
 /* 몸 뒤(정면): 뒷머리 */
 function h3LongBehind(g,p,c,S,hx){const {m,v,out}=h3Dims(p,S),yL=S.yL,tex=S.tex,w=out+(tex==='curl'?3:0);if(yL<-76&&S.shape!=='bob')return;g.save();g.translate(hx,0);
-  g.beginPath();g.moveTo(-21,-118);g.bezierCurveTo(-w-1,-108,-w,-90,-w+.4,-86);
+  /* 34차: 윗머리 둥근 선을 그대로 이어받아 옆으로 내려와요(어깨처럼 각진 모서리 없이) */
+  g.beginPath();g.moveTo(-8,-123);g.bezierCurveTo(-w+3,-121,-w,-106,-w+.4,-86);
   if(tex==='curl'||tex==='wave')edgeTo(g,-w+.4,-86,-w+.6,yL,tex,-1);else g.bezierCurveTo(-w+1,-74,-w+.6,-60,-w+.6,yL);
   const T=[];for(let k=0;k<=8;k++){const x=-w+.6+(2*w-1.2)*k/8;T.push([x,yL+(k%2?1.8:.6)+(tex==='layer'?(k%3)*2:0)])}tipsTo(g,T,tex==='curl'?2.2:1,true);
   if(tex==='curl'||tex==='wave')edgeTo(g,w-.6,yL,w-.4,-86,tex,-1);else g.bezierCurveTo(w-.6,-60,w-1,-74,w-.4,-86);
-  g.bezierCurveTo(w,-90,w+1,-108,21,-118);g.closePath();
+  g.bezierCurveTo(w,-106,w-3,-121,8,-123);g.closePath();
   fillClip(g,c.H,()=>{if(tex==='curl')ringLines(g,c,-w,w,-110,yL+2);else if(tex==='wave')waveLines(g,c,[-20,-12,-4,4,12,20],-112,yL,1.8);else straightLines(g,c,[-24,-19,-14,-9,-4,1,6,11,16,21,25],-112,yL,1,.28)});
   g.restore()}
 /* 옆모습(오른쪽 봄): 얼굴 옆을 덮으며 흘러내리는 머리 */
@@ -300,16 +308,15 @@ function h3TuckSide(g,p,c,S){const SK=skinGrad(g,p),v=S.v||0,top=-133-v*.7,tex=S
   shine(g,0,-104-v*.3,24,1.28,1.52)}
 /* ---------- 묶은 머리(여자) ---------- */
 /* 잔머리: 관자놀이에서 얼굴선을 따라 한 올 한 올 살랑 */
-function h3Wisps(g,c,X,s){g.beginPath();g.moveTo(X(s,18.2),-104.6);g.quadraticCurveTo(X(s,21),-104.4,X(s,23),-101.6);g.quadraticCurveTo(X(s,21.2),-100.6,X(s,19.6),-98.6);g.closePath();g.fillStyle=c.H;g.fill();
-  g.save();g.lineCap='round';
-  const L=[[19.4,-103,18.2,-97,20.6,-93,19.2,-88.4,1.05],[20.6,-102.4,21.8,-97,19.8,-92.6,20.4,-87,.9],[21.8,-101.6,20.4,-97.4,22.2,-94,21,-90.6,.75],[18.8,-103.4,19.8,-99.6,18,-96.6,18.6,-93.4,.65]];
-  for(const [x0,y0,x1,y1,x2,y2,x3,y3,w] of L){g.strokeStyle=c.B;g.globalAlpha=.95;g.lineWidth=w;g.beginPath();g.moveTo(X(s,x0),y0);g.bezierCurveTo(X(s,x1),y1,X(s,x2),y2,X(s,x3),y3);g.stroke()}
-  g.restore()}
+function h3Wisps(g,c,X,s,p){if(p&&H3V.t>0&&H3V.t<1){h3EarFrame(g,c,X,s,p);return}/* 34차: 잔머리 한 가닥 — 머리선에서 두껍게 시작해 S자로 내려오며 점점 가늘게, 귀를 살짝 덮고 귓볼까지 */
+  if(H3V.t>0&&H3V.t<1)/* 대각선: S자 없이 내려와 귀 쪽으로 자연스럽게 넘어가요 */h3Taper(g,c,[[X(s,21.6),-99.8],[X(s,20.5),-99],[X(s,19.7),-97.6],[X(s,19.6),-94.8],[X(s,19.5),-91.8],[X(s,19.8),-89.6],[X(s,20.6),-88]],1.85,.5);
+  else h3Taper(g,c,[[X(s,21.6),-99.8],[X(s,20.5),-99],[X(s,19.7),-97.6],[X(s,19.6),-94.6],[X(s,19.4),-90.4],[X(s,21.2),-89.8],[X(s,21.2),-86.4]],2.2,.5)}
 function h3TiedFront(g,p,c,S,o){const q=o*.6,t=o/5,SK=skinGrad(g,p),v=S.v||0,top=-134-v*.8,x=S.x;
-  const X=(s,v)=>s*v*(s<0?1:1-.12*t)+q*(s<0?.3:1),far=s=>s>0&&t>.35;
+  const X=(s,v)=>s*v*(s<0?1:1-.12*t)+q*(s<0?.3:1),far=s=>s>0&&H3V.t>.35;
   /* 귀를 덮고 묶는 쪽: braids=양쪽, sidepony=왼쪽 */
   const gath=s=>x==='sidepony'&&s<0;
-  for(const s of [-1,1]){if(far(s)&&!gath(s))continue;el(g,X(s,21.6)+s*.3,-95.4,3.3,5,SK)}
+  if(p.style==='f'&&H3V.t>0&&H3V.t<1){const D=6*Math.sin(Math.PI*H3V.t),x0=X(-1,30),x1=X(-1,18.6);g=h3MapCtx(g,(xx,y)=>{if(xx>x1+4)return [xx,y];const wx=Math.max(0,Math.min(1,(xx-x0)/(x1-x0))),wy=Math.max(0,Math.min(1,(y+112)/6));return [xx+D*wx*wy,y]})}
+  for(const s of [-1,1]){if(far(s)&&!gath(s))continue;if(p.style==='f')h3EarHint(g,p,X(s,21.6)+s*.3,-92,s);else el(g,X(s,21.6)+s*.3,-95.4,3.3,5,SK)}
   /* 잔머리(귀가 보이는 쪽) */
   /* 정수리: 볼륨 있게, 옆은 귀 위까지 */
   g.beginPath();g.moveTo(X(-1,23.6),-100.6);g.bezierCurveTo(X(-1,28.2),top,X(1,28.2),top,X(1,23.6),-100.6);g.quadraticCurveTo(X(1,22.4),-100.2,X(1,20.4),-98.8);
@@ -325,7 +332,7 @@ function h3TiedFront(g,p,c,S,o){const q=o*.6,t=o/5,SK=skinGrad(g,p),v=S.v||0,top
   for(const s of [-1,1]){if(!gath(s))continue;const a=X(s,18.6),b=X(s,25.4),e0=X(s,20.2),e1=X(s,23.6);
     g.beginPath();g.moveTo(a,-103.6);g.lineTo(b,-102);g.bezierCurveTo(X(s,27),-96,X(s,25.6),-90,e1,-86);g.lineTo(e0,-86);g.bezierCurveTo(X(s,19.6),-90,X(s,18.4),-96,a,-103.6);g.closePath();
     fillClip(g,c.H,()=>{g.save();g.globalAlpha=.28;g.strokeStyle=c.D;g.lineWidth=.9;for(const f of [.25,.55,.8]){g.beginPath();g.moveTo(a+(b-a)*f,-103);g.quadraticCurveTo(a+(b-a)*f+s*1.4,-94,e0+(e1-e0)*f,-86.4);g.stroke()}g.restore()})}
-  for(const s of [-1,1]){if(far(s)||gath(s)||S.noWisp)continue;h3Wisps(g,c,X,s)}
+  for(const s of [-1,1]){if(far(s)||gath(s)||S.noWisp)continue;h3Wisps(g,c,X,s,p)}
   h3Extra(g,p,c,S,'front',q,X);
   shine(g,q-1,-101-v*.3,23,1.27,1.47)}
 function h3TiedSide(g,p,c,S){const SK=skinGrad(g,p),v=S.v||0,top=-133-v*.7;
@@ -351,7 +358,7 @@ function h3TiedRear(g,p,c,S,hx){g.save();g.translate(hx,0);const SK=skinGrad(g,p
   shine(g,0,-103,20,1.3,1.6);g.restore()}
 /* 묶음 장식들 */
 function h3Bun(g,c,x,y,r){el(g,x,y,r,r*.9,c.B);g.save();g.strokeStyle=c.D;g.globalAlpha=.45;g.lineWidth=.9;g.lineCap='round';g.beginPath();g.arc(x,y,r*.55,Math.PI*-.2,Math.PI*1.3);g.stroke();g.beginPath();g.arc(x+r*.1,y+r*.1,r*.28,0,Math.PI*1.4);g.stroke();g.restore();el(g,x-r*.35,y-r*.42,r*.35,r*.16,c.L)}
-function h3Tail(g,c,x,y,len,w,dx,wave){g.beginPath();const n=12,P=[],Q=[];const C=t=>[x+dx*t*t+(wave?Math.sin(t*Math.PI*2.5)*2.4*t:0),y+len*t],HW=t=>w*(.62+.42*Math.sin(Math.min(1,t*1.15)*Math.PI*.85))*(1-.62*t);
+function h3Tail(g,c,x,y,len,w,dx,wave){g.beginPath();const n=12,P=[],Q=[];const sg=dx<0?-1:1,C=t=>[x+dx*t*t+(wave?Math.sin(t*Math.PI*2.5)*2.4*t:sg*(2.6*Math.sin(Math.min(1,t*3.2)*Math.PI/2)*(1-t)+1.8*Math.sin(t*Math.PI*2)*t)),y+len*t],HW=t=>w*(.62+.42*Math.sin(Math.min(1,t*1.15)*Math.PI*.85))*(1-.62*t);
   for(let k=0;k<=n;k++){const t=k/n,[cx,cy]=C(t),hw=HW(t);P.push([cx-hw,cy]);Q.push([cx+hw,cy])}
   const sm=A=>{for(let k=1;k<A.length-1;k++)g.quadraticCurveTo(A[k][0],A[k][1],(A[k][0]+A[k+1][0])/2,(A[k][1]+A[k+1][1])/2);g.lineTo(A[A.length-1][0],A[A.length-1][1])};
   g.moveTo(P[0][0],P[0][1]);sm(P);const e=C(1);g.quadraticCurveTo(e[0],e[1]+5,Q[n][0],Q[n][1]);sm(Q.slice().reverse());g.closePath();
@@ -361,8 +368,9 @@ function h3Braid(g,c,x0,y0,x1,y1){const n=8;for(let k=0;k<n;k++){const t=k/(n-1)
   el(g,x1,y1+4,2.6,2,c.T);for(let k=0;k<3;k++)ln(g,x1,y1+5,x1-2+k*2,y1+10,c.B,1.6)}
 function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v||0;
   if(view==='behind'){/* 정면에서 몸 뒤로 보이는 것 */
-    if(x==='pony')h3Tail(g,c,24,-120,56,8,8,false);
-    if(x==='wpony')h3Tail(g,c,24,-118,64,9,8,true);
+    const mr=(H3V.t>0&&H3V.t<1)?-1:1;/* 대각선: 묶은 머리는 뒤통수(가까운 쪽)로 */
+    if(x==='pony')h3Tail(g,c,mr<0?-15:24,-120,56,6.8,8*mr,false);
+    if(x==='wpony')h3Tail(g,c,mr<0?-15:24,-118,64,9,8*mr,true);
     if(x==='sidepony')h3Tail(g,c,-23,-90,40,6.6,5,true);
     if(x==='braids')for(const s of [-1,1]){g.beginPath();g.moveTo(s*17,-104);g.quadraticCurveTo(s*25,-103,s*24.6,-92);g.lineTo(s*19.6,-90);g.closePath();g.fillStyle=c.H;g.fill();h3Braid(g,c,s*21.8,-92,s*16.6,-60)}
     if(x==='hipony'){g.beginPath();g.moveTo(-20,-116);g.bezierCurveTo(-33,-104,-34,-60,-28,-42);tipsTo(g,[[-28,-42],[-18,-38],[-6,-40],[6,-38],[18,-40],[28,-42]],2,true);g.bezierCurveTo(34,-60,33,-104,20,-116);g.closePath();fillClip(g,c.H,()=>waveLines(g,c,[-24,-16,-8,0,8,16,24],-112,-42,2))}
@@ -373,10 +381,10 @@ function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v|
     if(x==='buns')for(const s of [-1,1])h3Bun(g,c,s*14.6+q,-125,8.4);
     if(x==='hipony'){g.beginPath();g.moveTo(q-10,-117-v);g.bezierCurveTo(q-17,-143-v,q+9,-152-v,q+16,-135-v);g.bezierCurveTo(q+19,-127-v,q+13,-120-v,q+9,-117-v);g.closePath();fillClip(g,c.B,()=>waveLines(g,c,[q-6,q,q+6],-148-v,-118,1.4));el(g,q,-119-v,5,2.6,c.T)}
     if(x==='sidepony')el(g,X(-1,23.2),-88.6,3.4,2.6,c.T);
-    if(x==='pony'||x==='wpony')el(g,19.4+q,-118.6,3.6,2.8,c.T);
+    if(x==='pony'||x==='wpony')el(g,(H3V.t>0&&H3V.t<1?-21.4:19.4)+q,-118.6,3.6,2.8,c.T);
     return}
   if(view==='sideB'){/* 옆모습: 머리 뒤쪽으로 처지는 것(머리보다 먼저) */
-    if(x==='pony')h3Tail(g,c,-24,-121,58,8,-6,false);
+    if(x==='pony')h3Tail(g,c,-24,-121,58,6.8,-6,false);
     if(x==='wpony')h3Tail(g,c,-24,-119,64,9,-6,true);
     if(x==='hipony'){/* 정수리 볼륨: 이마 위에서 부풀어 뒤쪽 묶은 곳으로 */g.beginPath();g.moveTo(16,-120);g.bezierCurveTo(10,-142,-12,-146,-18,-129);g.quadraticCurveTo(-4,-124,16,-120);g.closePath();fillClip(g,c.H,()=>waveLines(g,c,[6,-2,-10],-142,-124,.8));}
     if(x==='hipony'){/* 정수리 뒤 묶은 곳에서 위로 솟았다가 뒤로 넘어가는 꽁지 + 등으로 흘러내리는 웨이브 */
@@ -394,7 +402,7 @@ function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v|
   if(view==='rear'){
     if(x==='bun')h3Bun(g,c,0,-128-v,10.4);
     if(x==='buns')for(const s of [-1,1])h3Bun(g,c,s*14.6,-123,8.6);
-    if(x==='pony'){el(g,0,-117,5,3.2,c.T);h3Tail(g,c,0,-115,54,7.4,0,false)}
+    if(x==='pony'){el(g,0,-117,5,3.2,c.T);h3Tail(g,c,0,-115,54,6.4,0,false)}
     if(x==='wpony'){el(g,0,-117,5,3.2,c.T);h3Tail(g,c,0,-115,62,8.4,0,true)}
     if(x==='hipony'){g.beginPath();g.moveTo(-10,-117-v);g.bezierCurveTo(-16,-142-v,10,-150-v,16,-133-v);g.bezierCurveTo(19,-125-v,13,-119-v,9,-117-v);g.closePath();fillClip(g,c.B,()=>waveLines(g,c,[-6,0,6],-148-v,-118,1.4));el(g,0,-120-v,5.4,3,c.T);
       g.beginPath();g.moveTo(-12,-118);g.bezierCurveTo(-30,-100,-31,-60,-26,-40);tipsTo(g,[[-26,-40],[-14,-36],[0,-38],[14,-36],[26,-40]],2,true);g.bezierCurveTo(31,-60,30,-100,12,-118);g.closePath();fillClip(g,c.H,()=>waveLines(g,c,[-20,-12,-4,4,12,20],-114,-40,2))}
@@ -404,6 +412,123 @@ function h3Extra(g,p,c,S,view,q,X){q=q||0;X=X||((s,x)=>s*x+q);const x=S.x,v=S.v|
 /* 반묶음(긴 머리 위에 작은 묶음) */
 function h3HalfBun(g,c,view){if(view==='rear'){h3Bun(g,c,0,-112,7.6);el(g,0,-105.4,4.4,1.6,c.T)}else if(view==='side')h3Bun(g,c,-20,-114,7)}
 
+/* 귀 암시(정면·반측면): 귀를 다 그리지 않고 살짝 그늘진 살색 + 귓볼 선 + 귀 뒤 그늘만. s=바깥쪽 방향 */
+function h3EarHint(g,p,x,y,s){g.save();
+  /* 귀 뒤 살짝 빈 곳의 그늘(머리카락 쪽) */g.globalAlpha=.45;g.beginPath();g.ellipse(x+s*1.5,y+.8,1.3,3.4,0,0,Math.PI*2);g.fillStyle=mix(p.skinSh,'#000000',.1);g.fill();g.globalAlpha=1;
+  /* 귀: 얼굴과 거의 같은 살색, 작게 */g.beginPath();g.ellipse(x,y,2.5,4,s*.12,0,Math.PI*2);g.fillStyle=mix(p.skin,p.skinSh,.25);g.fill();
+  /* 부드러운 귓볼 선 */g.globalAlpha=.5;g.strokeStyle=p.skinSh;g.lineWidth=.75;g.lineCap='round';g.beginPath();g.ellipse(x,y,2.5,4,s*.12,s>0?Math.PI*.05:Math.PI*.45,s>0?Math.PI*.55:Math.PI*.95);g.stroke();g.restore()}
+/* 34차: 좌표를 살짝 옮겨 그리는 도우미(대각선에서 가까운 쪽 옆머리·귀를 얼굴 쪽으로) */
+function h3MapCtx(g,M){let ox=0,oy=0;const st=[],m=(x,y)=>M(x+ox,y+oy);
+  const P={moveTo(x,y){const [a,b]=m(x,y);g.moveTo(a,b)},lineTo(x,y){const [a,b]=m(x,y);g.lineTo(a,b)},
+    quadraticCurveTo(x1,y1,x,y){const [a,b]=m(x1,y1),[e,f]=m(x,y);g.quadraticCurveTo(a,b,e,f)},
+    bezierCurveTo(x1,y1,x2,y2,x,y){const [a,b]=m(x1,y1),[c,d]=m(x2,y2),[e,f]=m(x,y);g.bezierCurveTo(a,b,c,d,e,f)},
+    arc(x,y,r,a0,a1,cc){const [a,b]=m(x,y);g.arc(a,b,r,a0,a1,cc)},ellipse(x,y,rx,ry,rt,a0,a1,cc){const [a,b]=m(x,y);g.ellipse(a,b,rx,ry,rt,a0,a1,cc)},
+    arcTo(x1,y1,x2,y2,r){const [a,b]=m(x1,y1),[c,d]=m(x2,y2);g.arcTo(a,b,c,d,r)},rect(x,y,w,h){P.moveTo(x,y);P.lineTo(x+w,y);P.lineTo(x+w,y+h);P.lineTo(x,y+h);g.closePath()},
+    fillRect(x,y,w,h){g.beginPath();P.rect(x,y,w,h);g.fill()},translate(dx,dy){ox+=dx;oy+=dy},save(){st.push([ox,oy]);g.save()},restore(){const r=st.pop()||[0,0];ox=r[0];oy=r[1];g.restore()}};
+  return new Proxy(g,{get(T,k){if(k in P)return P[k];const v=T[k];return typeof v==='function'?v.bind(T):v},set(T,k,v){T[k]=v;return true}})}
+/* ---------- 34차: 여자 옆모습 (두상·귀·레이어드 뒷머리) ----------
+   · 귀는 눈높이~코끝 사이로 내리고(얼굴과 같은 살색), 귀 주변 머리는 얇게 해서 공간을 만들어요
+   · 뒷머리는 한 덩어리 대신 끝이 가늘어지는 '머리 다발(lock)' 여러 개를 겹쳐 그려요.
+     같은 색·같은 그라데이션이라 겹친 곳은 이음새 없이 한 덩어리로 보이고, 끝만 층(레이어)이 져요
+   · 다발은 뒤통수 곡선을 따라 살짝 불룩했다가 끝이 얼굴 쪽으로 살짝 말려 들어가요(일자 금지) */
+const H3EAR_F={x:-2.2,y:-91.8,rx:3.3,ry:4.6,r:.15};
+function h3SideEarF(g,p){const E=H3EAR_F;g.save();
+  /* 귀 뒤 살짝 빈 곳의 그늘 */g.globalAlpha=.5;g.beginPath();g.ellipse(E.x-1.7,E.y+.6,2.6,4.6,E.r,0,Math.PI*2);g.fillStyle=mix(p.skinSh,'#000000',.15);g.fill();g.globalAlpha=1;
+  /* 귀: 얼굴과 거의 같은 살색(도드라지지 않게) */g.beginPath();g.ellipse(E.x,E.y,3.1,4.4,E.r,0,Math.PI*2);g.fillStyle=mix(p.skin,p.skinSh,.22);g.fill();
+  /* 부드러운 귓볼 선 */g.globalAlpha=.55;g.strokeStyle=p.skinSh;g.lineWidth=.75;g.lineCap='round';g.beginPath();g.ellipse(E.x,E.y,3.1,4.4,E.r,Math.PI*.42,Math.PI*.95);g.stroke();
+  /* 머리카락이 귀 위로 넘어가며 생기는 그늘 */g.globalAlpha=.32;g.lineWidth=1.2;g.beginPath();g.ellipse(E.x,E.y,2.6,3.9,E.r,Math.PI*1.12,Math.PI*1.8);g.stroke();g.restore()}
+/* 옆모습 구레나룻(여자): 한 가닥, 조금 얇게, S자로 귓볼 쪽까지 */
+/* 대각선: 선을 따로 긋지 않고 옆머리를 귀 앞·아래까지 채워, 까만 머리 사이로 귀 모양(살색)이 보이게 */
+function h3EarFrame(g,c,X,s,p){const ex=X(s,21.8)+s*.3,ey=-92;
+  g.beginPath();g.moveTo(X(s,19.6),-101.6);g.bezierCurveTo(X(s,19.1),-97.6,X(s,19.1),-92.8,X(s,19.4),-89);
+  g.quadraticCurveTo(X(s,20),-86.4,X(s,22.4),-85.8);g.quadraticCurveTo(X(s,24.4),-86.2,X(s,25),-89);g.lineTo(X(s,25.6),-99);g.quadraticCurveTo(X(s,23),-102.6,X(s,19.6),-101.6);g.closePath();g.fillStyle=c.H;g.fill();
+  h3EarHint(g,p,ex,ey,s)}
+function h3SideBurnF(g,c){/* 옆모습 구레나룻(여자): 머리선에서 두껍게 이어져 S자로 내려오며 가늘어져 귓볼까지 */
+  h3Taper(g,c,[[1.6,-101.5],[2.8,-98.6],[3.5,-95.6],[3.5,-92.4],[3.6,-89.2],[1.4,-89.6],[.6,-85.4]],2.3)}
+/* 끝으로 갈수록 가늘어지는 머리 한 가닥(베지어 2개 이어 붙임). w0=뿌리 두께 */
+function h3Taper(g,c,P,w0,fl){fl=fl||0;const B=(a,b,c2,d,t)=>{const u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c2+t*t*t*d};const C=[];
+  for(const [o,n] of [[0,14],[3,14]])for(let i=(o?1:0);i<=n;i++){const t=i/n;C.push([B(P[o][0],P[o+1][0],P[o+2][0],P[o+3][0],t),B(P[o][1],P[o+1][1],P[o+2][1],P[o+3][1],t)])}
+  const L=[],R=[],N=C.length;for(let i=0;i<N;i++){const a=C[Math.max(0,i-1)],b=C[Math.min(N-1,i+1)];let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
+    const f=i/(N-1),hw=w0/2*(1-.55*Math.pow(f,1.4))*(1+fl*Math.pow(Math.max(0,1-f*4.5),2))+.05;/* fl: 뿌리를 넓게 해서 머리 덩어리에 스며들 듯 이어지게 */L.push([C[i][0]-ty*hw,C[i][1]+tx*hw]);R.push([C[i][0]+ty*hw,C[i][1]-tx*hw])}
+  g.save();g.beginPath();g.moveTo(L[0][0],L[0][1]);for(const q of L)g.lineTo(q[0],q[1]);for(let i=N-1;i>=0;i--)g.lineTo(R[i][0],R[i][1]);g.closePath();g.fillStyle=c.H;g.fill();g.restore()}
+/* 다발 하나: 베지어 뼈대 P(8개 값), 너비 w, ts(가늘어지기 시작), amp/per(물결), blunt(끝 뭉툭) → 점 목록 */
+function h3LockPts(L){const [x0,y0,x1,y1,x2,y2,x3,y3]=L.p,N=28,B=t=>{const u=1-t;return [u*u*u*x0+3*u*u*t*x1+3*u*t*t*x2+t*t*t*x3,u*u*u*y0+3*u*u*t*y1+3*u*t*t*y2+t*t*t*y3]};
+  const C=[],A=[],Z=[];let sLen=0,prev=B(0);for(let i=0;i<=N;i++){const t=i/N,P=B(t),Q=B(Math.min(1,t+.01)),R0=B(Math.max(0,t-.01));sLen+=Math.hypot(P[0]-prev[0],P[1]-prev[1]);prev=P;
+    let tx=Q[0]-R0[0],ty=Q[1]-R0[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;const nx=-ty,ny=tx;
+    const ts=L.ts==null?.42:L.ts;let W;if(t<ts)W=1;else if(L.blunt)W=t<.9?1-.12*(t-ts)/(.9-ts):.88*Math.sqrt(Math.max(0,1-((t-.9)/.1)**2));else W=Math.pow((1-t)/(1-ts),.9);
+    const off=(L.amp||0)*Math.sin(sLen/(L.per||14)*Math.PI*2+(L.ph||0))*Math.min(1,sLen/12),cx=P[0]+nx*off,cy=P[1]+ny*off,hw=L.w/2*W;
+    C.push([cx,cy,nx,ny,hw]);A.push([cx+nx*hw,cy+ny*hw]);Z.push([cx-nx*hw,cy-ny*hw])}
+  return {C,A,Z}}
+function h3LockPath(g,K){g.beginPath();g.moveTo(K.A[0][0],K.A[0][1]);for(let i=1;i<K.A.length;i++)g.lineTo(K.A[i][0],K.A[i][1]);for(let i=K.Z.length-1;i>=0;i--)g.lineTo(K.Z[i][0],K.Z[i][1]);g.closePath()}
+/* 다발 그리기: 위층(up)은 끝자락에만 아주 옅은 그림자 선 → 층이 자연스럽게 이어져 보여요 */
+function h3Locks(g,c,list,fill){g.save();g.lineCap='round';g.lineJoin='round';
+  for(const L of list){const K=h3LockPts(L);
+    if(L.up){const n=K.A.length,i0=Math.floor(n*.5);g.globalAlpha=.2;g.strokeStyle=c.D;g.lineWidth=1.5;g.beginPath();g.moveTo(K.A[i0][0],K.A[i0][1]);for(let i=i0+1;i<n;i++)g.lineTo(K.A[i][0],K.A[i][1]);for(let i=n-1;i>=i0;i--)g.lineTo(K.Z[i][0],K.Z[i][1]);g.stroke();g.globalAlpha=1}
+    h3LockPath(g,K);g.fillStyle=fill||c.H;g.fill();
+    /* 결: 다발을 따라 가는 선 두세 올(끝으로 갈수록 가늘게) */
+    g.save();g.clip();const n=K.C.length;
+    for(const [f,col,a,w,e] of [[.3,c.D,.24,.8,.9],[-.25,c.D,.2,.7,.82],[-.05,c.L,.24,1,.55]]){g.globalAlpha=a;g.strokeStyle=col;g.lineWidth=w;g.beginPath();
+      for(let i=1;i<n*e;i++){const [x,y,nx,ny,hw]=K.C[i];const X=x+nx*hw*f*2,Y=y+ny*hw*f*2;i===1?g.moveTo(X,Y):g.lineTo(X,Y)}g.stroke()}
+    g.restore()}
+  g.restore()}
+/* 옆모습 다발 배치. mode: 'cover'(귀를 덮음, 오른쪽 보기) | 'tuck'(귀 뒤로 넘김, 왼쪽 보기) | 'far'(반대쪽, 몸 뒤) */
+function h3SideLockSet(S,v,mode){const tex=S.tex,yL=S.yL,yF=S.yF||S.yL,Bx=(S.yL+96<=34?-25:-27.4)-v*.3-(tex==='curl'?1.4:0),blunt=S.shape==='bob'||S.shape==='hime',K=mode==='far'?.85:1;
+  const H=yL+96,HF=yF+96,SH=H<=34,am=tex==='wave'?1.6:tex==='curl'?(S.ringlet?1.9:2.2):0,pe=tex==='wave'?15:tex==='curl'?(S.ringlet?6:8.5):14,uc=tex==='layer'?.42:.55,ts=tex==='layer'?.28:blunt?.6:.34;
+  const Lk=(p,w,up,k)=>{p=p.slice();if(tex==='cc'&&!blunt){p[6]+=3.2;p[7]-=1.4;p[4]=p[6]-2.2;p[5]=p[7]+6}if(mode==='far'){p[1]+=6;p[3]+=3}if(SH){for(const i of [2,4])p[i]=Math.max(p[i],Bx+1.2)}return {p,w:w*K*(SH?1.05:1),up,ts:SH?.62:ts,blunt:SH,amp:am,per:pe,ph:k*.22}};
+  const L=[];
+  if(SH&&mode!=='cover'){/* 단발: 여러 가닥으로 나누지 않고, 뒤통수에서 일자로 자연스럽게 떨어지는 한 덩어리 */
+    const B=(pp,w,k)=>({p:pp,w:w*K,ts:.7,blunt:true,amp:am*.5,per:pe,ph:k});
+    L.push(B([-14.6,-104,-16.6,-95,-16.4,-87,-15,yL],17,0));L.push(B([-19.6,-106,-22.6,-97,-22.2,-88,-20.6,yL+1],7.4,1));
+    return L}
+  /* 아래층(긴 다발) */
+  L.push(Lk([-21,-104,Bx-2.4,-93,Bx+1.4,-96+H*.56,-22.4,yL-1.5],8.2,0,0));
+  L.push(Lk([-14.6,-102,-22,-90,-20.4,-96+H*.6,-15.4,yL+1.4],8,0,1));
+  if(mode==='tuck')L.push(Lk([-8.8,-95,-10.6,-87,-12,-96+H*.6,-8.6,yL-.4],5,0,2));
+  else if(mode==='cover'){L.unshift({p:[-3,-99,-4,-88,-7,-96+H*.5,-7.5,-96+H*.74],w:14,ts:.55,blunt,amp:am*.6,per:pe,ph:0});L.push(Lk([-8,-99,-12,-88,-12.2,-96+H*.6,-8.4,yL],8,0,2));
+    /* 귀를 덮은 앞쪽 다발: 턱 뒤로 비켜 내려가서 목 앞선은 보여요 */
+    L.push(Lk([1,-100,1.5,-90,-4,-96+HF*.5,-5,yF-1],7.5,0,3));L.push(Lk([8,-100.5,8.4,-91,0,-86,-3,yF-4],5.5,0,4))}
+  /* 위층(짧은 다발): 끝이 아래층 위에 살짝 얹혀요 */
+  if(mode!=='far')L.push(Lk([-18.6,-106,Bx-1.2,-95,Bx+1.8,-96+H*uc*.55,-21,-96+H*uc],9,1,5));
+  if(mode!=='far')L.push(Lk([-10,-103.5,-17,-93,-15.6,-96+H*uc*.55,-11.2,-96+H*(uc+.04)],7.5,1,6));
+  if(mode==='cover')L.push(Lk([3,-102,5,-93,1,-96+HF*uc*.5,-1,-96+HF*(uc-.02)],7,1,7));
+  if(!blunt&&H>24){/* 끝자락 가는 다발: 숱을 쳐낸 듯 가볍게, 사이사이 틈 */
+    L.unshift(Lk([-24.4,-96+H*.45,Bx-.4,-96+H*.62,Bx+2,-96+H*.86,-23.6,yL+3.5],3,0,9));L.unshift(Lk([-18,-96+H*.5,-20.6,-96+H*.66,-19.6,-96+H*.9,-17.8,yL+5],2.6,0,10));
+    if(mode!=='far')L.unshift(Lk([-11.6,-96+H*.5,-13.6,-96+H*.68,-12.8,-96+H*.9,-11.2,yL+4],2.4,0,11))}
+  if(tex==='layer'&&mode!=='far'){/* 허쉬컷: 중간층 하나 더 */L.push(Lk([-16,-104,-25,-94,-23,-96+H*.4,-17,-96+H*.72],9,1,8))}
+  return L}
+/* 머리통(정수리~뒤통수) 덮개 + 앞머리. tuck이면 관자놀이 잔머리 → 귀 위를 살짝 덮고 귀 뒤로 */
+function h3SideCapF(g,p,c,S,mode){const v=S.v||0,top=(S.ears?-124.5:-133)-v*.7,tex=S.tex,Bx=(S.yL+96<=34?-25:-27.4)-v*.3-(tex==='curl'?1.4:0);
+  const FP={full:[[23.6,-101.4],[18.6,-100.6],[13.6,-100.8]],curtain:[[22.6,-104.8],[18,-103.6],[13.4,-103]],split:[[22.6,-105.4],[18,-104],[13.4,-103]],side:[[23,-102.6],[18.4,-101.6],[13.4,-101.6]],none:[[19.5,-113],[15,-110],[12.6,-105]]}[S.fr]||[[23,-102.4],[18.4,-101.4],[13.4,-101.4]];
+  g.beginPath();g.moveTo(25.6,-106);g.quadraticCurveTo(25.2,-104,FP[0][0],FP[0][1]);tipsTo(g,FP,2,true);
+  if(mode==='tuck'){g.quadraticCurveTo(9.8,-102,8.6,-100.4);
+    g.bezierCurveTo(7.4,-99,5,-97.4,2.1,-96.2);
+    g.quadraticCurveTo(-.8,-98.1,-4.4,-96.4);g.bezierCurveTo(-5.4,-95.4,-5.4,-93,-6.2,-89.8);g.lineTo(-10,-91)}
+  else{const xF=S.shape==='hime'?8.8:9.6;g.quadraticCurveTo(xF,-101,xF,-98);g.lineTo(xF-.6,-94);g.lineTo(-4,-93.5)}
+  g.bezierCurveTo(-15,-94.6,Bx+.8,-95.4,Bx,-103);g.bezierCurveTo(Bx-.2,-121,-14,top-2,4,top);g.bezierCurveTo(18,top+1,26.6,-120,25.6,-106);g.closePath();
+  fillClip(g,c.H,()=>{if(tex==='curl')waveTop(g,c,8,-132,-100,6,1.4);else if(tex==='wave')waveTop(g,c,10,-132,-100,6,1.2);
+    else strands(g,c,[[14,-128,20,-108,2],[6,-130,-6,-108,-2],[-6,-128,-18,-102,-3],[-14,-124,-25,-100,-2]],.26)})}
+/* 오른쪽 보기(귀를 덮음) */
+function h3LongSideF(g,p,c,S){const v=S.v||0;h3Locks(g,c,h3SideLockSet(S,v,'cover'));h3SideCapF(g,p,c,S,'cover');shine(g,2,-102-v*.3,24,1.3,1.55)}
+/* 왼쪽 보기(귀 뒤로 넘김) */
+function h3TuckSideF(g,p,c,S){const v=S.v||0,shR=S.ears?20:24;h3Locks(g,c,h3SideLockSet(S,v,'tuck'));h3SideEarF(g,p);h3SideBurnF(g,c);h3SideCapF(g,p,c,S,'tuck');
+  /* 귀 뒤로 넘긴 머리: 관자놀이에서 귀 윗선을 살짝 덮으며 뒤로 */
+  h3Locks(g,c,[{p:[8.4,-101.6,2.4,-100.8,-4.8,-99.4,-8.4,-88.4],w:3.2,ts:.45},{p:[6,-102.4,1,-101.6,-5.6,-100.2,-10.2,-90],w:2.2,ts:.5}]);
+  shine(g,0,-104-v*.3,shR,1.28,1.52)}
+/* 반대쪽 머리(몸 뒤로 보이는 부분): 조금 어둡게, 살짝 뒤로 */
+function h3LongSideBehindF(g,p,c,S){const v=S.v||0;if(S.yL<-76&&S.shape!=='bob')return;g.save();g.translate(-3.2,0);h3Locks(g,c,h3SideLockSet(S,v,'far'),c.D2);g.restore()}
+/* 묶은 머리 옆모습(여자): 귀를 먼저 그리고, 머리선이 귀 윗선·뒷선을 살짝 덮어요 */
+function h3TiedSideF(g,p,c,S){const v=S.v||0,top=-127-v*.7;
+  const FP={full:[[23.6,-101.4],[18.6,-101],[13.6,-101.6]],curtain:[[22.6,-104.8],[18,-103.6],[13.4,-103.4]],side:[[23,-102.6],[18.4,-102],[13.4,-102.4]]}[S.fr]||[[23,-102.4],[18.4,-101.8],[13.4,-102.2]];
+  h3Extra(g,p,c,S,'sideB');h3SideEarF(g,p);h3SideBurnF(g,c);
+  g.beginPath();g.moveTo(FP[0][0],FP[0][1]);tipsTo(g,FP,2,true);g.quadraticCurveTo(9.6,-104,8.4,-102.6);
+  g.bezierCurveTo(7.4,-99.4,5,-97.4,2.1,-96.2);
+  g.quadraticCurveTo(-.8,-98.1,-4.4,-96.4);g.bezierCurveTo(-5.4,-95.4,-5.6,-92.6,-6.4,-89.8);g.bezierCurveTo(-7.6,-87,-9.8,-84.4,-12.2,-83);
+  g.bezierCurveTo(-18.6,-84.6,-25,-88.4,-28.4,-95);
+  g.bezierCurveTo(-31,-102,-31,-118,-17,-127.5);g.bezierCurveTo(-4,top,19,top+2,25,-113);g.quadraticCurveTo(26.3,-107,FP[0][0],FP[0][1]);g.closePath();
+  fillClip(g,c.H,()=>{g.save();g.globalAlpha=.26;g.strokeStyle=c.D;g.lineWidth=.9;for(const [x0,y0,x1,y1,b] of [[18,-112,-14,-124,-3],[16,-106,-18,-116,-3],[10,-104,-22,-108,-2],[3,-100,-24,-100,-1],[-6,-93,-24,-94,0]]){g.beginPath();g.moveTo(x0,y0);g.quadraticCurveTo((x0+x1)/2,(y0+y1)/2+b,x1,y1);g.stroke()}g.restore()});
+  h3Extra(g,p,c,S,'side');
+  shine(g,0,-103-v*.3,21,1.28,1.52)}
+
 /* ---------- 끼워 넣기 ---------- */
 function h3Spec(p){const S=p.h3&&H3SPEC[p.h3];H3RING=!!(S&&S.ringlet);return S}
 {const _b=hair2Behind,_f=hair2Front,_s=hair2Side,_sb=hair2SideBehind,_r=hair2Rear;
@@ -412,9 +537,11 @@ function h3Spec(p){const S=p.h3&&H3SPEC[p.h3];H3RING=!!(S&&S.ringlet);return S}
  hair2Front=function(g,p,H,HL,hx,t,f){const S=h3Spec(p);if(!S)return _f.apply(this,arguments);g.save();g.translate(hx,0);const c=h3Cols(g,p);
    if(S.M==='short')h3MaleFront(g,p,c,S,t*5);else if(S.M==='tied')h3TiedFront(g,p,c,S,t*5);else if(S.ears)h3TiedFront(g,p,c,{...S,x:null,noWisp:1},t*5);else h3LongFront(g,p,c,S,t*5);g.restore()};
  hair2Side=function(g,p,H,HL,bob,slim){const S=h3Spec(p);if(!S)return _s.apply(this,arguments);const c=h3Cols(g,p);
-   if(S.M==='short')h3MaleSide(g,p,c,S);else if(S.M==='tied')h3TiedSide(g,p,c,S);else{if(S.ears||(H3V.flip&&S.yL>=-76))h3TuckSide(g,p,c,S);else h3LongSide(g,p,c,S);if(S.x==='halfbun')h3HalfBun(g,c,'side')}};
+   const F=p.style==='f';
+   if(S.M==='short')h3MaleSide(g,p,c,S);else if(S.M==='tied'){if(F)h3TiedSideF(g,p,c,S);else h3TiedSide(g,p,c,S)}
+   else{if(S.ears||(H3V.flip&&S.yL>=-76)){if(F)h3TuckSideF(g,p,c,S);else h3TuckSide(g,p,c,S)}else if(F&&S.shape!=='hime')h3LongSideF(g,p,c,S);else h3LongSide(g,p,c,S);if(S.x==='halfbun')h3HalfBun(g,c,'side')}};
  hair2SideBehind=function(g,p,H,bob,hs){const S=h3Spec(p);if(!S)return _sb.apply(this,arguments);g.save();g.translate(0,-bob);const c=h3Cols(g,p);
-   if(S.M!=='long'||S.yL>-80)rr(g,-9.4,-90,12.4,20,4,p.skinSh); /* 옆모습 목 */
-   if(S.M==='long')h3LongSideBehind(g,p,c,S);g.restore()};
+   if((S.M!=='long'||S.yL>-80)&&p.face!=='slim')rr(g,-9.4,-90,12.4,20,4,p.skinSh); /* 옆모습 목(수갱은 몸에서 가는 목을 따로 그려요) */
+   if(S.M==='long'){if(p.style==='f'&&S.shape!=='hime'){if(p.face==='slim'){g.translate(2,-102);g.scale(.92,.92);g.translate(-2,98)}h3LongSideBehindF(g,p,c,S)}else h3LongSideBehind(g,p,c,S)}g.restore()};
  hair2Rear=function(g,p,H,HL,hx,t){const S=h3Spec(p);if(!S)return _r.apply(this,arguments);const c=h3Cols(g,p);
    if(S.M==='short')h3MaleRear(g,p,c,S,hx);else if(S.M==='tied')h3TiedRear(g,p,c,S,hx);else{h3LongRear(g,p,c,S,hx);if(S.x==='halfbun'){g.save();g.translate(hx,0);h3HalfBun(g,c,'rear');g.restore()}}};}
