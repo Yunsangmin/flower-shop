@@ -329,7 +329,7 @@ function freesiaV(g,x,y,s,w){
   blossom(x+s*.72,y-s*.08,s*.66);blossom(x,y,s);
 }
 function gypV(g,x,y,s,w){
-  const c=mix(CO.white,'#E3D6BE',w),sh=mix('#E7E2DA','#CFC2AE',w),st=mix('#9DBF86','#A5967A',w);
+  const c=mix(WINTER?'#BFE1F6':CO.white,'#E3D6BE',w),sh=mix(WINTER?'#9CCDEB':'#E7E2DA','#CFC2AE',w),st=mix('#9DBF86','#A5967A',w);
   const pts=[[0,0,1],[1.3,.6,.8],[-1.2,.7,.8],[.2,-1.1,.75],[-.9,-.7,.6],[1.1,-.8,.6],[-1.7,-.1,.5],[1.8,-.2,.5],[.6,1.2,.5],[-.5,1.2,.45]];
   if(s>1.3)pts.forEach(([dx,dy])=>ln(g,x,y+s*1.6,x+dx*s,y+dy*s,st,Math.max(.15,s*.08)));
   pts.forEach(([dx,dy,r])=>{el(g,x+dx*s+s*.06,y+dy*s+s*.08,s*r*.62,s*r*.62,sh);el(g,x+dx*s,y+dy*s,s*r*.58,s*r*.58,c)});
@@ -353,11 +353,8 @@ function hydrangeaV(g,x,y,s,w){
 /* 계절 색: 겨울엔 기본 꽃 색을 바꿔요(그릴 때만 바꿔 끼움 → 그림 수·메모리 그대로) */
 let FREMAP=null;
 const WINTER_COL={
-  tulip:{'#C9406A':'#D9CEC6','#EE7FA0':'#F7F2EC','#FFD1DD':'#FFFFFF','#9E2A50':'#B3A398'},  /* 하얀 튤립 */
-  freesia:{'#F6C93F':'#FBF7EE','#FFE68A':'#FFFFFF','#E8952C':'#E8DCC0'},                     /* 하얀 프리지아 */
-  hydrangea:{'#8FAEE6':'#9E4A5E','#A9C1F0':'#B8707C','#B8A6E3':'#8FA884','#C9D8F6':'#D9A3AA','#9DB6EE':'#A85A6A','#7C97CC':'#7E3448','#5E78B0':'#5A2436'}, /* 앤틱 와인·그린 수국 */
   rose:{'#B81A35':'#A8102C','#D2334B':'#C21E36','#94102A':'#7E0A22'},                          /* 더 깊은 크리스마스 레드 */
-  gyp:{'#F1EBC6':'#E6EEF7'}                                                                  /* 눈송이 같은 안개꽃 */
+  gyp:{'#FFFFFF':'#BFE1F6','#F1EBC6':'#8CC4EA'}  /* 겨울 하늘빛 안개꽃 */
 };
 function wmix(c,w,to){if(FREMAP&&FREMAP[c])c=FREMAP[c];return w>0?mix(c,to||WITHER,w*.85):c}
 function fgrad(g,x0,y0,x1,y1,stops){const q=g.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,c])=>q.addColorStop(o,c));return q}
@@ -534,7 +531,7 @@ function flowerHead(g,t,x,y,s,f,dried){
   const w=dried?.62:wither(f);
   if(w>.25&&!dried){y+=w*s*.55;x+=(x%2?1:-1)*w*s*.3}
   if(s<1.6){ // 아주 작을 때는 가벼운 그림(점 몇 개)으로 — 굽는 시간 절약
-    const c=(WINTER&&{tulip:'#F7F2EC',freesia:'#FBF7EE',hydrangea:'#A85A6A'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#D8333C',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
+    const c=(WINTER&&{gyp:'#BFE1F6'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#D8333C',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
   flowerArt(g,t,x,y,s*(FART_K[t]||.6),w,Math.round(x*7+y*3)&1023);
 }
 function wetSparkle(g,x,y,s){if(BAKE&&BAKE.fx){BAKE.fx.push({k:'spk',x:x-BAKE.ax,y:y-BAKE.ay,s});return}const tt=performance.now()/400+x;const a=(Math.sin(tt)+1)/2;g.globalAlpha=.35+.55*a;el(g,x,y,s*.18,s*.18,'#FFFFFF');ln(g,x-s*.35,y,x+s*.35,y,'#FFFFFF',.3);ln(g,x,y-s*.35,x,y+s*.35,'#FFFFFF',.3);g.globalAlpha=1}

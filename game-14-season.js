@@ -390,7 +390,7 @@ if(WINTER){const _rm=resumeMid;resumeMid=function(m){try{xm();winterGift()}catch
 const WSKY=[[0,'#9CC2E6','#E4EDF6','#FFFFFF'],[.35,'#9BB2D8','#F5DCC0','#FFF2E4'],[.6,'#7A7FB8','#F0A8A4','#E8B4C4'],[.82,'#3E4580','#B886A8','#8C7AA8'],[1,'#121A3C','#34406E','#3A4268']];
 function wSkyPal(k){let a=WSKY[0],b=WSKY[WSKY.length-1];for(let i=0;i<WSKY.length-1;i++)if(k>=WSKY[i][0]&&k<=WSKY[i+1][0]){a=WSKY[i];b=WSKY[i+1];break}const f=(k-a[0])/Math.max(.001,b[0]-a[0]);return {top:mix(a[1],b[1],f),hor:mix(a[2],b[2],f),cloud:mix(a[3],b[3],f)}}
 function drawWinterScene(g,X,Y,W,H,who){
-  const k=sunsetPal(S.t).k,P=wSkyPal(k),tt=performance.now()/1000,HZ=Y+H*.5,L=lampAt(S.t),night=clamp((k-.7)/.3,0,1),dim=c=>mix(c,P.top,.5*k);
+  const amt0=snowAmt(),k=sunsetPal(S.t).k,P=wSkyPal(k),tt=performance.now()/1000,HZ=Y+H*.5,L=lampAt(S.t),night=clamp((k-.7)/.3,0,1),dim=c=>mix(c,P.top,.5*k);
   /* 하늘 */
   const sg=g.createLinearGradient(0,Y,0,HZ);sg.addColorStop(0,P.top);sg.addColorStop(.7,mix(P.top,P.hor,.6));sg.addColorStop(1,P.hor);g.fillStyle=sg;g.fillRect(X,Y,W,HZ-Y);
   if(night>0){const q=seedRand(19);g.globalAlpha=night;for(let i=0;i<70;i++){const sx=X+q()*W,sy=Y+q()*(HZ-Y)*.75,tw=(Math.sin(tt*(1.5+q()*2)+i)+1)/2,r=.5+q()*.7+tw*.4;el(g,sx,sy,r,r,'#FFFFFF')}
@@ -405,6 +405,7 @@ function drawWinterScene(g,X,Y,W,H,who){
     g.fillStyle=col;g.beginPath();g.moveTo(X,HZ+2);pts.forEach(([x,y],i)=>{if(i){const [px,py]=pts[i-1];g.lineTo((px+x)/2,Math.max(py,y)+amp*.12);g.lineTo(x,y)}else g.lineTo(x,y)});g.lineTo(X+W,HZ+2);g.closePath();g.fill();
     g.fillStyle=cap;pts.forEach(([x,y],i)=>{if(!i)return;const h=amp*.32;g.beginPath();g.moveTo(x-W/12*.28,y+h);g.lineTo(x,y);g.lineTo(x+W/12*.3,y+h*.9);g.lineTo(x+W/12*.12,y+h*.62);g.lineTo(x-W/12*.06,y+h*.95);g.closePath();g.fill()})};
   ridge(HZ-H*.03,H*.16,11,dim('#A9B8CE'),dim('#F2F6FB'));ridge(HZ+H*.01,H*.1,23,dim('#8396B0'),dim('#E8EFF7'));
+  {const q5=seedRand(71);for(let x=X-4;x<X+W+4;x+=W*.012+q5()*W*.01){const h=H*(.025+q5()*.03),by=HZ+H*.012;poly(g,[x-h*.32,by,x,by-h,x+h*.32,by],dim(q5()<.5?'#5E7488':'#6A8296'));poly(g,[x-h*.12,by-h*.62,x,by-h,x+h*.12,by-h*.62],dim('#EEF4FA'))}}
   /* 건너편 마을(눈 지붕 · 저녁 불빛 · 작은 트리) */
   const vy=HZ+H*.035;g.fillStyle=dim('#E6EDF4');g.fillRect(X,HZ,W,H*.05);
   const q=seedRand(31);for(let i=0;i<11;i++){const hx=X+W*(.1+i*.075)+q()*W*.02,hw=W*(.028+q()*.015),hh=H*(.03+q()*.02),c=['#C9A88E','#B8C4D8','#D8B8B0','#A8B898'][i%4];
@@ -417,9 +418,10 @@ function drawWinterScene(g,X,Y,W,H,who){
   g.globalAlpha=.5;for(let i=0;i<9;i++){const yy=RY0+(RY1-RY0)*(.15+i*.09),xx=X+W*((i*.37)%1);g.fillStyle='#FFFFFF';g.fillRect(xx,yy,W*(.06+(i%3)*.03),1)}g.globalAlpha=1;
   g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=.8;for(let i=0;i<5;i++){const x0=X+W*(.1+i*.2),y0=RY0+(RY1-RY0)*(.3+(i%2)*.3);g.beginPath();g.moveTo(x0,y0);g.lineTo(x0+W*.03,y0+H*.01);g.lineTo(x0+W*.05,y0+H*.004);g.stroke()}
   if(k<.95&&sunY<HZ+sr){for(let i=0;i<12;i++){const yy=RY0+3+i*(H*.014),ww=W*(.02+.005*i);g.globalAlpha=Math.max(0,.55-i*.04);g.fillStyle=mix('#FFE9C0','#FF9A7A',k);g.fillRect(sunX-ww/2+Math.sin(tt+i)*2,yy,ww,1.3);g.globalAlpha=1}}
-  /* 스케이트 타는 두 사람 */
-  for(let i=0;i<2;i++){const ph=tt*.35+i*2.4,sx=X+W*(.5+Math.sin(ph)*.32),sy=RY0+(RY1-RY0)*(.45+i*.25),s=H*.0028*(1+i*.25),fl=Math.cos(ph)>0?1:-1;
-    g.save();g.translate(sx,sy);g.scale(fl*s,s);el(g,0,1.5,7,1.6,'rgba(60,80,110,.18)');ln(g,-1,0,-4,-8,'#2E2B30',2.2);ln(g,1,0,3,-8,'#2E2B30',2.2);rr(g,-5,-20,10,13,4,i?'#C8303E':'#3E6FC2');rr(g,-6,-21,12,3,1.5,i?'#F4F1EA':'#F2C230');ln(g,4,-19,9,-17,i?'#F4F1EA':'#F2C230',1.6);el(g,0,-25,4,4.2,'#F1C9A5');g.beginPath();g.arc(0,-26,4.3,Math.PI,0);g.fillStyle=i?'#F4F1EA':'#C8303E';g.fill();ln(g,-6,-15,-11,-12,'#2E2B30',1.6);ln(g,6,-15,10,-19,'#2E2B30',1.6);g.restore()}
+  /* 밤: 얼음 위에 비친 마을 불빛 · 강가 눈 덮인 바위 */
+  if(L>0){const q3=seedRand(31);for(let i=0;i<11;i++){const hx=X+W*(.1+i*.075)+q3()*W*.02,hw=W*(.028+q3()*.015);q3();q3();const rg=g.createLinearGradient(0,RY0,0,RY0+H*.09);rg.addColorStop(0,`rgba(255,210,140,${.32*L})`);rg.addColorStop(1,'rgba(255,210,140,0)');g.fillStyle=rg;g.fillRect(hx+hw*.25,RY0,hw*.5,H*.09)}}
+  {const q4=seedRand(57);for(let i=0;i<9;i++){const rx=X+W*(.04+i*.115+q4()*.04),ry=RY1-H*.005,rw=W*(.018+q4()*.02),rh=H*(.012+q4()*.01);el(g,rx,ry,rw,rh,dim('#8E97A6'));el(g,rx-rw*.1,ry-rh*.55,rw*.92,rh*.6,dim('#F7FAFD'))}}
+  /* 강 건너 눈 덮인 숲 */
   /* 가까운 눈 언덕 · 울타리 · 눈 쌓인 소나무 */
   const PY=Y+H*.74;const sg2=g.createLinearGradient(0,PY-H*.05,0,Y+H);sg2.addColorStop(0,dim('#F4F8FC'));sg2.addColorStop(1,dim('#D6E2EE'));g.fillStyle=sg2;g.beginPath();g.moveTo(X,Y+H);g.lineTo(X,PY+H*.03);g.quadraticCurveTo(X+W*.5,PY-H*.04,X+W,PY+H*.04);g.lineTo(X+W,Y+H);g.closePath();g.fill();
   const fc=dim('#7A5A44');for(let x=X+W*.02;x<X+W;x+=W/22){const yy=PY+H*.02+Math.pow((x-X-W*.5)/(W*.5),2)*H*.02;g.fillStyle=fc;g.fillRect(x,yy,W*.007,H*.075);el(g,x+W*.0035,yy,W*.007,H*.006,'#FBFCFF')}
@@ -427,12 +429,24 @@ function drawWinterScene(g,X,Y,W,H,who){
   const pine=(px,py,hgt,lights)=>{g.fillStyle=dim('#5A4434');g.fillRect(px-hgt*.04,py-hgt*.12,hgt*.08,hgt*.14);for(let i=0;i<5;i++){const yb=py-hgt*.1-i*hgt*.17,w=hgt*(.36-i*.06);poly(g,[px-w,yb,px,yb-hgt*.28,px+w,yb],dim(i%2?'#2E5E44':'#376B4E'));poly(g,[px,yb-hgt*.28,px+w*.5,yb-hgt*.13,px+w*.1,yb-hgt*.1,px-w*.25,yb-hgt*.14,px-w*.6,yb-hgt*.08],dim('#F4F8FC'));el(g,px-w*.8,yb-hgt*.01,w*.18,hgt*.012,dim('#F4F8FC'))}
     if(lights){for(let i=0;i<14;i++){const u=(i*.618)%1,yy=py-hgt*(.12+u*.75),ww=hgt*.32*(1-u*.85),xx=px+Math.sin(i*2.1)*ww;const tw=(Math.sin(tt*2.2+i*1.3)+1)/2;el(g,xx,yy,hgt*.012,hgt*.012,XBC[i%5]);g.globalAlpha=(.25+.45*tw)*(.4+.6*L);const gr=g.createRadialGradient(xx,yy,0,xx,yy,hgt*.05);gr.addColorStop(0,hexA(XBC[i%5],.9));gr.addColorStop(1,hexA(XBC[i%5],0));g.fillStyle=gr;g.fillRect(xx-hgt*.05,yy-hgt*.05,hgt*.1,hgt*.1);g.globalAlpha=1}}};
   pine(X+W*.07,Y+H*.92,H*.42,XMAS);pine(X+W*.95,Y+H*.9,H*.36,false);pine(X+W*.2,Y+H*.84,H*.16,false);
+  /* 자작나무 · 가로등 · 발자국 · 눈 반짝임 */
+  const birch=(bx,by,h,lean)=>{g.lineCap='round';g.strokeStyle=dim('#8E8780');g.lineWidth=h*.045;g.beginPath();g.moveTo(bx,by);g.lineTo(bx+lean*h,by-h);g.stroke();g.strokeStyle=dim('#F2EEE6');g.lineWidth=h*.032;g.stroke();for(let k=0;k<6;k++){const t=.12+k*.14;g.fillStyle=dim('#4A4446');g.fillRect(bx+lean*h*t-h*.016,by-h*t,h*.022,h*.007)}
+    for(let k=0;k<5;k++){const t=.45+k*.11,sx2=bx+lean*h*t,sy2=by-h*t,d=k%2?1:-1;g.strokeStyle=dim('#B9B0A8');g.lineWidth=h*.008;g.beginPath();g.moveTo(sx2,sy2);g.quadraticCurveTo(sx2+d*h*.08,sy2-h*.04,sx2+d*h*.16,sy2-h*.12);g.stroke();el(g,sx2+d*h*.1,sy2-h*.07,h*.03,h*.008,dim('#FBFCFF'))}};
+  birch(X+W*.26,Y+H*.8,H*.3,.04);birch(X+W*.29,Y+H*.79,H*.24,-.03);birch(X+W*.79,Y+H*.79,H*.26,.03);
+  {const lx=X+W*.86,ly=Y+H*.95,lh=H*.3;if(L>0){const lg=g.createRadialGradient(lx,ly-lh,0,lx,ly-lh,lh*.7);lg.addColorStop(0,`rgba(255,214,150,${.5*L})`);lg.addColorStop(1,'rgba(255,214,150,0)');g.fillStyle=lg;g.fillRect(lx-lh*.7,ly-lh*1.7,lh*1.4,lh*1.4)}
+    g.fillStyle=dim('#3E4448');g.fillRect(lx-lh*.018,ly-lh,lh*.036,lh);rr(g,lx-lh*.07,ly-lh*1.12,lh*.14,lh*.13,lh*.02,dim('#3E4448'));rr(g,lx-lh*.05,ly-lh*1.1,lh*.1,lh*.09,lh*.015,mix('#FFF4D6','#FFD98A',L));el(g,lx,ly-lh*1.13,lh*.09,lh*.025,'#FBFCFF');
+    if(XMAS)wreathV(g,lx,ly-lh*.55,lh*.045)}
+  g.globalAlpha=.35;for(let k=0;k<9;k++){const t=k/8,fx=X+W*(.5+.38*t)+((k%2)?W*.008:-W*.008),fy=Y+H*(.99-.12*t);el(g,fx,fy,W*.005,H*.004,'#9AAAC4')}g.globalAlpha=1;
+  {const q6=seedRand(88);for(let i=0;i<34;i++){const sx=X+q6()*W,sy=Y+H*(.78+q6()*.2),tw=Math.max(0,Math.sin(tt*(1.2+q6()*2)+i*2.1));if(tw<.55)continue;const r=H*.004*tw;g.globalAlpha=(tw-.5)*1.8;g.fillStyle=night>0?'#DCE8FF':'#FFFFFF';g.fillRect(sx-r*2.2,sy-r*.25,r*4.4,r*.5);g.fillRect(sx-r*.25,sy-r*2.2,r*.5,r*4.4);g.globalAlpha=1}}
+  /* 맑은 날 낮: 햇빛에 반짝이는 공기 속 얼음 알갱이 · 밤: 가끔 별똥별 */
+  if(amt0===0&&k<.6){const q7=seedRand(91);for(let i=0;i<16;i++){const sx=X+q7()*W,sy=Y+H*(.25+q7()*.45),tw=Math.max(0,Math.sin(tt*(1.5+q7()*2)+i));if(tw>.7){g.globalAlpha=(tw-.7)*3;el(g,sx,sy,H*.0025,H*.0025,'#FFFFFF');g.globalAlpha=1}}}
+  if(night>.5){const cyc=tt%13;if(cyc<1.1){const u=cyc/1.1,sx=X+W*(.2+(Math.floor(tt/13)%3)*.22)+u*W*.18,sy=Y+H*(.08+u*.12);g.strokeStyle=`rgba(255,255,255,${(1-u)*.9})`;g.lineWidth=1.4;g.beginPath();g.moveTo(sx,sy);g.lineTo(sx-W*.05,sy-H*.033);g.stroke()}}
   /* 함박눈 */
-  const amt=snowAmt();if(amt>0){const n=Math.round(70*amt);for(let i=0;i<n;i++){const h1=xHash(i,3,7),h2=xHash(7,i,3),big=h2<.3,sp=(big?.09:.05)*H,yy=(h1*H+tt*sp)%H,xx=X+((h2*W+Math.sin(tt*.7+i)*W*.02)%W+W)%W;g.globalAlpha=big?.95:.75;el(g,xx,Y+yy,big?H*.006:H*.0035,big?H*.006:H*.0035,'#FFFFFF')}g.globalAlpha=1}
-  /* 벤치 · 우리 둘(뒷모습) · 입김 */
+  const amt=amt0;if(amt>0){const n=Math.round(70*amt);for(let i=0;i<n;i++){const h1=xHash(i,3,7),h2=xHash(7,i,3),big=h2<.3,sp=(big?.09:.05)*H,yy=(h1*H+tt*sp)%H,xx=X+((h2*W+Math.sin(tt*.7+i)*W*.02)%W+W)%W;g.globalAlpha=big?.95:.75;el(g,xx,Y+yy,big?H*.006:H*.0035,big?H*.006:H*.0035,'#FFFFFF')}g.globalAlpha=1}
+  /* 벤치 · 우리 둘(뒷모습) */
   const sc=H/150;
   who.forEach((c,i)=>{const cx=X+W*(who.length>1?(i?.535:.465):.5);g.save();g.translate(cx,Y+H*.9);g.scale(sc*2.1,sc*2.1);drawChar(g,0,0,palOf(c),Math.PI,0,false,false,false,true);g.restore();
-    const ph=(tt*.45+i*.5)%1;if(ph<.45){g.globalAlpha=(.45-ph)*1.2;el(g,cx+(i?6:-6)*sc,Y+H*.62-ph*H*.06,sc*(3+ph*10),sc*(2+ph*6),'#FFFFFF');g.globalAlpha=1}});
+});
   rr(g,X+W*.39,Y+H*.8,W*.22,H*.05,3,'#7A5540');rr(g,X+W*.39,Y+H*.795,W*.22,H*.014,2,'#8C6448');el(g,X+W*.395,Y+H*.797,W*.012,H*.008,'#FBFCFF');el(g,X+W*.605,Y+H*.797,W*.012,H*.008,'#FBFCFF');
   g.fillStyle='#5A3E2E';g.fillRect(X+W*.4,Y+H*.85,W*.012,H*.08);g.fillRect(X+W*.588,Y+H*.85,W*.012,H*.08);
   g.fillStyle='rgba(255,255,255,.8)';g.font=`${Math.max(11,H*.035)}px 'Jua','Gowun Dodum',sans-serif`;g.textAlign='center';g.fillText('행동 버튼을 누르면 일어나요',X+W/2,Y+H*.06);
@@ -440,3 +454,24 @@ function drawWinterScene(g,X,Y,W,H,who){
 if(WINTER){drawSunsetScene=drawWinterScene}
 /* 캠퍼스 땅 조각도 그릴 때 바로 눈 덮인 색으로 바꿔요(조각마다 한 번, 추가 메모리 없음) */
 if(WINTER&&typeof AREA_CHUNK!=='undefined'&&AREA_CHUNK.campus){const _cg=AREA_CHUNK.campus;AREA_CHUNK.campus=function(g,X0,Y0,W,H){_cg(g,X0,Y0,W,H);snowFilter(g.canvas)}}
+
+/* =====================================================================
+   17. 겨울 꽃시장: 프리지아·수국은 쉬어요(가판대 빠짐). 튤립·안개꽃·장미 세 가판대를 가운데로 고르게.
+       남은 프리지아·수국 재고는 그대로 두고, 재고가 있을 때만 그 꽃이 들어간 주문이 가끔 와서 자연스럽게 팔려요.
+   ===================================================================== */
+if(WINTER){
+  const D=id=>STATION_DEFS.find(d=>d[0]===id);
+  ['st_freesia','st_hydrangea'].forEach(id=>{const d=D(id);if(d)d[7]='$nowinter'});
+  [['st_tulip',4],['st_gyp',10],['st_rose',16]].forEach(([id,x])=>{const d=D(id);if(d)d[3]=x});
+}
+function stockOf(t){let n=0;const scan=it=>{if(it&&it.stems&&it.kind!=='bouquet')it.stems.forEach(s=>{if(s.t===t&&!s.dried&&wither(s.f)<.6)n++})};
+  (S.bags||[]).forEach(b=>(b||[]).forEach(scan));(S.stList||[]).forEach(s=>(s.slots||[]).forEach(scan));return n}
+if(WINTER){
+  const _tp=tplPool;tplPool=function(){const base=_tp();
+    const extra=TEMPLATES.filter(t=>!base.includes(t)&&!/여름|해바라기|봄/.test(t.title+t.text)&&Object.entries(t.req).every(([k,v])=>flOpen(k)||((OFF_SEASON.winter[k])&&stockOf(k)>=v)));
+    return extra.length&&Math.random()<.6?base.concat(extra):base};
+  /* 이야기 특별 주문처럼 쉬는 꽃이 들어간 주문은, 재고가 모자라면 겨울 꽃으로 바꿔서 받아요 */
+  const _go=genOrder;genOrder=function(tpl,time,day){const o=_go(tpl,time,day),ch=[];
+    for(const [k,to] of [['freesia','tulip'],['hydrangea','gyp']]){const v=o.req[k];if(!v||stockOf(k)>=v)continue;o.req[to]=(o.req[to]||0)+v;delete o.req[k];ch.push(`${FL[k].name} 대신 ${FL[to].name}`)}
+    if(ch.length)o.text=(o.text||'')+` (겨울이라 ${ch.join(', ')}(으)로 부탁해요)`;return o};
+}

@@ -40,14 +40,16 @@ const FL={
   fir:{name:'전나무 가지',decay:2.5,price:6000,dot:'#3F6B4E',season:'winter',green:true},
   cotton:{name:'목화',decay:2,price:7000,dot:'#F4F1EA',season:'winter'}
 };
-if(WINTER){FL.tulip.dot='#E9DFD6';FL.freesia.dot='#EFE6D2';FL.hydrangea.dot='#A85A6A';FL.tulip.wname='하얀 튤립';FL.freesia.wname='하얀 프리지아';FL.hydrangea.wname='앤틱 수국'}
+if(WINTER){FL.gyp.dot='#BFE1F6'} /* 겨울: 안개꽃은 하늘빛, 튤립은 원래 색. 프리지아·수국은 겨울엔 시장에 안 나와요(남은 재고는 그대로 팔 수 있어요) */
 const TYPES=['tulip','freesia','gyp','rose','hydrangea','sunflower','ranunculus','peony','poinsettia','amaryllis','camellia','fir','cotton'];
 /* 단계 꽃: 계절마다 같은 거래권(fl_sunflower 등)으로 다른 꽃이 열려요 */
 const TIER_OF={sunflower:'fl_sunflower',ranunculus:'fl_ranunculus',peony:'fl_peony'};
 const SEASON_TIER={winter:{fl_sunflower:'poinsettia',fl_ranunculus:'amaryllis',fl_peony:'camellia'}};
 function tierFlower(key){const m=SEASON_TIER[SEASON];return (m&&m[key])||{fl_sunflower:'sunflower',fl_ranunculus:'ranunculus',fl_peony:'peony'}[key]}
 /* 지금 계절에 시장에서 거래할 수 있는 꽃인지 */
+const OFF_SEASON={winter:{freesia:1,hydrangea:1}};
 function flOpen(t){const F=FL[t];if(!F)return true;
+  if(OFF_SEASON[SEASON]&&OFF_SEASON[SEASON][t])return false;
   if(F.season&&F.season!==SEASON)return false;
   if(TIER_OF[t]&&SEASON_TIER[SEASON])return false; /* 다른 계절에는 해바라기·라넌큘러스·작약 대신 그 계절 꽃이 나와요 */
   if(!F.lock)return true;const key=F.tier||'fl_'+t;return !!(S.up&&S.up[key])}
@@ -132,16 +134,16 @@ const TEMPLATES=[
   /* ---- 겨울·크리스마스 주문 (겨울 꽃이 열려 있을 때만 나와요) ---- */
   {title:'크리스마스 리스',text:'현관문에 걸 리스예요. 전나무에 목화를 콕콕 꽂아 주세요.',req:{fir:6,cotton:3},paper:'cream',price:52000},
   {title:'빨간 열매 리스',text:'포인세티아를 넣은 크리스마스 리스요. 빨강·초록으로!',req:{fir:6,poinsettia:2},paper:'cream',price:60000},
-  {title:'하얀 겨울 리스',text:'눈 내린 숲 같은 하얀 리스를 원해요. 목화랑 하얀 튤립으로요.',req:{fir:5,cotton:2,tulip:2},paper:'sky',price:58000},
+  {title:'겨울 숲 리스',text:'눈 내린 숲 같은 리스를 원해요. 목화에 튤립으로 포인트를요.',req:{fir:5,cotton:2,tulip:2},paper:'sky',price:58000},
   {title:'동백 리스',text:'동백으로 고급스러운 리스요. 가게 문에 걸 거예요.',req:{fir:6,camellia:2},paper:'cream',price:84000},
   {title:'크리스마스 꽃다발',text:'크리스마스 데이트예요! 빨간 장미랑 포인세티아로 부탁해요.',req:{rose:4,poinsettia:2,gyp:2},paper:'cream',price:62000},
   {title:'트리 옆 꽃병',text:'거실 트리 옆에 둘 꽃이요. 전나무 가지랑 장미로요.',req:{fir:3,rose:4},paper:'cream',price:48000},
   {title:'송년회 테이블 꽃',text:'회사 송년회 테이블에 놓을 거예요. 화사하게요.',req:{amaryllis:2,rose:3,gyp:3},paper:'lilac',price:70000},
-  {title:'첫눈 고백',text:'첫눈 오는 날 고백하려고요. 새하얀 꽃다발이요.',req:{tulip:4,freesia:3,gyp:2},paper:'sky',price:44000},
-  {title:'눈꽃 꽃다발',text:'안개꽃이랑 목화로 눈송이처럼요.',req:{gyp:4,cotton:3},paper:'sky',price:40000},
+  {title:'첫눈 고백',text:'첫눈 오는 날 고백하려고요. 튤립이랑 하늘빛 안개꽃으로요.',req:{tulip:4,gyp:3},paper:'sky',price:44000},
+  {title:'눈꽃 꽃다발',text:'하늘빛 안개꽃이랑 목화로 눈송이처럼요.',req:{gyp:4,cotton:3},paper:'sky',price:40000},
   {title:'아마릴리스 선물',text:'크리스마스 선물이에요. 아마릴리스로 크고 근사하게!',req:{amaryllis:3,fir:2},paper:'cream',price:68000},
   {title:'신년 인사',text:'부모님께 드릴 새해 꽃이에요. 동백이랑 장미로 우아하게요.',req:{camellia:2,rose:3},paper:'pink',price:86000},
-  {title:'연말 감사 꽃',text:'한 해 고마웠던 선생님께요. 수국이랑 튤립이요.',req:{hydrangea:2,tulip:3},paper:'lilac',price:46000},
+  {title:'연말 감사 꽃',text:'한 해 고마웠던 선생님께요. 튤립이랑 장미로 따뜻하게요.',req:{tulip:3,rose:2,gyp:2},paper:'lilac',price:46000},
   {title:'포인세티아 화분 대신',text:'화분 대신 꽃다발로! 포인세티아를 듬뿍이요.',req:{poinsettia:4,gyp:3},paper:'cream',price:50000},
 ];
 /* 리스: 전나무 가지가 꽃의 절반쯤 들어가면 둥근 리스 모양으로 만들어져요 */
@@ -394,7 +396,7 @@ function addXStation(type,n){const id='x'+type+n;if(S.st[id])return S.st[id];con
 const BAGN=8;
 function bagSize(){return S.up.bag3?16:S.up.bag2?12:8}
 function ensureBags(){const n=bagSize();S.bags.forEach(b=>{while(b.length<n)b.push(null)})}
-function owned(s){if(s.need==='$winter')return WINTER;return !s.need||!!S.up[s.need]}
+function owned(s){if(s.need==='$winter')return WINTER;if(s.need==='$nowinter')return !WINTER;return !s.need||!!S.up[s.need]}
 function makeStations(){
   S.st={};S.stList=[];
   STATION_DEFS.forEach(([id,type,area,x,y,w,h,need])=>{

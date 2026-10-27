@@ -136,7 +136,7 @@ function drawStationV(g,s){
       });
       break;}
     case 'stall':{
-      const closed=t>=MARKET_CLOSE;const aw=(WINTER&&{tulip:'#E9E2DA',freesia:'#F2ECDF',hydrangea:'#D9A9B0',rose:'#D9737E'}[s.flower])||{tulip:'#F4B6C4',freesia:'#F6DC86',gyp:'#BFE3D0',rose:'#E7A3AE',hydrangea:'#BFD0F0',sunflower:'#F7D978',ranunculus:'#F6C0B2',peony:'#F4C6D4',poinsettia:'#D9555C',amaryllis:'#E8828A',camellia:'#C9606E',fir:'#7FA58A',cotton:'#EFE9DE'}[s.flower];
+      const closed=t>=MARKET_CLOSE;const aw=(WINTER&&{gyp:'#CFE6F5',rose:'#D9737E'}[s.flower])||{tulip:'#F4B6C4',freesia:'#F6DC86',gyp:'#BFE3D0',rose:'#E7A3AE',hydrangea:'#BFD0F0',sunflower:'#F7D978',ranunculus:'#F6C0B2',peony:'#F4C6D4',poinsettia:'#D9555C',amaryllis:'#E8828A',camellia:'#C9606E',fir:'#7FA58A',cotton:'#EFE9DE'}[s.flower];
       g.fillStyle=CO.woodD;g.fillRect(x+1,y-24,1.6,26);g.fillRect(x+w-2.6,y-24,1.6,26);
       if(!closed)drawChar(g,x+w/2,y+3,VENDORS[s.flower],'down',0,false,false);
       if(closed){rr(g,x,y-24,w,4,1.5,aw)}else{for(let k=0;k<w;k+=6){g.fillStyle=(k/6)%2?CO.white:aw;g.fillRect(x+k,y-24,6,9);el(g,x+k+3,y-15,3,2,(k/6)%2?CO.white:aw)}}
