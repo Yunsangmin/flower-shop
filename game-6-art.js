@@ -91,7 +91,7 @@ function curStyle(){return STYLES[S.style]||STYLES.natural}
 
 /* ---- flower heads (SVG, small) ---- */
 function wcol(c,w,to){return mix(c,to||'#B49A7E',w*.85)}
-const FSVG_R={rose:.62,tulip:.62,hydrangea:.95,freesia:.85,gyp:.8,sunflower:.75,ranunculus:.64,peony:.85};
+const FSVG_R={rose:.62,tulip:.62,hydrangea:.95,freesia:.85,gyp:.8,sunflower:.75,ranunculus:.64,peony:.85,poinsettia:.82,amaryllis:.78,camellia:.7,fir:.85,cotton:.62};
 function imgHead(t,x,y,R,rot,w,seed){const S=R*1.27,u=flowerURL(t,w,seed);return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(rot||0).toFixed(0)})"><image href="${u}" x="${(-S).toFixed(1)}" y="${(-S).toFixed(1)}" width="${(2*S).toFixed(1)}" height="${(2*S).toFixed(1)}"/></g>`}
 function fHeadSVG(t,x,y,s,w,wet){
   const dr=w*s*.5,rot=w*38*(x<30?-1:1);let o=imgHead(t,x,y+dr,(FSVG_R[t]||.7)*s,rot,w,t==='hydrangea'||t==='gyp'?(Math.round(x*7+y)&7):0);
@@ -126,6 +126,14 @@ function sv(inner){return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/200
 function artPerson(extra,tee){return `<ellipse cx="32" cy="58" rx="16" ry="3" fill="#0001"/><rect x="18" y="38" width="28" height="22" rx="9" fill="${tee||'#4C82D4'}"/><rect x="28" y="30" width="8" height="10" rx="3" fill="#E0B597"/><ellipse cx="32" cy="24" rx="13" ry="14" fill="#F4D3B7"/><path d="M19 22 C19 8 45 8 45 22 C41 17 36 16 32 15 C28 16 23 17 19 22Z" fill="#3B2A22"/><ellipse cx="27" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><ellipse cx="37" cy="25" rx="1.4" ry="1.8" fill="#3A2E3A"/><path d="M29.5 31 Q32 33 34.5 31" stroke="#C0707E" stroke-width="1.1" fill="none"/>${extra}`}
 /* 옷·치장 상점 그림: 사람에게 입힌 모습 대신 물건 자체를 크게(가벼운 도형 그림이라 메모리도 적어요) */
 function styleArt(k,v){const D=c=>mix(c,'#000',.18),Lg=c=>mix(c,'#FFFFFF',.3);
+  if(k==='outer'){const [tp,c]=String(v).split('|');if(tp==='pad')return sv(`<path d="M14 18 L24 10 H40 L50 18 L48 58 H16Z" fill="${c}" stroke="${D(c)}"/>${[22,30,38,46,54].map(y=>`<path d="M16 ${y} Q32 ${y+3} 48 ${y}" stroke="${D(c)}" stroke-width="1.4" fill="none"/>`).join('')}<rect x="22" y="6" width="20" height="8" rx="4" fill="${Lg(c)}"/><path d="M32 12 V58" stroke="${D(c)}" stroke-width="1.6"/>`);
+    return sv(`<path d="M14 16 L24 8 H40 L50 16 L50 60 H14Z" fill="${c}" stroke="${D(c)}"/><path d="M24 8 L32 26 L22 34Z M40 8 L32 26 L42 34Z" fill="${Lg(c)}" stroke="${D(c)}"/>${[34,44,54].map(y=>`<circle cx="27" cy="${y}" r="2" fill="${D(c)}"/><circle cx="37" cy="${y}" r="2" fill="${D(c)}"/>`).join('')}`)}
+  if(k==='glove'){const c=v;return sv(`<path d="M14 54 V30 Q14 18 24 18 Q32 18 32 28 V54Z" fill="${c}" stroke="${D(c)}"/><ellipse cx="13" cy="34" rx="5" ry="8" fill="${c}" stroke="${D(c)}"/><rect x="13" y="48" width="20" height="8" rx="3" fill="${Lg(c)}"/><path d="M50 54 V30 Q50 18 40 18 Q32 18 32 28 V54Z" fill="${c}" stroke="${D(c)}" transform="translate(4 0)"/><rect x="35" y="48" width="20" height="8" rx="3" fill="${Lg(c)}"/>`)}
+  if(k==='hat'&&v==='santa')return sv('<path d="M10 44 Q16 10 40 12 Q56 16 58 38 L52 40 Q48 24 38 22 L52 44Z" fill="#C8262E"/><rect x="8" y="40" width="46" height="10" rx="5" fill="#FBF8F2"/><circle cx="56" cy="40" r="6" fill="#FBF8F2"/>');
+  if(k==='hat'&&String(v).startsWith('earmuff')){const c=HATV[v][1];return sv(`<path d="M14 40 Q14 10 32 10 Q50 10 50 40" stroke="${D(c)}" stroke-width="4" fill="none"/><circle cx="14" cy="42" r="10" fill="${c}"/><circle cx="50" cy="42" r="10" fill="${c}"/><circle cx="11" cy="39" r="3" fill="#FFFFFF" opacity=".6"/><circle cx="47" cy="39" r="3" fill="#FFFFFF" opacity=".6"/>`)}
+  if(k==='pin'&&v==='rudolph')return sv('<path d="M10 50 Q10 18 32 18 Q54 18 54 50" stroke="#6E4A34" stroke-width="5" fill="none"/><path d="M20 22 L14 6 M17 14 L8 12 M44 22 L50 6 M47 14 L56 12" stroke="#8A5A36" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="22" r="4" fill="#C8262E"/>');
+  if(k==='pin'&&v==='snowpin')return sv('<g stroke="#9EC3E2" stroke-width="3" stroke-linecap="round"><path d="M32 12 V52 M15 22 L49 42 M15 42 L49 22"/></g><circle cx="32" cy="32" r="4" fill="#FFFFFF" stroke="#9EC3E2"/>');
+  if(k==='tee'&&String(v).startsWith('xknit')){const c=String(v).split('|')[1];return sv(`<path d="M12 20 L23 11 H41 L52 20 L46 28 L43 26 V55 H21 V26 L18 28Z" fill="${c}" stroke="${D(c)}"/><rect x="21" y="30" width="22" height="9" fill="${D(c)}"/>${[24,30,36,42].map(x=>`<path d="M${x-2} 34.5 h4 M${x} 32.5 v4" stroke="#FBF8F2" stroke-width="1.2"/>`).join('')}<path d="M21 45 l3 -2 l3 2 l3 -2 l3 2 l3 -2 l3 2 l3 -2" stroke="#FBF8F2" stroke-width="1.2" fill="none"/><rect x="25" y="10" width="14" height="4" rx="2" fill="${D(c)}"/>`)}
   if(k==='tee'){const [tp,c0,l]=String(v).split('|');const c=c0||tp,top=c0?tp:null;
     const body=`<path d="M12 20 L23 11 H41 L52 20 L46 28 L43 26 V55 H21 V26 L18 28Z" fill="${c}" stroke="${D(c)}" stroke-width="1"/>`;
     const neck=top==='hood'?`<path d="M22 12 Q32 2 42 12 Q32 20 22 12Z" fill="${D(c)}"/><path d="M28 16 v12 M36 16 v12" stroke="${Lg(c)}" stroke-width="1.4"/><rect x="25" y="40" width="14" height="8" rx="2" fill="${D(c)}" opacity=".6"/>`:top==='knit'?`<path d="M26 11 Q32 17 38 11" stroke="${D(c)}" stroke-width="3" fill="none"/>${[25,29,33,37,41].map(x=>`<path d="M${x} 20 V54" stroke="${D(c)}" stroke-width=".8" opacity=".5"/>`).join('')}<rect x="21" y="51" width="22" height="4" fill="${D(c)}"/>`:`<path d="M27 11 Q32 16 37 11" stroke="${D(c)}" stroke-width="1.5" fill="none"/>`;
@@ -205,6 +213,8 @@ function itemArt(it){
     pickup:'<rect x="10" y="36" width="44" height="18" rx="3" fill="#C99873"/><rect x="8" y="32" width="48" height="6" rx="2" fill="#E9D3B6"/><path d="M26 32 L32 12 L38 32Z" fill="#F4B6C4"/><circle cx="29" cy="14" r="3.5" fill="#EE8FA7"/><circle cx="35" cy="15" r="3.5" fill="#F5CF4E"/><rect x="24" y="18" width="16" height="6" rx="3" fill="#fff"/>',
     craft2:'<rect x="8" y="26" width="48" height="8" rx="2" fill="#F6D5DC"/><rect x="8" y="33" width="48" height="5" fill="#C98E9C"/><rect x="12" y="38" width="4" height="18" fill="#9C6B4C"/><rect x="48" y="38" width="4" height="18" fill="#9C6B4C"/><circle cx="40" cy="24" r="4" fill="#D8B994"/><path d="M18 26 L28 16" stroke="#6E9A5A" stroke-width="1.5"/><circle cx="28" cy="15" r="3.5" fill="#EE8FA7"/>',
     scissors:'<path d="M20 44 L46 14" stroke="#AFBAC2" stroke-width="4" stroke-linecap="round"/><path d="M20 14 L46 44" stroke="#C9D2D8" stroke-width="4" stroke-linecap="round"/><circle cx="18" cy="48" r="6" fill="none" stroke="#E1B656" stroke-width="3"/><circle cx="46" cy="48" r="6" fill="none" stroke="#E1B656" stroke-width="3"/>',
+    shears:'<path d="M22 46 L44 12" stroke="#7E8A92" stroke-width="5" stroke-linecap="round"/><path d="M42 46 L20 12" stroke="#A8B4BC" stroke-width="5" stroke-linecap="round"/><path d="M14 52 Q20 40 26 44" stroke="#C0463E" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M50 52 Q44 40 38 44" stroke="#C0463E" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M8 8 l6 4 M10 4 l3 6" stroke="#6E9A5A" stroke-width="2"/>',
+    autocut:'<rect x="10" y="30" width="44" height="22" rx="4" fill="#9CC7B3"/><rect x="14" y="34" width="20" height="10" rx="2" fill="#E8F3EC"/><circle cx="44" cy="40" r="5" fill="#F4B6C4"/><path d="M20 30 L26 8 M28 30 L30 10 M36 30 L34 8" stroke="#6E9A5A" stroke-width="2.2"/><path d="M16 26 L48 22" stroke="#C0463E" stroke-width="1.6" stroke-dasharray="3 2"/>',
     sprinkler:'<rect x="30" y="26" width="4" height="30" fill="#8E9CA6"/><ellipse cx="32" cy="26" rx="10" ry="4" fill="#BCC7CF"/>'+[0,1,2,3,4,5].map(k=>`<ellipse cx="${10+k*9}" cy="${12+(k%2)*5}" rx="1.4" ry="2.3" fill="#7FB8E6"/>`).join(''),
     papers2:[['#BFE3D0',14],['#F6B7A0',28],['#D8B994',42]].map(([c,x])=>`<rect x="${x}" y="10" width="10" height="44" rx="5" fill="${c}"/><ellipse cx="${x+5}" cy="10" rx="5" ry="2" fill="${mix(c,'#fff',.4)}"/>`).join(''),
     patterns2:'<rect x="8" y="10" width="14" height="44" rx="4" fill="#F4B6C4"/>'+[16,24,32,40,48].map(y=>`<circle cx="15" cy="${y}" r="3" fill="none" stroke="#fff" stroke-width="1.2"/>`).join('')+'<rect x="25" y="10" width="14" height="44" rx="4" fill="#EFE4D2"/>'+[15,20,25,30,35,40,45].map(y=>`<path d="M27 ${y}h10" stroke="#8A8278" stroke-width="1"/>`).join('')+'<rect x="42" y="10" width="14" height="44" rx="4" fill="#DDEFFA" opacity=".8" stroke="#fff"/><path d="M45 16 L50 30" stroke="#fff" stroke-width="2"/>',
@@ -235,7 +245,7 @@ function itemArt(it){
       fr_bike:'<circle cx="14" cy="54" r="3.5" fill="none" stroke="#4A4448"/><circle cx="26" cy="54" r="3.5" fill="none" stroke="#4A4448"/><path d="M14 54 L20 48 L26 54 M20 48 H24" stroke="#6F9C8A" stroke-width="1.4" fill="none"/><rect x="9" y="45" width="7" height="4" fill="#C99A63"/><circle cx="11" cy="44" r="1.6" fill="#EE8FA7"/><circle cx="14" cy="44" r="1.6" fill="#F5CF4E"/>',
       fr_tile:'<rect x="4" y="56" width="56" height="5" fill="#E8DCCB"/>'+[0,1,2,3,4,5,6].map(k=>k%2?`<rect x="${4+k*8}" y="56" width="8" height="5" fill="#D9C8B0"/>`:'').join('')}[id]||'';
     return sv(`<rect x="8" y="12" width="48" height="44" fill="${WL}"/><rect x="8" y="9" width="48" height="4" fill="${AW[3]}"/>${[0,1,2,3,4,5].map(k=>`<rect x="${8+k*8}" y="20" width="8" height="5" fill="${k%2?'#fff':AW[1]}"/>`).join('')}<rect x="12" y="30" width="10" height="12" rx="1" fill="#FBEFE9" stroke="#F8F4EC"/><rect x="42" y="30" width="10" height="12" rx="1" fill="#FBEFE9" stroke="#F8F4EC"/><rect x="27" y="34" width="12" height="22" rx="1.5" fill="${DR}"/><rect x="29" y="36" width="8" height="7" fill="#CFE3EE"/>${ex}`)}
-  if(/^fl_/.test(id)){const t=id.slice(3);return sv(`<path d="M32 58 V30" stroke="#6E9A5A" stroke-width="2.4"/><ellipse cx="25" cy="44" rx="6" ry="2.6" fill="#88B271" transform="rotate(-30 25 44)"/><image href="${flowerURL(t,0,3)}" x="6" y="2" width="52" height="52"/>`)}
+  if(/^fl_/.test(id)){const t=tierFlower(id);return sv(`<path d="M32 58 V30" stroke="#6E9A5A" stroke-width="2.4"/><ellipse cx="25" cy="44" rx="6" ry="2.6" fill="#88B271" transform="rotate(-30 25 44)"/><image href="${flowerURL(t,0,3)}" x="6" y="2" width="52" height="52"/>`)}
   if(id==='bucket4'||id==='xbucket')return sv(A.bucket3);
   const numTag=n=>`<circle cx="50" cy="14" r="9" fill="#E0708C"/><text x="50" y="18" font-size="11" text-anchor="middle" fill="#fff" font-family="Jua,sans-serif">${n}</text>`;
   if(/^pickup\d/.test(id))return sv(A.pickup+numTag({pickup2:4,pickup3:6,pickup4:8}[id]));
@@ -340,7 +350,16 @@ function hydrangeaV(g,x,y,s,w){
    꽃 그림 v2 (장미·튤립·프리지아·수국·안개꽃) — 게임 속 그림과 창 미리보기가 같은 그림을 씀
    flowerArt(g,t,x,y,s,w,seed): (x,y)=꽃송이 중심, s=크기(반지름 정도), w=시듦 0~1
    ========================================================= */
-function wmix(c,w,to){return w>0?mix(c,to||WITHER,w*.85):c}
+/* 계절 색: 겨울엔 기본 꽃 색을 바꿔요(그릴 때만 바꿔 끼움 → 그림 수·메모리 그대로) */
+let FREMAP=null;
+const WINTER_COL={
+  tulip:{'#C9406A':'#D9CEC6','#EE7FA0':'#F7F2EC','#FFD1DD':'#FFFFFF','#9E2A50':'#B3A398'},  /* 하얀 튤립 */
+  freesia:{'#F6C93F':'#FBF7EE','#FFE68A':'#FFFFFF','#E8952C':'#E8DCC0'},                     /* 하얀 프리지아 */
+  hydrangea:{'#8FAEE6':'#9E4A5E','#A9C1F0':'#B8707C','#B8A6E3':'#8FA884','#C9D8F6':'#D9A3AA','#9DB6EE':'#A85A6A','#7C97CC':'#7E3448','#5E78B0':'#5A2436'}, /* 앤틱 와인·그린 수국 */
+  rose:{'#B81A35':'#A8102C','#D2334B':'#C21E36','#94102A':'#7E0A22'},                          /* 더 깊은 크리스마스 레드 */
+  gyp:{'#F1EBC6':'#E6EEF7'}                                                                  /* 눈송이 같은 안개꽃 */
+};
+function wmix(c,w,to){if(FREMAP&&FREMAP[c])c=FREMAP[c];return w>0?mix(c,to||WITHER,w*.85):c}
 function fgrad(g,x0,y0,x1,y1,stops){const q=g.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,c])=>q.addColorStop(o,c));return q}
 function frad(g,x,y,r,stops){const q=g.createRadialGradient(x,y,0,x,y,r);stops.forEach(([o,c])=>q.addColorStop(o,c));return q}
 function fEl(g,x,y,rx,ry,f,r){g.beginPath();g.ellipse(x,y,Math.max(.01,rx),Math.max(.01,ry),r||0,0,Math.PI*2);g.fillStyle=f;g.fill()}
@@ -450,10 +469,59 @@ function peonyArt(g,s,w,seed){
   for(let k=0;k<5;k++){const a=k*1.2566;fEl(g,Math.cos(a)*.12,Math.sin(a)*.1-.04,.2,.17,k%2?L:B)}
   fEl(g,0,-.05,.12,.1,wmix('#F7D46A',w,'#C9B88E'));fEl(g,-.35,-.45,.16,.09,'rgba(255,255,255,.4)');g.restore();
 }
-function flowerArt(g,t,x,y,s,w,seed){g.save();g.translate(x,y);
+/* ---- 겨울 꽃 ---- */
+/* 포인세티아: 빨간 별 모양 잎(포엽) 두 겹 + 가운데 노란 꽃눈 */
+function poinsettiaArt(g,s,w,seed){
+  const R1=wmix('#C8262E',w),R2=wmix('#E0414A',w),RD=wmix('#8E1420',w,'#6E5646'),G=wmix('#3F6B4E',w,'#8E7F58'),Y=wmix('#F2C94C',w,'#C9B88E');
+  g.save();g.scale(s,s);const r=seedRand(seed||21);
+  for(let k=0;k<5;k++){const a=k*1.2566+.3;g.save();g.rotate(a);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(.2,-.45,0,-1.02);g.quadraticCurveTo(-.2,-.45,0,0);g.fillStyle=G;g.fill();g.restore()}
+  const leaf=(a,L,W,c1,c2)=>{g.save();g.rotate(a);g.beginPath();g.moveTo(0,0);g.bezierCurveTo(W,-L*.3,W*.8,-L*.75,0,-L);g.bezierCurveTo(-W*.8,-L*.75,-W,-L*.3,0,0);g.fillStyle=fgrad(g,0,0,0,-L,[[0,c2],[.6,c1],[1,c1]]);g.fill();
+    g.strokeStyle=RD;g.globalAlpha=.55;g.lineWidth=.03;g.beginPath();g.moveTo(0,-.05);g.lineTo(0,-L*.92);g.stroke();g.globalAlpha=1;g.restore()};
+  for(let k=0;k<6;k++)leaf(k*1.0472+r()*.15,.92,.3,R1,RD);
+  for(let k=0;k<5;k++)leaf(k*1.2566+.52,.6,.24,R2,R1);
+  for(let k=0;k<6;k++){const a=k*1.047;fEl(g,Math.cos(a)*.1,Math.sin(a)*.1,.06,.06,Y)}fEl(g,0,0,.05,.05,wmix('#7FA85A',w));
+  fEl(g,-.28,-.42,.12,.06,'rgba(255,255,255,.35)',-.5);g.restore()}
+/* 아마릴리스: 크고 빨간 나팔꽃잎 여섯 장 + 흰 줄무늬 + 노란 수술 */
+function amaryllisArt(g,s,w){
+  const A=wmix('#D8333C',w),B=wmix('#EE5A60',w),D=wmix('#9E1A26',w,'#6E5646'),L=wmix('#FFD6D2',w,'#E6D8C6'),Y=wmix('#F2D46A',w,'#C9B88E');
+  g.save();g.scale(s,s);
+  for(let k=0;k<6;k++){const a=k*1.0472+(k%2?.08:0);g.save();g.rotate(a);g.beginPath();g.moveTo(0,0);g.bezierCurveTo(.4,-.2,.38,-.82,0,-1);g.bezierCurveTo(-.38,-.82,-.4,-.2,0,0);
+    g.fillStyle=fgrad(g,0,0,0,-1,[[0,D],[.35,A],[1,k%2?B:A]]);g.fill();g.strokeStyle=L;g.globalAlpha=.55;g.lineWidth=.06;g.beginPath();g.moveTo(0,-.12);g.lineTo(0,-.62);g.stroke();g.globalAlpha=1;g.restore()}
+  fEl(g,0,0,.2,.2,frad(g,0,0,.22,[[0,wmix('#B8E07A',w)],[1,D]]));
+  g.strokeStyle=wmix('#F6EAD0',w);g.lineWidth=.035;g.lineCap='round';for(let k=0;k<6;k++){const a=-1.9+k*.16;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(Math.cos(a)*.3,Math.sin(a)*.3-.05,Math.cos(a)*.52,Math.sin(a)*.52);g.stroke();fEl(g,Math.cos(a)*.54,Math.sin(a)*.54,.045,.03,Y)}
+  fEl(g,-.35,-.4,.13,.07,'rgba(255,255,255,.4)',-.6);g.restore()}
+/* 동백: 둥근 붉은 꽃잎 겹겹 + 노란 수술 다발 + 윤기 나는 짙은 잎 */
+function camelliaArt(g,s,w,seed){
+  const A=wmix('#B81E32',w),B=wmix('#D63A4C',w),D=wmix('#7E0E1E',w,'#6E5646'),G=wmix('#2E5A3C',w,'#8E7F58'),Y=wmix('#F4CC4A',w,'#C9B88E');
+  g.save();g.scale(s,s);const r=seedRand(seed||31);
+  for(const a of [-2.5,.6]){g.save();g.rotate(a);g.beginPath();g.ellipse(0,-.78,.2,.36,0,0,Math.PI*2);g.fillStyle=G;g.fill();g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=.03;g.beginPath();g.moveTo(0,-.5);g.lineTo(0,-1.05);g.stroke();g.restore()}
+  for(let k=0;k<7;k++){const a=k*.8976+r()*.1;g.save();g.rotate(a);g.beginPath();g.ellipse(0,-.5,.4,.44,0,0,Math.PI*2);g.fillStyle=frad(g,0,-.2,.8,[[0,D],[.55,A],[1,B]]);g.fill();g.restore()}
+  for(let k=0;k<5;k++){const a=k*1.2566+.35;g.save();g.rotate(a);g.beginPath();g.ellipse(0,-.3,.3,.32,0,0,Math.PI*2);g.fillStyle=frad(g,0,-.1,.5,[[0,A],[1,B]]);g.fill();g.restore()}
+  fEl(g,0,0,.22,.2,wmix('#F8E7B0',w,'#C9B88E'));for(let k=0;k<12;k++){const a=k*.5236,d=.08+r()*.09;fEl(g,Math.cos(a)*d,Math.sin(a)*d-.02,.05,.05,Y)}
+  fEl(g,-.32,-.4,.15,.08,'rgba(255,255,255,.42)',-.5);g.restore()}
+/* 전나무 가지: 짙은 초록 바늘잎이 가지 양쪽으로 촘촘하게 */
+function firArt(g,s,w,seed){
+  const G1=wmix('#2F5A3E',w,'#8E7F58'),G2=wmix('#4A7A55',w,'#9E8E62'),G3=wmix('#6E9C6E',w,'#A89A72'),Br=wmix('#6A4A30',w);
+  g.save();g.scale(s,s);g.lineCap='round';
+  const branch=(x0,y0,x1,y1,n,len)=>{g.strokeStyle=Br;g.lineWidth=.05;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
+    const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L;
+    for(let k=1;k<=n;k++){const t=k/(n+1),px=x0+dx*t,py=y0+dy*t,l=len*(1-t*.45);
+      for(const sd of [-1,1]){const ax=-uy*sd,ay=ux*sd;g.strokeStyle=k%3===0?G3:(k%2?G1:G2);g.lineWidth=.07;g.beginPath();g.moveTo(px,py);g.lineTo(px+(ax*.85+ux*.5)*l,py+(ay*.85+uy*.5)*l);g.stroke()}}};
+  branch(0,.9,0,-.95,12,.42);branch(0,.2,-.62,-.55,7,.3);branch(0,0,.6,-.6,7,.3);
+  g.restore()}
+/* 목화: 갈색 꽃받침 위 하얀 솜뭉치 세 덩이 */
+function cottonArt(g,s,w,seed){
+  const W1=wmix('#FFFFFF',w,'#E8DCC8'),W2=wmix('#EDE8DF',w,'#D8C8B0'),Br=wmix('#6E4A34',w),Br2=wmix('#8E6448',w);
+  g.save();g.scale(s,s);
+  for(let k=0;k<4;k++){const a=k*1.5708+.78;g.save();g.rotate(a);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(.2,-.35,0,-.72);g.quadraticCurveTo(-.2,-.35,0,0);g.fillStyle=k%2?Br:Br2;g.fill();g.restore()}
+  for(const [x,y,r] of [[-.26,.04,.38],[.26,.06,.38],[0,-.24,.42]]){fEl(g,x,y,r,r*.92,frad(g,x-r*.3,y-r*.3,r*1.2,[[0,W1],[.75,W1],[1,W2]]));
+    g.strokeStyle='rgba(180,165,145,.4)';g.lineWidth=.025;g.beginPath();g.arc(x,y,r*.55,Math.PI*.2,Math.PI*.9);g.stroke()}
+  g.restore()}
+function flowerArt(g,t,x,y,s,w,seed){g.save();g.translate(x,y);FREMAP=WINTER?WINTER_COL[t]||null:null;
+  if(t==='poinsettia')poinsettiaArt(g,s,w,seed);else if(t==='amaryllis')amaryllisArt(g,s,w);else if(t==='camellia')camelliaArt(g,s,w,seed);else if(t==='fir')firArt(g,s,w,seed);else if(t==='cotton')cottonArt(g,s,w,seed);else
   if(t==='sunflower')sunflowerArt(g,s,w,seed);else if(t==='ranunculus')ranunculusArt(g,s,w);else if(t==='peony')peonyArt(g,s,w,seed);else
   if(t==='rose')roseArt(g,s,w);else if(t==='tulip')tulipArt(g,s,w);else if(t==='freesia')freesiaArt(g,s,w);else if(t==='hydrangea')hydrangeaArt(g,s,w,seed);else gypArt(g,s,w,seed);
-  g.restore()}
+  FREMAP=null;g.restore()}
 /* 창(HTML) 미리보기용: 같은 그림을 작은 이미지로 구워 두고 재사용 */
 const FART_CACHE=new Map();
 function flowerURL(t,w,seed){const wb=Math.round(w*6)/6,key=t+'|'+wb+'|'+(seed||0);let u=FART_CACHE.get(key);if(u)return u;
@@ -461,12 +529,12 @@ function flowerURL(t,w,seed){const wb=Math.round(w*6)/6,key=t+'|'+wb+'|'+(seed||
   flowerArt(g,t,56,t==='freesia'?60:56,t==='hydrangea'?46:t==='gyp'?50:44,wb,seed);
   u=artURL(cv);FART_CACHE.set(key,u);return u}
 
-const FART_K={rose:.6,tulip:.66,freesia:.62,hydrangea:1.05,gyp:.8,sunflower:.72,ranunculus:.62,peony:.8};
+const FART_K={rose:.6,tulip:.66,freesia:.62,hydrangea:1.05,gyp:.8,sunflower:.72,ranunculus:.62,peony:.8,poinsettia:.78,amaryllis:.72,camellia:.68,fir:.8,cotton:.66};
 function flowerHead(g,t,x,y,s,f,dried){
   const w=dried?.62:wither(f);
   if(w>.25&&!dried){y+=w*s*.55;x+=(x%2?1:-1)*w*s*.3}
   if(s<1.6){ // 아주 작을 때는 가벼운 그림(점 몇 개)으로 — 굽는 시간 절약
-    const c={rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
+    const c=(WINTER&&{tulip:'#F7F2EC',freesia:'#FBF7EE',hydrangea:'#A85A6A'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#D8333C',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
   flowerArt(g,t,x,y,s*(FART_K[t]||.6),w,Math.round(x*7+y*3)&1023);
 }
 function wetSparkle(g,x,y,s){if(BAKE&&BAKE.fx){BAKE.fx.push({k:'spk',x:x-BAKE.ax,y:y-BAKE.ay,s});return}const tt=performance.now()/400+x;const a=(Math.sin(tt)+1)/2;g.globalAlpha=.35+.55*a;el(g,x,y,s*.18,s*.18,'#FFFFFF');ln(g,x-s*.35,y,x+s*.35,y,'#FFFFFF',.3);ln(g,x,y-s*.35,x,y+s*.35,'#FFFFFF',.3);g.globalAlpha=1}
@@ -776,12 +844,18 @@ const PINX={
   scrunchie:(g,x,y)=>{for(let k=0;k<7;k++){const a=k*Math.PI*2/7;el(g,x+Math.cos(a)*4,y+Math.sin(a)*3,3,2.6,k%2?'#E8A0B4':'#F2B8C8')}el(g,x,y,2.2,1.8,'#D88AA0')},
   bowP:(g,x,y)=>{el(g,x-5,y,6,4.2,'#FFFFFF',-.4);el(g,x+5,y-2,6,4.2,'#FFFFFF',.4);for(const k of [-7,-4,4,7])el(g,x+k,y-(k>0?2:0),.9,.9,'#E8E2D6');el(g,x,y-1,2.4,2.4,'#F1E9DC')}
 };
+/* 눈꽃 핀 */
+function snowflakePin(g,px,py){g.strokeStyle='#CFE3F4';g.lineWidth=1.3;g.lineCap='round';for(let k=0;k<3;k++){const a=k*Math.PI/3;g.beginPath();g.moveTo(px-Math.cos(a)*5,py-Math.sin(a)*5);g.lineTo(px+Math.cos(a)*5,py+Math.sin(a)*5);g.stroke()}g.strokeStyle='#FFFFFF';g.lineWidth=.8;for(let k=0;k<6;k++){const a=k*Math.PI/3,x=px+Math.cos(a)*3.4,y=py+Math.sin(a)*3.4;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a+.6)*1.6,y+Math.sin(a+.6)*1.6);g.stroke()}el(g,px,py,1.2,1.2,'#FFFFFF')}
 function pinV(g,p,hx,t,back){
   const a=p.pin;if(!a)return;
+  if(a==='rudolph'){/* 루돌프 머리띠: 갈색 머리띠 + 뿔 두 개 + 작은 방울 */g.strokeStyle='#6E4A34';g.lineWidth=3;g.beginPath();g.arc(hx,-98,25,Math.PI*1.1,Math.PI*1.9);g.stroke();
+    for(const s of [-1,1]){const bx=hx+s*14-(back?0:t*3);g.strokeStyle='#8A5A36';g.lineWidth=2.6;g.lineCap='round';g.beginPath();g.moveTo(bx,-120);g.lineTo(bx+s*3,-134);g.stroke();g.lineWidth=2;g.beginPath();g.moveTo(bx+s*1.5,-127);g.lineTo(bx+s*8,-131);g.moveTo(bx+s*2.5,-131);g.lineTo(bx-s*1,-139);g.stroke()}
+    if(!back)el(g,hx+t*8,-121,2.6,2.6,'#C8262E');return}
   if(a==='band'){g.strokeStyle='#B9A2E0';g.lineWidth=4;g.beginPath();g.arc(hx,-98,25,Math.PI*1.08,Math.PI*1.92);g.stroke();return}
   const px=back?hx-15:hx+15-t*4,py=-117;
   if(a==='pearl'){for(let k=0;k<3;k++){el(g,px-5+k*5,py+k*.8,2.3,2.3,'#FBF7EF');el(g,px-5.6+k*5,py-.6+k*.8,.8,.8,'#FFFFFF')}return}
   if(a==='ribbon'){el(g,px-5,py,6,4,'#EE7F9C',-.4);el(g,px+5,py-2,6,4,'#EE7F9C',.4);el(g,px,py-1,2.4,2.4,'#C65C79')}
+  else if(a==='snowpin')snowflakePin(g,px,py);
   else if(PINX[a])PINX[a](g,px,py);
   else{const pc=a==='yflower'?'#F9D66B':'#FFFFFF',cc=a==='yflower'?'#E8A23A':'#F5CF4E';for(let k=0;k<5;k++){const an=k*Math.PI*2/5;el(g,px+Math.cos(an)*3.6,py+Math.sin(an)*3.6,2.8,2.8,pc)}el(g,px,py,2.2,2.2,cc)}
 }
@@ -803,7 +877,13 @@ function slimHead(g,hx,t,col,sh){
 /* 34차: 반측면에서 눈동자를 바라보는 쪽으로 살짝(수갱) */
 let EYE_GAZE=0;
 function hatV(g,p,hx,t,back){
-  const a=p.hat||(p.acc!=='glasses'&&p.acc);if(!a)return;const hc=p.hatC||(p.hat?'#C65C79':mix(p.tee,'#3B2F3F',.15));
+  const a=p.hat||(p.acc!=='glasses'&&p.acc);if(!a)return;
+  if(a==='santa'&&p.hat){/* 산타 모자: 빨간 모자가 한쪽으로 접혀 내려오고 흰 털 테두리·방울 */const sd=back?1:-1;
+    g.beginPath();g.moveTo(hx-24,-110);g.bezierCurveTo(hx-20,-136,hx+8,-142,hx+20,-130);g.quadraticCurveTo(hx+29,-122,hx+31,-108);g.lineTo(hx+26,-108);g.quadraticCurveTo(hx+22,-118,hx+18,-120);g.lineTo(hx+24,-110);g.closePath();g.fillStyle='#C8262E';g.fill();
+    g.save();g.globalAlpha=.22;el(g,hx+2,-128,10,4,'#FFFFFF',-.3);g.restore();
+    rr(g,hx-26,-114,52,9,4.5,'#FBF8F2');for(let k=0;k<9;k++)el(g,hx-22+k*5.5,-110+(k%2)*1.2,2.2,1.6,'#EEE8DE');el(g,hx+31,-106,5,5,'#FBF8F2');el(g,hx+30,-107,2,2,'#FFFFFF');return}
+  if(a==='earmuff'&&p.hat){/* 털 귀마개: 머리띠 + 양쪽 복슬복슬 */const c=p.hatC||'#F2B6C6';g.strokeStyle=mix(c,'#000',.25);g.lineWidth=2.4;g.beginPath();g.arc(hx,-100,24,Math.PI*1.08,Math.PI*1.92);g.stroke();
+    const ex=[[-23.5,1],[23.5,1]];for(const [dx] of (t>.6&&!back?[[-21+t*6]]:t>.6?[[21-t*6]]:ex)){const x=hx+dx;el(g,x,-95,7,8,c);for(let k=0;k<6;k++){const an=k*1.047;el(g,x+Math.cos(an)*5,-95+Math.sin(an)*5.5,2.6,2.6,mix(c,'#FFFFFF',.25))}el(g,x-1.5,-97,2.4,2.4,'rgba(255,255,255,.5)')}return}const hc=p.hatC||(p.hat?'#C65C79':mix(p.tee,'#3B2F3F',.15));
   if(a==='beret'){const c1=p.hatC||'#C65C79',c2=mix(c1,'#FFFFFF',.15);el(g,hx-3,-120,25,9,c1,-.12);el(g,hx-3,-124,20,6,c2,-.12);el(g,hx-2,-130,2.2,2.2,mix(c1,'#000',.2));g.save();g.globalAlpha=.25;el(g,hx-10,-125,8,2,'#FFFFFF',-.2);g.restore();return}
   if(a==='mailcap'){el(g,hx,-116,26,13,'#34507E');g.fillStyle='#34507E';g.fillRect(hx-26,-116,52,7);g.fillStyle='#D8534F';g.fillRect(hx-26,-112,52,3.5);if(!back){el(g,hx+t*12,-104,22-t*4,5,'#26406A');el(g,hx+t*5,-116,4,3.2,'#E2B656')}return}
   if(a==='kidhat'){el(g,hx,-108,31,8,'#F2C230');rr(g,hx-20,-132,40,26,13,'#F7D04A');g.fillStyle='#E8603C';g.fillRect(hx-20,-112,40,3);el(g,hx-8,-126,6,2,'rgba(255,255,255,.35)',-.3);return}
@@ -860,13 +940,18 @@ function faceV(g,p,glasses,fx,t){
 }
 /* 옷 겉옷·목도리·가방·소품 (정면/3/4/뒤) */
 function coatBodyV(g,p,st,hw,t,back){
-  const c=p.coat;if(!c)return;const col=p.coatC,d=mix(col,'#1E1622',.2),L2=p.coat==='trench'?-26:-34;
+  const c=p.coat;if(!c)return;const col=p.coatC,d=mix(col,'#1E1622',.2),L2=p.coat==='trench'||p.coat==='wool'?-26:p.coat==='pad'?-37:-34;
   g.beginPath();g.moveTo(-hw-1+st,-76);g.lineTo(hw+1+st,-76);g.lineTo(hw+4+st,L2);g.lineTo(-hw-4+st,L2);g.closePath();g.fillStyle=clothGrad(g,col,-hw-4+st,hw+4+st);g.fill();
-  if(back){if(p.coat==='trench'){rr(g,-hw-3+st,-47,2*hw+6,5,2,d);ln(g,st,-44,st,L2,d,1.2)}return}
+  if(p.coat==='pad'){/* 패딩: 가로 퀼팅 + 볼륨 */g.save();g.globalAlpha=.32;for(let yy=-70;yy<L2;yy+=7.5){g.strokeStyle=d;g.lineWidth=1;g.beginPath();g.moveTo(-hw-2+st,yy);g.quadraticCurveTo(st,yy+1.6,hw+2+st,yy);g.stroke()}g.globalAlpha=.22;for(let yy=-73;yy<L2;yy+=7.5)rr(g,-hw+2+st,yy,2*hw-4,2.2,1.1,'#FFFFFF');g.restore();
+    rr(g,-hw-2+st,-80,2*hw+4,6,3,mix(col,'#FFFFFF',.12))}
+  if(back){if(p.coat==='trench'){rr(g,-hw-3+st,-47,2*hw+6,5,2,d);ln(g,st,-44,st,L2,d,1.2)}if(p.coat==='wool'){ln(g,st,-44,st,L2,d,1.1);rr(g,-7+st,-52,14,3,1.2,d)}return}
   const cx=st+t*5;
   if(p.coat==='trench'){P2(g,[-10+cx,-77,-2+cx,-77,-7+cx,-60],mix(col,'#FFFFFF',.25));P2(g,[10+cx,-77,2+cx,-77,7+cx,-60],mix(col,'#FFFFFF',.25));
     ln(g,cx,-70,cx-1,L2+1,d,1.2);for(const yy of [-64,-55])el(g,cx+4,yy,1.6,1.6,'#8A6A4A');
     rr(g,-hw-3+st,-47,2*hw+6,5,2,mix(col,'#8A5A3A',.3));rr(g,cx-4,-48,8,7,1.6,'#9C7A55');rr(g,cx-2.5,-46.5,5,4,1,col)}
+  else if(p.coat==='wool'){/* 울 코트: 넓은 깃 + 더블 단추 */P2(g,[-11+cx,-78,-1+cx,-77,-6+cx,-58],mix(col,'#FFFFFF',.18));P2(g,[11+cx,-78,1+cx,-77,6+cx,-58],mix(col,'#FFFFFF',.18));
+    ln(g,cx+1,-66,cx+1,L2+1,d,1.1);for(const yy of [-56,-46,-36])for(const dx of [-3.4,4.6])el(g,cx+dx,yy,1.4,1.4,mix(col,'#000',.35));rr(g,-hw+1+st,-44,7,1.4,.6,d);rr(g,hw-8+st,-44,7,1.4,.6,d)}
+  else if(p.coat==='pad'){ln(g,cx,-76,cx,L2,d,1.3);rr(g,cx-1.2,-74,2.4,4,1,'#D8D2C6')}
   else if(p.coat==='cardigan'){g.fillStyle=p.innerC||'#FFF6E6';g.beginPath();g.moveTo(cx-6,-77);g.lineTo(cx+6,-77);g.lineTo(cx+3,L2);g.lineTo(cx-3,L2);g.closePath();g.fill();
     ln(g,cx-4,-76,cx-2.5,L2,d,1.1);ln(g,cx+4,-76,cx+2.5,L2,d,1.1);for(const yy of [-68,-58,-48,-40])el(g,cx-5,yy,1.3,1.3,'#F4EDE0');
     g.save();g.globalAlpha=.18;for(let yy=-72;yy<L2;yy+=4)ln(g,-hw+st,yy,cx-7,yy,'#FFFFFF',.6);g.restore()}
@@ -877,6 +962,8 @@ function coatBodyV(g,p,st,hw,t,back){
 function P2(g,pts,fill){poly(g,pts,fill)}
 /* 상의 종류(니트·후드·줄무늬 티) 덧그림 */
 function topV(g,p,st,hw,t,back){const c=p.tee,d=mix(c,'#1E1622',.2),L=mix(c,'#FFFFFF',.3);
+  if(p.top==='xknit'){/* 크리스마스 니트: 흰 눈꽃 줄 + 지그재그 */g.save();g.globalAlpha=.25;for(let x=-hw+3;x<hw;x+=4)ln(g,x+st,-74,x+st,-40,d,1);g.restore();rr(g,-hw-1+st,-62,2*hw+2,9,1,mix(c,'#000',.12));for(let x=-hw+3;x<hw-1;x+=6){el(g,x+st,-57.5,1.3,1.3,'#FBF8F2');ln(g,x+st-1.8,-57.5,x+st+1.8,-57.5,'#FBF8F2',.6);ln(g,x+st,-59.3,x+st,-55.7,'#FBF8F2',.6)}
+    g.strokeStyle='#FBF8F2';g.lineWidth=.9;g.beginPath();for(let x=-hw;x<=hw;x+=3)g.lineTo(x+st,-49+((x/3)%2?-1.4:1.4));g.stroke();rr(g,-hw-2+st,-42,2*hw+4,6,2,d);if(!back)rr(g,-8+st+t*5,-80,16,5,2.5,d);return}
   if(p.top==='knit'){g.save();g.globalAlpha=.28;for(let x=-hw+3;x<hw;x+=4)ln(g,x+st,-74,x+st,-40,d,1);g.restore();rr(g,-hw-2+st,-42,2*hw+4,6,2,d);if(!back)rr(g,-8+st+t*5,-80,16,5,2.5,d)}
   else if(p.top==='hood'){if(back){rr(g,-hw*.7+st,-80,hw*1.4,22,9,d);rr(g,-hw*.55+st,-78,hw*1.1,16,7,c)}else{rr(g,-hw*.8+st,-82,hw*1.6,9,4.5,d);const cx=st+t*5;ln(g,cx-4,-76,cx-4.5,-62,L,1.2);ln(g,cx+4,-76,cx+4.5,-62,L,1.2);el(g,cx-4.5,-61,1.2,1.4,L);el(g,cx+4.5,-61,1.2,1.4,L);rr(g,-hw*.55+st+t*4,-56,hw*1.1,10,3,d)}}
   else if(p.top==='stripe'){g.save();g.globalAlpha=.85;for(let y=-72;y<-40;y+=6)rr(g,-hw-1+st,y,2*hw+2,2.6,1,p.topL||'#FFFFFF');g.restore()}}
@@ -950,6 +1037,7 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
   const sw=moving?Math.sin(phase):0,bob=moving?Math.abs(Math.cos(phase))*3.6*(jog?1.5:1):(CHT?CHT.bob:Math.sin(performance.now()/600+(x%7))*1.1),hs=moving?Math.sin(phase+1)*2.4:0,wk=work?(CHT?CHT.wk:Math.sin(performance.now()/90)*.18):0;
   const longSl=!!p.coat;
   const limb=(sx,sy,ua,fa,fs,col,sleeve,hand,handCol)=>{
+    if(p.mitten)handCol=handCol===p.skinSh?mix(p.mitten,'#000',.12):p.mitten;
     const armCol=longSl?sleeve:col;
     g.save();g.translate(sx,sy);g.scale(1,fs);g.rotate(ua);
     rr(g,-4.6,-1,9.2,17.5,4.6,armCol);g.translate(0,15.5);g.rotate(fa);rr(g,-4.1,-1.5,8.2,15,4.1,armCol);
@@ -977,9 +1065,11 @@ function drawChar0(g,x,y,p,dir,phase,moving,glasses,work,sit){
     {const s2=-sw;if(jog)limb(-1,-71,-s2*1.05,-1.75,1,p.skinSh,mix(sleeveC,'#000',.1),4.6,p.skinSh);else if(armUp)limb(-1,-71,Math.PI+.12,0,1,p.skinSh,mix(sleeveC,'#000',.1),4.6,p.skinSh);else if(readA)limb(-1,-71,-.7,-.85,1,p.skinSh,mix(sleeveC,'#000',.1),4.6,p.skinSh);else limb(-1,-71,work?-.7:-s2*.55,work?-.85:-(.12+.3*Math.max(0,s2)),1,p.skinSh,mix(sleeveC,'#000',.1),4.6,p.skinSh)}
     if(p.pack)rr(g,-26,-74,12,30,5,p.packC||'#E3A04A');
     if(p.bag){ln(g,-8,-76,6,-46,mix(p.bagC||'#9C6B4C','#000',.2),2.4);rr(g,-2,-50,12,13,3,p.bagC||'#9C6B4C')}
-    const tb=p.coat?(p.coat==='trench'?-26:-34):-36;
+    const tb=p.coat?(p.coat==='trench'||p.coat==='wool'?-26:p.coat==='pad'?-37:-34):-36;
     poly(g,[-16,-76,14,-76,p.coat?18:16,tb,p.coat?-20:-18,tb],clothGrad(g,p.coat?p.coatC:p.tee,-20,18));g.fillStyle=p.coat?mix(p.coatC,'#000',.12):p.teeSh;g.fillRect(-18,tb-6,34,p.coat?3:6);
     if(p.coat==='trench')rr(g,-20,-47,38,5,2,mix(p.coatC,'#8A5A3A',.3));
+    if(p.coat==='pad'){g.save();g.globalAlpha=.3;for(let yy=-70;yy<tb;yy+=7.5)ln(g,-17,yy,15,yy+1,mix(p.coatC,'#000',.3),1);g.restore();rr(g,-14,-81,26,6,3,mix(p.coatC,'#FFFFFF',.12))}
+    if(p.coat==='wool'){P2(g,[8,-77,15,-76,11,-60],mix(p.coatC,'#FFFFFF',.18));for(const yy of [-54,-44,-34])el(g,13,yy,1.3,1.3,mix(p.coatC,'#000',.35))}
     if(p.skirt){g.beginPath();g.moveTo(-16,-40);g.lineTo(14,-40);g.lineTo(18,-17);g.lineTo(-20,-17);g.closePath();g.fillStyle=clothGrad(g,p.skirt,-20,18);g.fill()}
     apronV(g,p,0,0,0,false,true);
     if(p.scarf){rr(g,-14,-80,28,9,4.5,p.scarf);rr(g,-18,-74,7,15,3,p.scarf)}

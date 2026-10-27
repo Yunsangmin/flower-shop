@@ -136,7 +136,7 @@ function drawStationV(g,s){
       });
       break;}
     case 'stall':{
-      const closed=t>=MARKET_CLOSE;const aw={tulip:'#F4B6C4',freesia:'#F6DC86',gyp:'#BFE3D0',rose:'#E7A3AE',hydrangea:'#BFD0F0',sunflower:'#F7D978',ranunculus:'#F6C0B2',peony:'#F4C6D4'}[s.flower];
+      const closed=t>=MARKET_CLOSE;const aw=(WINTER&&{tulip:'#E9E2DA',freesia:'#F2ECDF',hydrangea:'#D9A9B0',rose:'#D9737E'}[s.flower])||{tulip:'#F4B6C4',freesia:'#F6DC86',gyp:'#BFE3D0',rose:'#E7A3AE',hydrangea:'#BFD0F0',sunflower:'#F7D978',ranunculus:'#F6C0B2',peony:'#F4C6D4',poinsettia:'#D9555C',amaryllis:'#E8828A',camellia:'#C9606E',fir:'#7FA58A',cotton:'#EFE9DE'}[s.flower];
       g.fillStyle=CO.woodD;g.fillRect(x+1,y-24,1.6,26);g.fillRect(x+w-2.6,y-24,1.6,26);
       if(!closed)drawChar(g,x+w/2,y+3,VENDORS[s.flower],'down',0,false,false);
       if(closed){rr(g,x,y-24,w,4,1.5,aw)}else{for(let k=0;k<w;k+=6){g.fillStyle=(k/6)%2?CO.white:aw;g.fillRect(x+k,y-24,6,9);el(g,x+k+3,y-15,3,2,(k/6)%2?CO.white:aw)}}
@@ -187,6 +187,10 @@ const STATION_DRAW={};
 const VENDORS={sunflower:{style:'m',hs:'short',hair:'#4A3628',hairHi:'#6A5040',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#F7D978',teeSh:'#E2BE52',pants:'#5A6A7A',shoe:'#fff',num:'',acc:'cap'},
   ranunculus:{style:'f',hs:'pony',hair:'#3A2A26',hairHi:'#5A4642',skin:'#F4D3B7',skinSh:'#E0B597',tee:'#F6C0B2',teeSh:'#E09E8C',pants:'#7A6A5A',shoe:'#fff',num:''},
   peony:{style:'f',hs:'bun',hair:'#2E2A2E',hairHi:'#4E464E',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#F4C6D4',teeSh:'#DCA4B6',pants:'#4E4A5E',shoe:'#fff',num:'',acc:'glasses'},rose:{style:'m',hs:'short',hair:'#2E2A3A',hairHi:'#4A4458',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#E7A3AE',teeSh:'#C98490',pants:'#3E3E48',shoe:'#fff',num:'',acc:'glasses'},hydrangea:{style:'f',hs:'bob',hair:'#5A3A2E',hairHi:'#7A5A4E',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#BFD0F0',teeSh:'#9CB0D6',pants:'#6E5B4B',shoe:'#fff',num:''},tulip:{style:'f',hair:'#6B4A3A',hairHi:'#8A6553',skin:'#F1C9A5',skinSh:'#DBAA86',tee:'#F4B6C4',teeSh:'#E08FA4',pants:'#5C6A8C',shoe:'#fff',num:''},freesia:{style:'m',hair:'#3B2A22',hairHi:'#5E4536',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#F6DC86',teeSh:'#E2BD55',pants:'#6E5B4B',shoe:'#fff',num:''},gyp:{style:'f',hair:'#8A8A8A',hairHi:'#B0B0B0',skin:'#F4D3B7',skinSh:'#E0B597',tee:'#BFE3D0',teeSh:'#9CCBB4',pants:'#3E3E48',shoe:'#fff',num:''}};
+/* 겨울 가판대 상인: 같은 단계 상인이 겨울 꽃을 팔아요 + 겨울 소재 상인 2명 */
+Object.assign(VENDORS,{poinsettia:{...VENDORS.sunflower,tee:'#C9474E',teeSh:'#A8343B'},amaryllis:{...VENDORS.ranunculus,tee:'#E8828A',teeSh:'#C9636C'},camellia:{...VENDORS.peony,tee:'#8E2E3E',teeSh:'#6E2030'},
+  fir:{style:'m',hs:'short',hair:'#3A2E28',hairHi:'#5A4A40',skin:'#E8BE9C',skinSh:'#D0A080',tee:'#4F7458',teeSh:'#3E5E46',pants:'#5A4A3A',shoe:'#fff',num:''},
+  cotton:{style:'f',hs:'bob',hair:'#4A3428',hairHi:'#6A5044',skin:'#F4D3B7',skinSh:'#E0B597',tee:'#EFE6D6',teeSh:'#D8CCB8',pants:'#8A6A50',shoe:'#fff',num:''}});
 const SEEDKEEPER={style:'f',hs:'bun',acc:'sunhat',expr:'grin',hair:'#6B4A3A',hairHi:'#8A6553',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#C6D8A8',teeSh:'#A9C08A',pants:'#6E5B4B',shoe:'#fff',num:''};
 const KEEPER={style:'m',hair:'#8A8A8A',hairHi:'#B5B5B5',skin:'#EBC3A0',skinSh:'#D3A284',tee:'#7FAF8E',teeSh:'#679A78',pants:'#4A4A55',shoe:'#fff',num:''};
 function visRect(s){
@@ -602,7 +606,7 @@ function townDynamic(g){
   const P=sunsetPal(S.t),k=P.k;
   if(k>0){g.fillStyle=P.hor;g.globalAlpha=.28*k;g.fillRect(LX,LY,W-LX,HH-LY-18);g.fillRect(RX0,0,RX1-RX0,LY);g.globalAlpha=1}
   g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=.7;for(let k=0;k<10;k++){const x=LX+20+((k*97+tt*9)%(W-LX-40)),y=LY+14+((k*43)%60);g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+4,y-1.5,x+8,y);g.stroke()}
-  if(S.t>480){const a=clamp((S.t-480)/40,0,1);for(let k=0;k<24;k++){const bx=[60,200,330,480,600,760,860][k%7]+Math.sin(tt*.7+k*1.7)*18,by=[250,300,420,405,300,410,395][k%7]+Math.cos(tt*.9+k)*12;const tw=(Math.sin(tt*3+k*2)+1)/2;g.globalAlpha=a*(.3+.7*tw);el(g,bx,by,1.1,1.1,'#FFF3A0');g.globalAlpha=a*.25*tw;el(g,bx,by,3.5,3.5,'#FFF3A0');g.globalAlpha=1}}
+  if(S.t>480&&!WINTER){const a=clamp((S.t-480)/40,0,1);for(let k=0;k<24;k++){const bx=[60,200,330,480,600,760,860][k%7]+Math.sin(tt*.7+k*1.7)*18,by=[250,300,420,405,300,410,395][k%7]+Math.cos(tt*.9+k)*12;const tw=(Math.sin(tt*3+k*2)+1)/2;g.globalAlpha=a*(.3+.7*tw);el(g,bx,by,1.1,1.1,'#FFF3A0');g.globalAlpha=a*.25*tw;el(g,bx,by,3.5,3.5,'#FFF3A0');g.globalAlpha=1}}
   g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=.8;g.lineCap='round';
   for(let k=0;k<16;k++){const y=((k*37+tt*14)%H);if((y>90&&y<212)||(y>262&&y<310)||(y>378&&y<418))continue;const x=RX0+10+((k*13)%(RX1-RX0-22));g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+3,y-1.5,x+6,y);g.stroke()}
   const L=lampAt(S.t);if(L<=0)return;

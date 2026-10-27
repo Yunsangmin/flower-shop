@@ -9,13 +9,13 @@ function saveGame(mid){
     const pos={};S.stList.forEach(s=>{if(s.home==='shop')pos[s.id]=s.area==='shop'?[s.x,s.y]:[s.x,s.y,s.area]});
     const plots={};S.stList.forEach(s=>{if(s.plot)plots[s.id]=s.plot});
     const spr={};S.stList.forEach(s=>{if(s.on)spr[s.id]=1});
-    const data={v:SAVE_VER,style:S.style,mid:mid||null,spr,closet:S.closet,outfit:S.outfit,day:S.day,money:S.money,nextId:S.nextId,up:S.up,bags:S.bags,bench:S.bench,works:S.works,slots,pos,plots,decor:S.decor,odecor:S.odecor||{},orders:S.orders,shopName:S.shopName,bonds:S.bonds||{}};
+    const data={v:SAVE_VER,style:S.style,mid:mid||null,spr,closet:S.closet,outfit:S.outfit,day:S.day,money:S.money,nextId:S.nextId,up:S.up,bags:S.bags,bench:S.bench,works:S.works,slots,pos,plots,decor:S.decor,odecor:S.odecor||{},orders:S.orders,shopName:S.shopName,bonds:S.bonds||{},xm:S.xm||{}};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
 }
-const SAVE_VER=9;
+const SAVE_VER=10;
 /* 앞으로 저장 형식이 바뀌면 여기서 예전 저장을 새 형식으로 옮겨요 (v4 → v5 → …) */
-const MIGRATE={8:d=>{d.v=9;d.up=d.up||{};d.pos=d.pos||{};return d} /* v9: 설비 위치에 장소(가게 밖) · 늘어난 칸 수 · 추가 설비 개수(up.n_bucket 등) */,7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
+const MIGRATE={9:d=>{d.v=10;d.xm=d.xm||{};return d} /* v10: 겨울 큰 트리 장식·겨울 선물(xm) */,8:d=>{d.v=9;d.up=d.up||{};d.pos=d.pos||{};return d} /* v9: 설비 위치에 장소(가게 밖) · 늘어난 칸 수 · 추가 설비 개수(up.n_bucket 등) */,7:d=>{d.v=8;d.odecor=d.odecor||{};return d},6:d=>{d.v=7;d.bonds=d.bonds||{};return d},4:d=>{d.v=5;d.style=d.style||null;if(d.up)delete d.up.rug;return d},5:d=>{d.v=6;if(!d.style||d.style==='vintage')d.style='natural';return d}};
 function migrateSave(d){if(!d||typeof d.v!=='number'||d.v<4)return null;while(d.v<SAVE_VER){const f=MIGRATE[d.v];if(!f)return null;d=f(d)}return d}
 /* ---------- 자동 백업: 하루를 시작할 때마다 저장을 복사해 최근 3개를 보관해요 ----------
    TV 안 저장공간(수십 KB)만 써서 게임 메모리에는 영향이 없어요. 설정 → '백업에서 되돌리기' */
@@ -30,7 +30,7 @@ function loadSave(){try{const d=migrateSave(JSON.parse(localStorage.getItem(SAVE
 function continueGame(mode){mode='duo';
   const d=loadSave();if(!d){newGame(mode);return}
   S.mode=mode;S.active=0;S.speed=1;
-  Object.assign(S,{style:d.style||null,closet:d.closet||{},outfit:d.outfit||[{},{}],day:d.day,money:d.money,nextId:d.nextId,up:d.up||{},bags:d.bags,bench:d.bench,works:d.works,orders:d.orders,tomorrow:[],shopName:d.shopName||'우리 둘의 꽃집',decor:d.decor||DECOR_BASE.shop.map(x=>({...x})),odecor:d.odecor||{},bonds:d.bonds||{}});
+  Object.assign(S,{style:d.style||null,closet:d.closet||{},outfit:d.outfit||[{},{}],day:d.day,money:d.money,nextId:d.nextId,up:d.up||{},bags:d.bags,bench:d.bench,works:d.works,orders:d.orders,tomorrow:[],shopName:d.shopName||'우리 둘의 꽃집',decor:d.decor||DECOR_BASE.shop.map(x=>({...x})),odecor:d.odecor||{},bonds:d.bonds||{},xm:d.xm||{}});
   S.decor.forEach(x=>x.carried=false);for(const a in S.odecor)S.odecor[a].forEach(x=>x.carried=false);ODEC_V++;
   makeStations();
   Object.entries(d.slots||{}).forEach(([id,v])=>{const s=S.st[id];if(s&&s.slots)v.forEach((it,k)=>{if(k<s.slots.length)s.slots[k]=it})});
@@ -241,7 +241,7 @@ function doAction(i){
     case 'bench':{
       const seat=[0,1].find(n=>!S.chars.some(o=>o.rest&&o.rest.bench===s&&o.rest.seat===n));
       if(seat===undefined){toast(i,'벤치가 꽉 찼어요');return}
-      c.rest={bench:s,seat,start:S.t};c.x=(s.x+.5+seat)*TILE;c.y=(s.y+1)*TILE-3;if(s.up){c.dir='up';c.face=c.ang=Math.PI;c.y=(s.y+1)*TILE-1}else{c.dir='down';c.face=c.ang=0}sfx('sit');if(s.view&&S.t>=420)setTimeout(()=>{if(c.rest&&c.rest.bench===s)sfx('sunset')},700);return;
+      c.rest={bench:s,seat,start:S.t};c.x=(s.x+.5+seat)*TILE;c.y=(s.y+1)*TILE-3;if(s.up){c.dir='up';c.face=c.ang=Math.PI;c.y=(s.y+1)*TILE-1}else{c.dir='down';c.face=c.ang=0}sfx('sit');if(s.view&&wt(S.t)>=420)setTimeout(()=>{if(c.rest&&c.rest.bench===s)sfx('sunset')},700);return;
     }
     case 'field':toast(i,'나중에 여기서 꽃을 키울 수 있어요');return;
     case 'storage':case 'shelf':case 'bucket':case 'dryer':case 'pickup':case 'display':
@@ -257,6 +257,7 @@ function doAction(i){
       if(S.edit)return;
       const ks=c.bag.map((it,k)=>it&&it.kind==='bunch'&&!it.trim&&!it.dried?k:-1).filter(k=>k>=0);
       if(!ks.length){toast(i,'가방에 다듬을 꽃이 없어요. 냉장고에서 꺼내 오세요');return}
+      if(S.up.shears&&S.up.autocut){trimAll(i);return}
       openModal(i,ks.length===1?trimModal(c,ks[0]):{type:'trim',step:'pick'});return;
     }
     case 'craft':{
@@ -289,7 +290,9 @@ function waterAll(c){
   const now=performance.now();list.forEach((s,k)=>{s.plot.watered=true;s.plot.wetAt=now+k*140});
   c.waterT=Math.min(3,1.2+list.length*.14);c.vx=c.vy=0;toast(c.i,`텃밭 ${list.length}칸에 물을 줬어요`);
 }
-function trimModal(c,k){const t=c.bag[k].t;return {type:'trim',step:'leaf',slot:k,leaves:LEAVES[t]||3,removed:[],angle:10,adir:1}}
+function trimModal(c,k){const t=c.bag[k].t,L=LEAVES[t]||3;return S.up.shears?{type:'trim',step:'cut',slot:k,leaves:L,removed:[...Array(L).keys()],angle:10,adir:1}:{type:'trim',step:'leaf',slot:k,leaves:L,removed:[],angle:10,adir:1}}
+/* 전지가위 + 자동 커터: 가방 속 다듬지 않은 꽃을 한 번에 완벽하게 다듬어요 */
+function trimAll(i){const c=S.chars[i];let n=0;c.bag.forEach(it=>{if(it&&it.kind==='bunch'&&!it.trim&&!it.dried){it.trim=true;it.stems.forEach(s=>{s.trim=true;s.cut=1});n++}});if(n){sfx('snip');toast(i,`${n}묶음을 한 번에 다듬었어요`)}return n}
 function wrapModal(c,k){const b=c.bag[k],o=orderById(b.orderId);return {type:'wrap',step:'edit',slot:k,paper:o?o.paper:'pink',ribbon:'white',pat:'plain',card:false}}
 function standUp(c){
   const r=c.rest;if(!r)return;const b=r.bench;const mins=S.t-r.start;
@@ -545,7 +548,7 @@ function updateBall(dt,yard){
   b.hold-=dt;if(b.hold<=0){const others=ready.filter(w=>w!==b.from);if(others.length){b.to=pick(others);b.t=0;b.dur=.75+Math.random()*.35;b.from.throwT=.35}else b.hold=.5}}
 function walkerStep(w,dt){
     if(w.zone==='yard'&&!w.talking){yardKid(w,dt);return}
-    if(w.eve){if(S.t<430){w.hidden=1;return}if(!w.eveOn){w.eveOn=true;w.hidden=0;[w.x,w.y]=park('lake');w.tx=w.x;w.ty=w.y;if(w.dog){w.dog.x=w.x-8;w.dog.y=w.y}}}
+    if(w.eve){if(wt(S.t)<430){w.hidden=1;return}if(!w.eveOn){w.eveOn=true;w.hidden=0;[w.x,w.y]=park('lake');w.tx=w.x;w.ty=w.y;if(w.dog){w.dog.x=w.x-8;w.dog.y=w.y}}}
     if(w.school){const gx=8.5*TILE,gy=28.6*TILE;
       if(S.t<330){if(w.atSchool){w.hidden=1;return}if(!w.goSchool){w.goSchool=true;w.path=[[w.x,23.5*TILE],[2.3*TILE,23.5*TILE],[2.3*TILE,gy],[gx,gy]]}if(stepToward(w,dt,26)){w.atSchool=true;w.hidden=1}return}
       if(w.atSchool){w.atSchool=false;w.hidden=0;w.goSchool=false;w.x=gx;w.y=gy;w.path=[[2.3*TILE,gy],[2.3*TILE,23.5*TILE],[12*TILE,23.5*TILE]];w.leaving=true}
@@ -581,14 +584,14 @@ const TALK={
 function talkLine(w){
   if(w.kind==='cat')return pick(w.lines||CAT_LINES);
   if(w.kkami)return pick(['우리 까미 새까맣죠? 밤에는 눈만 반짝여요.','까미야, 인사해야지! 꼬리 흔드는 거 보여요?','까미는 토토랑 친해요. 가끔 같이 낮잠 자요.','까미는 이 동네 산책 대장이에요.']);
-  const tb=S.t<180?'좋은 아침이에요! ':S.t>480?'벌써 해가 지네요. ':'';
+  const tb=S.t<180?(WINTER?'추운 아침이에요! ':'좋은 아침이에요! '):wt(S.t)>480?'벌써 해가 지네요. ':'';
   const o0=S.outfit[0]||{},o1=S.outfit[1]||{},extra=[];
   if(o1.glasses)extra.push('안경 쓴 언니 정말 멋있어요!');if(o0.hat)extra.push('모자 쓴 오빠, 잘 어울려요!');if(o1.pin)extra.push('머리핀 예쁘네요. 어디서 샀어요?');
   if(o0.apron||o1.apron)extra.push('앞치마 입으니까 진짜 꽃집 사장님 같아요.');if(o0.dress||o1.dress)extra.push('옷이 정말 예뻐요. 꽃집이랑 잘 어울려요!');if(o0.bag||o1.bag)extra.push('가방 귀엽다! 어디서 샀어요?');if(o0.hat==='crown'||o1.hat==='crown')extra.push('꽃 화관이다! 동화 속 꽃집 같아요.');
   if(S.t>400)extra.push('강 따라 위쪽 언덕길 벤치에서 보는 노을이 정말 예뻐요.','해 질 녘 강가를 걷는 게 제 낙이에요.');
-  if(w.zone==='north')extra.push('은행잎이 노랗게 물들었네요. 가을이 왔어요.','단풍 밟는 소리가 좋아요.','여기 벤치에 앉아 있으면 해가 지는 게 다 보여요.');
-  if(w.zone==='lake')extra.push('물결 위로 노을이 번지는 거 보여요?','저녁 바람이 선선해서 좋네요.');
-  if(w.kind==='kid'&&S.t>330)extra.push('방금 학교 끝났어요! 이제 놀 거예요.');
+  if(w.zone==='north')extra.push(...(WINTER?['언덕길에 눈이 소복이 쌓였어요.','눈 밟는 소리가 뽀드득 좋아요.','여기 벤치에서 보는 겨울 노을이 최고예요. 해가 금방 지지만요.']:['은행잎이 노랗게 물들었네요. 가을이 왔어요.','단풍 밟는 소리가 좋아요.','여기 벤치에 앉아 있으면 해가 지는 게 다 보여요.']));
+  if(w.zone==='lake')extra.push('물결 위로 노을이 번지는 거 보여요?',WINTER?'저녁 바람이 매서워요. 목도리 꼭 하세요.':'저녁 바람이 선선해서 좋네요.');
+  if(w.kind==='kid'&&S.t>330)extra.push(WINTER?'방금 학교 끝났어요! 이제 눈싸움할 거예요.':'방금 학교 끝났어요! 이제 놀 거예요.');
   if(extra.length&&Math.random()<.45&&w.kind!=='order')return tb+pick(extra);
   if(w.kind==='order'){const o=orderById(w.orderId);return o?`${o.title} 찾으러 왔어요. 두근두근해요!`:'안녕하세요!'}
   if(w.kind==='dog')return tb+pick([`우리 ${w.dog.name}가 꽃 냄새를 좋아해요.`,`${w.dog.name}야, 인사해야지!`,`${w.dog.name}는 산책을 제일 좋아해요.`]);

@@ -175,7 +175,7 @@ function mainTalk(i,w){
   const k=w.main,b=bondOf(k);let pages,story=false;
   const ch=storyReady(k);
   if(ch){pages=ch.pages.slice();story=true}
-  else{const tier=b.h>=7?2:b.h>=3?1:0,tb=S.t<180?0:S.t<420?1:2;pages=[pick(SMALL[k][tier][tb])];
+  else{const tier=b.h>=7?2:b.h>=3?1:0,tb=S.t<180?0:wt(S.t)<420?1:2;pages=[pick(SMALL[k][tier][tb])];
     if(b.day===S.day&&Math.random()<.5)pages=[pick(SMALL[k][tier][(tb+1)%3])]}
   let gained=false;if(b.day!==S.day){b.day=S.day;if(b.h<BOND_MAX){b.h++;gained=true}}
   return {pages,story,k,gained}
@@ -211,7 +211,7 @@ function makeWalkers(){
   W.push(...mkCouple('park'),...mkCouple('north'));S.walkers=W;
 }
 function newGame(mode){mode='duo';
-  S.bonds={};S.mode=mode;S.active=0;S.day=1;S.money=80000;S.speed=1;S.nextId=1;S.up={};S.edit=false;
+  S.bonds={};S.xm={};S.mode=mode;S.active=0;S.day=1;S.money=80000;S.speed=1;S.nextId=1;S.up={};S.edit=false;
   S.bags=[Array(BAGN).fill(null),Array(BAGN).fill(null)];S.bench=[];S.works={craft:{orderId:null,stems:[]},craft2:{orderId:null,stems:[]}};S.tomorrow=[];S.shopName='우리 둘의 꽃집';
   S.decor=DECOR_BASE.shop.map(d=>({...d}));S.odecor={};S.closet={};S.outfit=[{},{}];S.tut=S.tutPending!=null?S.tutPending:-1;S.tutPending=null;S.tutDone=0;
   makeStations();

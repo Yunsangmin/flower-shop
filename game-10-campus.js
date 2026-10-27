@@ -563,13 +563,13 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
 {const _pp=propV;propV=function(g,p,st,hw,t,back){if(p.prop==='coffee'){if(back)return;const x=hw+st-1,y=-50;rr(g,x-3,y-2,7,10,1.5,'#F4EFE6');rr(g,x-3,y+1,7,4,.8,'#8A5A3C');rr(g,x-3.5,y-3.5,8,2,1,'#FFFFFF');return}return _pp(g,p,st,hw,t,back)}}
 {const _mw=makeWalkers;makeWalkers=function(){_mw();const W=[];
   // 학부생 무리(학과별 3~4명, 에너지 넘침) — 스포츠과학과는 키 크고 탄탄하게
-  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,4);/* TV 메모리를 위해 학과 무리 6→4 */if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
+  const depts=DEPT_GRP.slice().sort(()=>Math.random()-.5).slice(0,WINTER?2:4);/* 겨울(종강): 학과 무리 4→2 *//* TV 메모리를 위해 학과 무리 6→4 */if(!depts.includes('스포츠과학과'))depts[0]='스포츠과학과';
   depts.forEach(dp=>{const n=3+(Math.random()<.5?1:0);let lead=null;for(let k=0;k<n;k++){const sp=dp==='스포츠과학과';const w=cNew('student',sp?Math.random()<.35:Math.random()<.5,sp?SPORTY():{},k?'ugf':'ug');w.dept=dp;w.lineI=k;if(k){w.lead=lead;w.slot=k;w.x=lead.x+rnd(-8,8);w.y=lead.y+rnd(-8,8)}else lead=w;W.push(w)}});
   // 혼자 다니는 학생(기계·컴공·물리·수학 — 남학생, 안경, 큰 가방)
   for(let k=0;k<3;k++){const w=cNew('student',false,{acc:'glasses',pack:true,packC:pick(['#3E4A5C','#5A5A5A','#2F4A3A']),tee:pick(['#8C9AA8','#6E7A6A','#9A8C7A','#5A6A80']),expr:'calm'},'nerd');w.dept=DEPT_NERD[k%4];W.push(w)}
   // 피크닉(돗자리에 둘러앉아 먹고 떠들기)
   CPICNIC.forEach((m,mi)=>{const dp=m.food==='jjamak'?pick(['기초학문관 앞 짜막 모임','물리학과·수학과 연합']):pick(DEPT_GRP.filter(d=>d!=='스포츠과학과'));const seats=[[.9,.45,'down'],[3.1,.45,'down'],[3.2,2.45,'up'],[.8,2.45,'up']];const n=3+(mi%2);
-    const mem=[];seats.slice(0,n).forEach(([ox,oy,dr],k)=>{const w=cNew('student',Math.random()<.55,{gsit:true},'picnic');w.dept=dp;w.mat=m;w.lineI=k;w.x=(m.x+ox)*TILE;w.y=(m.y+oy)*TILE;w.sit=true;w.yo=5;w.dir=dr;w.hdir=dr;w.hx=w.x;w.hy=w.y;mem.push(w);W.push(w)});m.mem=mem;m.next=rnd(1,4)});
+    const mem=[];seats.slice(0,n).forEach(([ox,oy,dr],k)=>{const w=cNew('student',Math.random()<.55,{gsit:!WINTER},'picnic');w.dept=dp;w.mat=m;w.lineI=k;w.x=(m.x+ox)*TILE;w.y=(m.y+oy)*TILE;w.sit=!WINTER;w.yo=WINTER?0:5;/* 겨울엔 돗자리 대신 눈사람을 둘러서서 만들어요 */w.dir=dr;w.hdir=dr;w.hx=w.x;w.hy=w.y;mem.push(w);W.push(w)});m.mem=mem;m.next=rnd(1,4)});
   // 대학원생(건물 바로 근처, 커피, 기운 없음) — 민욱은 동엽 교수님 건물(태평한 성격)
   GRADS.forEach(([nm,s,e2],k)=>{const G=e2&&CENG2?CENG2:CLAB[(k*5+2)%CLAB.length];const w=cNew('adult',s==='f',{expr:'sleepy',prop:'coffee',tee:pick(['#7A7F8A','#5E6470','#8A8078','#4F5A66']),pants:'#3A3F4A',pack:false},'grad');w.name=nm;w.home=G.gi;const d=cDoor(G);const q=cNearFree(d[0]/TILE,d[1]/TILE+1,null,5);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE}w.tx=w.x;w.ty=w.y;W.push(w)});
   // 성필(대학원생, 제2종합연구동 근처) — 까무잡잡, 진한 쌍꺼풀, 긍정 에너지 폭발
@@ -581,12 +581,12 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   PROFS.forEach(([nm,ex],k)=>{const w=cNew('adult',false,Object.assign({acc:'glasses',expr:'calm',pants:'#2E3240',shoe:'#3A2E2A',tee:'#E8E4DC'},ex),'prof');w.name=nm;const G=k===1&&CENG2?CENG2:CLAB[(k*7+1)%CLAB.length],d=cDoor(G);const q=cNearFree(d[0]/TILE+1,d[1]/TILE+2,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE}w.tx=w.x;w.ty=w.y;W.push(w)});
   // 운동하는 사람들
   const T=TILE;const sw=(role,sport,extra)=>{const w=cNew('student',Math.random()<.4,Object.assign(SPORTY(),extra||{}),role);w.sport=sport;w.dept='스포츠과학과';return w};
-  {const [x0,y0,x1,y1]=cB(SP.soc);const P=[];for(let k=0;k<6;k++){const w=sw('sport','soc',{tee:k%2?'#E8603C':'#2F6FB4'});w.team=k%2;w.hx=x0+(x1-x0)*(.25+.5*((k>>1)%2?1:0)+(k>3?.12:0));w.hy=w.team?y0+(y1-y0)*(.3+.12*(k>>1)):y1-(y1-y0)*(.3+.12*(k>>1));w.x=w.hx;w.y=w.hy;P.push(w);W.push(w)}
+  if(!WINTER){const [x0,y0,x1,y1]=cB(SP.soc);const P=[];for(let k=0;k<6;k++){const w=sw('sport','soc',{tee:k%2?'#E8603C':'#2F6FB4'});w.team=k%2;w.hx=x0+(x1-x0)*(.25+.5*((k>>1)%2?1:0)+(k>3?.12:0));w.hy=w.team?y0+(y1-y0)*(.3+.12*(k>>1)):y1-(y1-y0)*(.3+.12*(k>>1));w.x=w.hx;w.y=w.hy;P.push(w);W.push(w)}
     CSPORT.soc={players:P,ball:{x:(x0+x1)/2,y:(y0+y1)/2,z:0,vx:0,vy:0,vz:0}}}
-  {const court=SP.bb[1],[x0,y0,x1,y1]=cB(court),P=[];for(let k=0;k<3;k++){const w=sw('sport','bb',{tee:pick(['#1E1E24','#F2F2F2','#8A3AB0'])});w.x=rnd(x0+8,x1-8);w.y=rnd(y0+12,y1-10);w.tx=null;P.push(w);W.push(w)}CSPORT.bb={court,players:P,t:0,ball:{mode:'hold',who:P[0],next:2,x:P[0].x,y:P[0].y,z:0}}}
-  {const court=SP.ten[1],[x0,y0,x1,y1]=cB(court),P=[];for(let k=0;k<2;k++){const w=sw('sport','ten',{tee:'#F2F2F2',pants:'#F2F2F2'});w.hy=k?y1-5:y0+5;w.x=(x0+x1)/2;w.y=w.hy;P.push(w);W.push(w)}
+  if(!WINTER){const court=SP.bb[1],[x0,y0,x1,y1]=cB(court),P=[];for(let k=0;k<3;k++){const w=sw('sport','bb',{tee:pick(['#1E1E24','#F2F2F2','#8A3AB0'])});w.x=rnd(x0+8,x1-8);w.y=rnd(y0+12,y1-10);w.tx=null;P.push(w);W.push(w)}CSPORT.bb={court,players:P,t:0,ball:{mode:'hold',who:P[0],next:2,x:P[0].x,y:P[0].y,z:0}}}
+  if(!WINTER){const court=SP.ten[1],[x0,y0,x1,y1]=cB(court),P=[];for(let k=0;k<2;k++){const w=sw('sport','ten',{tee:'#F2F2F2',pants:'#F2F2F2'});w.hy=k?y1-5:y0+5;w.x=(x0+x1)/2;w.y=w.hy;P.push(w);W.push(w)}
     CSPORT.ten={court,players:P,t:0,ball:{dir:0,t0:0,fx:P[0].x,fy:P[0].y,tx:(x0+x1)/2,ty:P[1].hy,x:P[0].x,y:P[0].y,z:0}}}
-  for(let k=0;k<3;k++){const w=sw('sport','run');w.u=k/3+.05;w.lane=.9+k*1.1;W.push(w)}
+  for(let k=0;k<(WINTER?1:3);k++){const w=sw('sport','run');w.u=k/3+.05;w.lane=.9+k*1.1;W.push(w)}
   for(let k=0;k<2;k++){const w=cNew('adult',Math.random()<.5,{},'sport');w.sport='walk';w.u=k/2;w.lane=2.2+(k%2)*1.2;w.dept='산책 나온 주민';w.hidden=1;W.push(w)}
   W.forEach(w=>{if(w.cRole==='picnic'||w.sport)return;const q=cNearFree(w.x/TILE,w.y/TILE,null,6);if(q){w.x=q[0]*TILE;w.y=q[1]*TILE;w.tx=w.x;w.ty=w.y}});
   // 준엽(메인 주민) · 민욱은 동엽 교수님 건물 근처
@@ -597,12 +597,12 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
   const place=(w,cx,cy,r,kinds)=>{for(let n=0;n<6;n++){const p=cSpot(cx,cy,r+n*2,kinds);if(p){w.x=p[0];w.y=p[1];w.tx=w.x;w.ty=w.y;return true}}return false};
   const tc=[(TRK[0]+TRK[2])/2,(TRK[1]+TRK[3])/2];
   // 조깅
-  for(let k=0;k<2;k++){const w=cNew('student',k%2===1,Object.assign(SPORTY(),{pose:'jog'}),'jog');w.dept=k<2?'러닝 동아리':'운동하는 학생';w.life='jog';place(w,CD.W/2,CD.H/2,CD.W/2,[1,8,10]);W.push(w)}
+  for(let k=0;k<(WINTER?1:2);k++){const w=cNew('student',k%2===1,Object.assign(SPORTY(),{pose:'jog'}),'jog');w.dept=k<2?'러닝 동아리':'운동하는 학생';w.life='jog';place(w,CD.W/2,CD.H/2,CD.W/2,[1,8,10]);W.push(w)}
   // 스트레칭·줄넘기(운동장 옆 잔디)
-  for(let k=0;k<3;k++){const w=cNew('student',k!==1,Object.assign(SPORTY(),{pose:k===2?'rope':'stretch'}),'lifeStill');w.dept='운동하는 학생';w.life=k===2?'rope':'stretch';place(w,tc[0]+(k-1)*9,tc[1]+(k%2?-16:16),6,[2,3]);w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
+  for(let k=0;k<(WINTER?0:3);k++){const w=cNew('student',k!==1,Object.assign(SPORTY(),{pose:k===2?'rope':'stretch'}),'lifeStill');w.dept='운동하는 학생';w.life=k===2?'rope':'stretch';place(w,tc[0]+(k-1)*9,tc[1]+(k%2?-16:16),6,[2,3]);w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
   // 잔디밭 독서
   const LIB=CB.find(G=>/학술정보관|도서관/.test(G.n))||CB[0];const d=cDoor(LIB);
-  for(let k=0;k<2;k++){const w=cNew('student',Math.random()<.6,{gsit:true,pose:'read',bookC:pick(['#C9546A','#5E7FB0','#7FAF6C','#E2B656'])},'lifeStill');w.dept=pick(DEPT_GRP.filter(x=>x!=='스포츠과학과'));w.life='read';
+  for(let k=0;k<(WINTER?0:2);k++){const w=cNew('student',Math.random()<.6,{gsit:true,pose:'read',bookC:pick(['#C9546A','#5E7FB0','#7FAF6C','#E2B656'])},'lifeStill');w.dept=pick(DEPT_GRP.filter(x=>x!=='스포츠과학과'));w.life='read';
     place(w,d[0]/T+(k-1)*6,d[1]/T+5+k*2,5,[2]);w.sit=true;w.yo=5;w.dir=0;w.hdir=0;w.hx=w.x;w.hy=w.y;W.push(w)}
   // 산책(강아지·휴대폰·커피)
   ['dog','dog','phone','coffee'].forEach((kind,k)=>{const w=cNew('adult',k%2===0,kind==='phone'?{pose:'phone'}:kind==='coffee'?{prop:'coffee'}:{},'stroll');w.dept=kind==='dog'?'강아지와 산책 중':'산책 나온 사람';w.life=kind;place(w,CD.W/2,CD.H/2,CD.W/2,[1,6,8]);
@@ -614,7 +614,7 @@ const SPORTY=()=>({sc:1.13,tee:pick(['#E8603C','#2F6FB4','#1E1E24','#F2F2F2','#3
 function cBub(w,txt,sec){w.bub=txt;w.bubT=S.t+sec}
 function cGo(w,dt,spd){w.path=[[w.tx,w.ty]];return stepToward(w,dt,spd)}
 function cPicnic(dt){for(const m of CPICNIC){if(!m.mem)continue;const th=MAT_THEME[m.food]||MAT_THEME.kimbap;m.next-=dt;
-  for(const w of m.mem){w.laughT=Math.max(0,(w.laughT||0)-dt);w.yo=5-(w.laughT>0?Math.abs(Math.sin(w.laughT*16))*1.6:0)}
+  for(const w of m.mem){w.laughT=Math.max(0,(w.laughT||0)-dt);w.yo=(WINTER?0:5)-(w.laughT>0?Math.abs(Math.sin(w.laughT*16))*1.6:0)}
   if(m.next>0)continue;m.next=rnd(2.5,6);const free=m.mem.filter(w=>!w.talking);if(!free.length)continue;
   if(th.cheers&&Math.random()<.35){free.forEach(w=>{w.throwT=1.1});cBub(pick(free),'짠!',1.8);continue}
   const w=pick(free);const r=Math.random();if(r<.5){w.throwT=1.3;if(Math.random()<.35)cBub(w,pick(['냠냠','맛있다!','하나 더!']),1.4)}else{w.laughT=1.2;cBub(w,pick(th.bub),1.8);const o=pick(free);if(o!==w)o.laughT=1}}}
@@ -694,7 +694,7 @@ function cStep(w,dt){
     case 'nerd':return `(${w.dept}) `+pick(NERD_LINE[w.dept]);
     case 'grad':{const near=S.walkers.some(o=>o.cRole==='prof'&&!o.hidden&&Math.hypot(o.x-w.x,o.y-w.y)<14*TILE);if(w.sungpil)return '(대학원생 성필) '+SUNGPIL_LINE[(w._tc=(w._tc||0)+1)%SUNGPIL_LINE.length];return `(대학원생 ${w.name}) `+pick(near?GRAD_SCARED:(w.name==='민욱'?MINWOOK_LINE:GRAD_LINE))}
     case 'prof':return `(${w.name} 교수) `+pick(PROF_LINE[w.name]||PROF_LINE.동엽);
-    case 'sport':return w.sport==='walk'?pick(['저녁엔 트랙 산책이 최고예요. 선선하고요.','하루 만 보 채우는 중이에요.','운동장 불빛 아래 걷는 게 좋아요.']):`(${w.dept}) `+pick(w.sport==='soc'?['패스! 아, 지금 말 걸면 안 돼요! 하하.','오늘 이기면 치킨 내기예요!']:w.sport==='bb'?['슛 폼 괜찮죠? 연습 많이 했어요!','3대3 하실래요? 한 명 모자라요!']:w.sport==='ten'?['랠리 스무 번 넘기는 게 목표예요!','테니스 동아리예요. 신입 부원 모집 중!']:['트랙 열 바퀴째예요! 아직 쌩쌩해요!','숨 좀 고르고… 다시 달릴게요!']);}
+    case 'sport':return w.sport==='walk'?pick([(WINTER?'저녁엔 트랙 산책이 최고예요. 춥지만 상쾌해요.':'저녁엔 트랙 산책이 최고예요. 선선하고요.'),'하루 만 보 채우는 중이에요.','운동장 불빛 아래 걷는 게 좋아요.']):`(${w.dept}) `+pick(w.sport==='soc'?['패스! 아, 지금 말 걸면 안 돼요! 하하.','오늘 이기면 치킨 내기예요!']:w.sport==='bb'?['슛 폼 괜찮죠? 연습 많이 했어요!','3대3 하실래요? 한 명 모자라요!']:w.sport==='ten'?['랠리 스무 번 넘기는 게 목표예요!','테니스 동아리예요. 신입 부원 모집 중!']:['트랙 열 바퀴째예요! 아직 쌩쌩해요!','숨 좀 고르고… 다시 달릴게요!']);}
   return _tl(w)}}
 // 말 거는 동안 앉아 있는 사람은 그대로(몸만 살짝 돌림), 끝나면 원래 방향
 // 머리 위 말풍선
@@ -716,3 +716,48 @@ const ZZOK={name:'쪽냥이',who:'캠퍼스 길고양이',pal:{G1:'#E39A4E',G2:'
 {const _mw=makeWalkers;makeWalkers=function(){_mw();S.fcats=S.fcats||[];if(!S.fcats.some(k=>k.name==='쪽냥이')){const [sx,sy]=ZZOK.spots[0];
   S.fcats.push({kind:'cat',area:'campus',name:ZZOK.name,who:ZZOK.who,pal:ZZOK.pal,lines:ZZOK.lines,spots:ZZOK.spots,x:sx*TILE,y:sy*TILE,tx:sx*TILE,ty:sy*TILE,dir:'down',walk:0,state:'sit',timer:rnd(2,8),talking:false,hearts:0,speed:20})}}}
 
+
+/* =====================================================================
+   겨울 캠퍼스(종강·겨울방학) — SEASON='winter' 일 때만
+   · 학부생: 종강·겨울방학 이야기, 돗자리 대신 눈사람·눈오리 만들기
+   · 대학원생: 방학이 없어 학부생을 조금씩 부러워해요
+   · 민욱 ↔ 동엽 교수님 대화를 더 다양하게
+   ===================================================================== */
+if(WINTER){
+  const UG_W=['종강했어요! 내일부터 겨울방학이에요!','기말 끝나자마자 눈이 왔어요. 하늘도 종강 축하해 주나 봐요.','방학 동안 고향 내려가요. 그 전에 눈사람 하나 만들고요!','계절학기 신청 안 한 사람? 저요! 완전 자유예요!','성적 발표 전까지는 행복하기로 했어요.','방학 때 꽃꽂이 원데이 클래스 들어 볼까 봐요.'];
+  const DW={'화학공학/고분자공학부':'유기화학 기말 끝! 실험복은 방학 동안 빨래통에서 쉬게 할래요.','전기전자공학부':'회로 과제랑 같이 종강했어요. 방학엔 전구 트리를 직접 만들어 볼래요!','반도체시스템공학과':'방진복 대신 패딩 입으니까 세상 편해요. 종강 만세!',
+    '나노공학부':'눈 결정을 현미경으로 보고 싶었는데 녹아 버렸어요. 그래도 종강!','신소재공학부':'겨울방학엔 금속 공예로 크리스마스 오너먼트 만들 거예요!','건설환경공학부':'눈사람 구조 계산 끝! 이 비율이면 안 무너져요.',
+    '의학과':'저희는 방학이 짧아요… 그래도 오늘만큼은 눈싸움!','약학과':'시험 끝나고 다 같이 떡볶이 먹으러 가요! 겨울엔 어묵 국물 필수!','식품생명공학과':'방학 기념으로 붕어빵 사 먹으러 가요. 이건 실습 아니에요!',
+    '바이오메카트로닉스학과':'눈 치우는 로봇을 방학 과제로 만들어 볼까 고민 중이에요.','스포츠과학과':'눈 오는 운동장 열 바퀴! 방학이라고 쉬면 안 돼요!'};
+  Object.keys(DEPT_LINE).forEach((d,i)=>{const g=UG_W.slice(i%UG_W.length).concat(UG_W.slice(0,i%UG_W.length));DEPT_LINE[d]=[DW[d]||UG_W[0],g[0],g[1],g[2]]});
+  const NW={'기계공학부':'종강했는데 왜 저는 도서관 가는 길일까요…','컴퓨터공학부':'방학엔 밀린 코딩 공부할 거예요. 진짜로요. 아마도요.','물리학과':'눈송이가 육각형인 이유, 방학 동안 설명할 수 있게 공부할게요.','수학과':'방학이라 증명 하나에 세 시간 써도 괜찮아요. 행복해요.'};
+  Object.keys(NERD_LINE).forEach(d=>NERD_LINE[d].push(NW[d]));
+  GRAD_LINE.length=0;GRAD_LINE.push('학부생들은 종강했대요. …부럽다.','방학이요? 대학원생 사전엔 없는 단어예요.','캠퍼스가 조용해서 좋긴 한데, 왠지 쓸쓸하네요.','학부생들 눈사람 만드는 거 보니까 저도 저럴 때가 있었는데요…','크리스마스에도 실험은 돌아가요. 기계는 쉬지 않거든요.','연말 보고서 마감이 크리스마스이브래요. 산타는 교수님 편인가 봐요.','따뜻한 커피가 유일한 난방이에요. 벌써 네 잔째예요.','눈 오는 날 연구실 창밖 구경하는 게 유일한 낭만이에요.','학부생 때는 방학이 당연한 줄 알았어요.');
+  SUNGPIL_LINE.push('눈이 와도 제 미소는 안 얼어요! 하하!','학부생들 방학이라고 부럽지 않아요. …조금만 부러워요!','눈사람한테 제 쌍꺼풀 그려 줬어요. 잘생겼죠?');
+  MINWOOK_LINE.length=0;MINWOOK_LINE.push('동엽 교수님이요? 좋은 분이에요. 잔소리 빼면요. 하하.','학부생들은 방학이래요. 저도 마음만은 방학이에요~','실험은 망했지만 붕어빵은 맛있었어요. 그럼 된 거죠.','논문이요? 언젠가 나오겠죠~ 눈 녹듯이 자연스럽게요.','교수님이 부르셔도 호빵은 다 먹고 가요. 식으면 아깝잖아요.','오늘 눈 오잖아요~ 이런 날 실험하면 벌 받아요.','연구실 창가 자리에서 눈 구경하는 게 제 연말 계획이에요.','연구실 트리에 전구 달았어요. 실험보다 그게 더 잘 됐어요.','방학 없는 거요? 괜찮아요~ 원래 없던 건 없어도 똑같아요.','동엽 교수님 몰래 연구실에 귤 한 박스 들여놨어요. 쉿.');
+  MW_TO_PROF.동엽.push('교수님~ 호빵 하나 드실래요? 단팥이에요.','교수님, 연구실 트리 보셨어요? 제가 달았어요!','교수님, 방학… 은 없죠? 알아요~ 그냥 여쭤봤어요.','교수님 목도리 멋있으세요! 직접 고르신 거예요?','교수님, 눈 오는데 오늘은 회의 대신 눈사람 어떠세요?','실험이요? 하고 있죠~ 따뜻한 마음속에서요.');
+  PROF_TO_MW.동엽.push('…허허, 호빵은 고맙네만 데이터는?','자네 덕분에 연구실이 따뜻하긴 하군.','눈사람은 학부생들한테 맡기게.','허허… 그래, 오늘만이야.','자네 같은 제자가 있으니 늙지를 않아. 속은 타지만.');
+  PROF_LINE.동엽.push('학부생들은 방학이지만 대학원은 학기 중이야.','연말이라고 실험실 불 끄고 가면 안 되네.','이번 겨울에 논문 하나는 내야지?','허허, 눈이 오니 옛날 생각이 나는군. 우리 때는 눈 오는 날에도 실험했지.','크리스마스? 그날 실험 결과가 나오면 그게 선물이지.','난로 앞에서 졸지 말고 데이터 보게.');
+  PROF_LINE.병권.push('방학? 그건 학부생 얘기지.','크리스마스이브까지 보고서 올리게.','눈 온다고 늦게 오는 건 핑계야.');
+  LIFE_LINE.jog.push('눈길 조깅은 미끄러워서 천천히 뛰어요!','입김 나오는 거 보면 운동한 기분이 나요, 하하.');
+  LIFE_LINE.dog.push('우리 강아지가 눈만 보면 신나서 뒹굴어요!','발 시릴까 봐 강아지 신발 신겼어요.');
+  LIFE_LINE.coffee.push('손 녹이려고 산 커피예요. 마시는 건 덤이에요.');LIFE_LINE.phone.push('눈 오는 캠퍼스 사진 찍는 중이에요! 예쁘죠?');
+  const SNOWL=['눈사람 만들어요! 코는 당근 대신 귤이에요.','종강 기념 눈사람이에요. 이름은 “기말 끝”이에요!','눈오리 집게 가져왔어요. 오리 스무 마리 만들 거예요!','이 눈사람 우리 과 조교님 닮았죠? 비밀이에요.','방학하면 다들 고향 가니까 마지막으로 다 같이 노는 거예요.','손이 꽁꽁 얼었어요. 그래도 너무 재밌어요!','눈싸움은 이따가요. 먼저 눈사람 완성!','목도리 하나 눈사람한테 양보했어요. 저 추워요!'];
+  Object.values(MAT_THEME).forEach((th,i)=>{th.lines=SNOWL.slice(i%3).concat(SNOWL.slice(0,i%3));th.bub=['차가워!','ㅋㅋㅋㅋ','오리 하나 더!','눈사람 완성!','종강 만세!','손 시려!'];th.cheers=false});
+  /* 돗자리 자리 → 눈사람·눈오리·눈덩이 */
+  CPICNIC.forEach(m=>{m.flat=false});
+  DECOR_DRAW.cmat=(g,d,x,y,w,h)=>{const cx=x+w/2,v=Math.round(d.x+d.y);
+    el(g,cx,y+h-6,w*.42,5,'rgba(255,255,255,.75)');DECOR_DRAW.snowman(g,{v},cx-8,y+h-21);
+    DECOR_DRAW.snowducks(g,{n:3,f:v},x-2,y+h-16,28);
+    el(g,x+w-9,y+h-7,3.6,3,'#F4F8FC');el(g,x+w-4,y+h-6,2.6,2.2,'#FBFCFF');el(g,x+w-6.5,y+h-10,2.2,2,'#FBFCFF');
+    if(v%2){rr(g,x+w-15,y+h-12,5,5,1,'#E85A5A');ln(g,x+w-15,y+h-11,x+w-17,y+h-15,'#8A6A55',.6)}};
+  PR_DEB.cmat=[0,-16,0,2];
+  /* 건물 앞·길가 곳곳의 눈오리 줄과 눈사람 */
+  {const T=TILE,q=seedRand(2024);CB.slice(0,14).forEach((G,k)=>{const d=cDoor(G);const p=cNearFree(d[0]/T+(k%2?2.6:-2.6),d[1]/T+1.4,null,3);if(!p)return;
+    if(k%4===3)CDEC.push({t:'snowman',x:p[0]-.5,y:p[1]-.9,w:1,h:1,walk:true,v:k});else CDEC.push({t:'snowducks',x:p[0]-1,y:p[1]-.9,w:2,h:1,walk:true,n:2+Math.floor(q()*3),f:k})})}
+  /* 정문 쪽 종강 현수막 */
+  DECOR_DRAW.cbanner=(g,d,x,y,w)=>{ln(g,x+2,y+15,x+2,y-22,'#8A7B74',1.2);ln(g,x+w-2,y+15,x+w-2,y-22,'#8A7B74',1.2);rr(g,x+3,y-21,w-6,10,1.5,'#FFF8EE');g.strokeStyle='#5A86C8';g.lineWidth=.8;rr(g,x+4,y-20,w-8,8,1);g.stroke();
+    g.fillStyle='#3E5E9A';g.font="4.6px 'Jua',sans-serif";g.textAlign='center';g.textBaseline='middle';g.fillText('2학기 종강 · 즐거운 겨울방학 보내세요!',x+w/2,y-15.8);for(let k=0;k<5;k++)el(g,x+6+k*(w-12)/4,y-22,1,1,XBC[k%5]||'#FFFFFF')};
+  PR_DEB.cbanner=[0,-26,0,1];
+  {const G=CB.find(G=>/학생회관|학술정보관|도서관/.test(G.n));if(G){const d=cDoor(G),p=cNearFree(d[0]/TILE,d[1]/TILE+3,null,4);if(p)CDEC.push({t:'cbanner',x:p[0]-4,y:p[1]-.9,w:8,h:1,walk:true})}}
+}

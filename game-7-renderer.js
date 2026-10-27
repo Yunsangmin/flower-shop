@@ -699,7 +699,7 @@ function prSyncDyn(area){
     if(k>0){const [c]=prCol(P.hor);G.fillStyle(c,.28*k);G.fillRect(ox+LX,LY,W-LX,HH-LY-18);G.fillRect(ox+RX0,0,RX1-RX0,LY)}
     const lake=prFxT('rip8',area,[-1,-3,10,4],g=>{g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=.7;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(4,-1.5,8,0);g.stroke()});
     for(let i=0;i<10;i++){const x=LX+20+((i*97+tt*9)%(W-LX-40)),y=LY+14+((i*43)%60);if(inView(x,y,20))prFx(fr,area,lake,x,y,-2.55e6)}
-    if(S.t>480){const a=clamp((S.t-480)/40,0,1);const core=prFxT('ffc',area,[-1.5,-1.5,3,3],g=>el(g,0,0,1.1,1.1,'#FFF3A0')),halo=prFxT('ffh',area,[-4,-4,8,8],g=>el(g,0,0,3.5,3.5,'#FFF3A0'));
+    if(S.t>480&&!WINTER){const a=clamp((S.t-480)/40,0,1);const core=prFxT('ffc',area,[-1.5,-1.5,3,3],g=>el(g,0,0,1.1,1.1,'#FFF3A0')),halo=prFxT('ffh',area,[-4,-4,8,8],g=>el(g,0,0,3.5,3.5,'#FFF3A0'));
       for(let i=0;i<24;i++){const bx=[60,200,330,480,600,760,860][i%7]+Math.sin(tt*.7+i*1.7)*18,by=[250,300,420,405,300,410,395][i%7]+Math.cos(tt*.9+i)*12;if(!inView(bx,by,20))continue;const tw=(Math.sin(tt*3+i*2)+1)/2;
         prFx(fr,area,core,bx,by,-2.54e6,a*(.3+.7*tw));prFx(fr,area,halo,bx,by,-2.54e6+.5,a*.25*tw)}}
     const riv=prFxT('rip6',area,[-1,-3,8,4],g=>{g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=.8;g.lineCap='round';g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(3,-1.5,6,0);g.stroke()});
@@ -727,17 +727,18 @@ function prSyncDyn(area){
       prFx(fr,area,e,x0,y0,-2.88e6)});
     /* 언덕·풀밭 */
     prDynLayer(area,'hill',ks+'|'+P.top+'|'+prBakeScale(area),[0,HZ-12,W,6.2*TILE-HZ+14],-2.87e6,g=>{
-      g.fillStyle=mix('#6F8F5E',P.top,.35*k);g.beginPath();g.moveTo(0,HZ+2);for(let x=0;x<=W;x+=20)g.lineTo(x,HZ-2-Math.abs(Math.sin(x*.05))*2.5-(x%60<20?2:0));g.lineTo(W,HZ+8);g.lineTo(0,HZ+8);g.closePath();g.fill();
-      g.fillStyle='#B5C98E';g.fillRect(0,HZ+6,W,6.2*TILE-HZ)},Math.min(prBakeScale(area),2.5));
+      g.fillStyle=mix(WINTER?'#C9D3DE':'#6F8F5E',P.top,.35*k);g.beginPath();g.moveTo(0,HZ+2);for(let x=0;x<=W;x+=20)g.lineTo(x,HZ-2-Math.abs(Math.sin(x*.05))*2.5-(x%60<20?2:0));g.lineTo(W,HZ+8);g.lineTo(0,HZ+8);g.closePath();g.fill();
+      g.fillStyle=WINTER?'#EEF3F8':'#B5C98E';g.fillRect(0,HZ+6,W,6.2*TILE-HZ);if(WINTER){const q=seedRand(3);for(let x=0;x<W;x+=26+q()*30){const h=4+q()*6;poly(g,[x-3,HZ+3,x,HZ-h,x+3,HZ+3],'#7E95A8');poly(g,[x-1.2,HZ-h*.45,x,HZ-h,x+1.2,HZ-h*.45],'#F4F8FC')}}},Math.min(prBakeScale(area),2.5));
     /* 강물에 비친 노을 */
     const G=prDynG(area,-2.86e6);G.clear();
     if(k>0){const [c]=prCol(P.hor);G.fillStyle(c,.3*k);G.fillRect(ox+RX0+2,6*TILE,RX1-RX0-4,AREAS.north.h*TILE);
       for(let i=0;i<20;i++){const yy=6.4*TILE+i*9;G.fillStyle(0xFFD7A0,(.5-.02*i)*k);G.fillRect(ox+sx-6-i*.6+Math.sin(tt*2+i)*2,yy,12+i*1.2,1.2)}}
     /* 낙엽 */
-    ['#E8B84A','#D9674A','#E8905A'].forEach((c,ci)=>prFxT('leaf'+ci,area,[-2,-1.5,4,3],g=>el(g,0,0,1.6,.9,c)));
-    for(let i=0;i<18;i++){const x=((i*83+tt*(8+i%4))%W),y=((i*47+tt*(14+i%5))%(AREAS.north.h*TILE-120))+110;if(!inView(x,y,10))continue;
+    if(!WINTER)['#E8B84A','#D9674A','#E8905A'].forEach((c,ci)=>prFxT('leaf'+ci,area,[-2,-1.5,4,3],g=>el(g,0,0,1.6,.9,c)));
+    if(!WINTER)for(let i=0;i<18;i++){const x=((i*83+tt*(8+i%4))%W),y=((i*47+tt*(14+i%5))%(AREAS.north.h*TILE-120))+110;if(!inView(x,y,10))continue;
       prFx(fr,area,prFxT('leaf'+(i%3),area,[-2,-1.5,4,3],null),x,y,-2.5e6,1,tt*2+i)}
   }
+  if(typeof seasonDyn==='function')seasonDyn(area,tt); /* 겨울: 전구·눈송이·실내 가랜드 (game-14-season.js) */
   prEnd(fr);
 }
 

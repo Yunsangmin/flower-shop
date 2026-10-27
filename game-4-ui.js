@@ -22,6 +22,19 @@ function bowKeys(){return Object.keys(BOWS).filter(k=>wrapOpen(BOWS[k],''))}
 function bowSwatch(k,rb){const R=RIBBONS[rb]||RIBBONS.pink;return `<svg viewBox="0 0 60 60" width="100%" height="100%"><rect width="60" height="60" fill="#FFFBF5"/>${bowSVG(k,30,24,R,.75)}</svg>`}
 /* ---------- bouquet illustration (SVG) ---------- */
 let GID=0;
+/* 리스: 전나무 고리 + 꽃을 고리 둘레에, 아래에 리본. 포장하면 동그란 종이 받침 + 큰 리본 */
+function wreathSVG(stems,o={}){
+  const RB=o.ribbon?RIBBONS[o.ribbon]:null,P=o.wrapped&&o.paper?PAPERS[o.paper]:null;const cx=100,cy=108,R=52;let out='';const rr=seedRand(7+stems.length*13);
+  if(P)out+=`<circle cx="${cx}" cy="${cy}" r="${R+26}" fill="${P.l}" stroke="${P.d}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="${R+20}" fill="none" stroke="${P.c}" stroke-width="5" stroke-dasharray="3 5"/>`;
+  out+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#6A4A30" stroke-width="5"/>`;
+  const firs=stems.filter(s=>s.t==='fir'),others=stems.filter(s=>s.t!=='fir');const nF=Math.max(14,firs.length*4);
+  for(let k=0;k<nF;k++){const a=k/nF*Math.PI*2,x=cx+Math.cos(a)*R,y=cy+Math.sin(a)*R,f=firs[k%Math.max(1,firs.length)];const w=f?wither(f.f):0;
+    out+=imgHead('fir',x+(rr()-.5)*6,y+(rr()-.5)*6,19,a*180/Math.PI+90+(rr()-.5)*40,w)}
+  others.forEach((s,k)=>{const a=-Math.PI/2+(k+.5)/others.length*Math.PI*2+(rr()-.5)*.2,rad=R+(rr()-.5)*8,x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad,w=wither(s.f);
+    out+=s.t==='gyp'?imgHead('gyp',x,y,13,0,w,k&7):fHeadSVG(s.t,x,y,s.t==='cotton'?22:s.t==='poinsettia'?22:s.t==='hydrangea'?20:17,w,false)});
+  const rc=RB?RB.c:'#C0303A',rd=RB?(RB.d||mix(rc,'#000',.25)):'#8E1E28';
+  out+=`<g transform="translate(${cx} ${cy+R})"><path d="M0,0 C-18,-16 -30,-4 -26,8 C-20,14 -8,6 0,0Z" fill="${rc}" stroke="${rd}" stroke-width="1"/><path d="M0,0 C18,-16 30,-4 26,8 C20,14 8,6 0,0Z" fill="${rc}" stroke="${rd}" stroke-width="1"/><path d="M-3,2 L-12,30 L-6,27 L-2,32Z M3,2 L12,30 L6,27 L2,32Z" fill="${rc}" stroke="${rd}" stroke-width=".8"/><circle r="5" fill="${rd}"/></g>`;
+  return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="리스">${out}</svg>`}
 function bouquetSVG(stems,o={}){
   const SH=o.wrapped?(o.shape||'cone'):'cone',BK=SH==='rattan'||SH==='white'||SH==='tin',BOXY=BK||SH==='box'||SH==='hatbox'||SH==='bag';
   const BKC={rattan:['#C99A63','#A87A48','#E0BC88','#B8864F'],white:['#F6F3EC','#D2CABB','#FFFFFF','#E6E0D4'],tin:['#C9D1D7','#8F9BA5','#EEF2F4','#AAB4BC']}[SH];
@@ -32,7 +45,8 @@ function bouquetSVG(stems,o={}){
   if(!stems.length){
     return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="빈 꽃다발"><circle cx="100" cy="104" r="46" fill="none" stroke="#E2D5CC" stroke-dasharray="4 5" stroke-width="1.5"/><text x="100" y="108" text-anchor="middle" font-size="11" fill="#9A8FA8" font-family="inherit">꽃을 더해 보세요</text></svg>`;
   }
-  const mains=stems.filter(s=>s.t!=='gyp'),fills=stems.filter(s=>s.t==='gyp');
+  if(isWreath(stems))return wreathSVG(stems,o);
+  const mains=stems.filter(s=>s.t!=='gyp'&&s.t!=='fir'),fills=stems.filter(s=>s.t==='gyp'||s.t==='fir');
   const pos=[];const n=mains.length;
   mains.forEach((s,k)=>{
     const r=n===1?0:Math.sqrt((k+.5)/n);const th=k*2.39996+.6;
@@ -81,6 +95,8 @@ function bouquetSVG(stems,o={}){
     else if(s.t==='tulip')heads+=imgHead('tulip',hx,hy+w*6,12,(hx-bx)*.35+dir*w*38,w);
     else if(s.t==='rose'||s.t==='hydrangea')heads+=fHeadSVG(s.t,hx,hy+w*6,s.t==='rose'?21:27,w,false);
     else if(s.t==='sunflower'||s.t==='ranunculus'||s.t==='peony')heads+=fHeadSVG(s.t,hx,hy+w*6,s.t==='peony'?27:s.t==='sunflower'?26:21,w,false);
+    else if(s.t==='poinsettia'||s.t==='amaryllis'||s.t==='camellia'||s.t==='cotton')heads+=fHeadSVG(s.t,hx,hy+w*6,s.t==='poinsettia'?28:s.t==='amaryllis'?25:s.t==='cotton'?17:22,w,false);
+    else if(s.t==='fir')gypS+=imgHead('fir',hx,hy+4+w*4,20,(hx-bx)*.6+(rr()-.5)*30,w);
     else heads+=imgHead('freesia',hx+(hx>=bx?6:-6),hy-6+w*6,17,(hx>=bx?10:-60)+(rr()-.5)*20,w);
   });
   function tulipSVG(x,y,s,rot,w){
@@ -338,13 +354,22 @@ function bagGrid(i,act,dimFn,selK){
   return `<div class="lbl">${PAL[i].name} 가방 (${S.bags[i].length-bagFree(i)}/${S.bags[i].length})</div><div class="grid">${S.bags[i].map((it,k)=>cellHTML(it,act,k,{dim:it&&dimFn?dimFn(it):false,sel:k===selK})).join('')}</div>`;
 }
 const BOX={counter:['카운터','꽃다발을 보관해요.'],storage:['꽃 냉장고','사 온 꽃을 보관해요. 칸을 누르면 가방으로, 가방 칸을 누르면 냉장고로 옮겨요.'],shelf:['선반','무엇이든 잠깐 올려둘 수 있어요.'],bucket:['물올림 통','다듬은 꽃을 꽂아 두면 물을 머금고 오래가요.'],dryer:['드라이플라워 건조대','한 시간 걸어두면 시들지 않는 드라이플라워가 돼요.'],pickup:['자동 픽업대','포장한 꽃다발을 올려두면 손님이 알아서 찾아가요.'],display:['진열대','진열한 꽃은 지나가던 손님이 사 가요.']};
+function allBuckets(){return S.stList.filter(s=>s.type==='bucket'&&owned(s)&&s.slots)}
 function boxProg(st,it){if(st.type==='dryer')return it.dried?1:clamp((it.dryT||0)/DRY_MIN,0,1);return null}
 /* 새 장소 파일이 자기 창(그리기·누르기·그린 뒤)을 등록하는 곳 */
 const MODAL_R={},MODAL_C={},MODAL_AFTER={};
 function renderModal(i){
   const c=S.chars[i],m=c.modal,el=modalEl(i);if(!m)return;m._rev=S.rev;hideTip();
   let h='';
-  if(m.type==='box'){
+  if(m.type==='box'&&S.st[m.st].type==='bucket'){
+    /* 물올림 통 통합 관리: 통이 여러 개여도 한 창에서 모두 보고 넣고 빼요 */
+    const BK=allBuckets(),cells=[];BK.forEach((b,bi)=>b.slots.forEach((it,k)=>cells.push(cellHTML(it,'bout',bi+'|'+k,{}))));
+    const bag=S.bags[i],ready=BK.reduce((n,b)=>n+b.slots.filter(it=>it&&avg(it.stems.map(s=>s.hyd||0))>=.99).length,0),canIn=bag.filter(it=>it&&!accepts(BK[0],it)).length,free=BK.reduce((n,b)=>n+b.slots.filter(x=>!x).length,0);
+    h=head(i,`물올림 통 (${BK.length}개 함께 관리)`)+`<p class="req">다듬은 꽃 묶음을 꽂아 두면 ${HYDRATE_MIN}분 뒤 물이 올라 싱싱해져요. 통이 여러 개여도 여기서 한 번에 넣고 빼요. (빈 칸 ${free}개)</p>
+      <div class="row"><button class="btn primary" data-a="ball" ${canIn&&free?'':'disabled'}>다듬은 꽃 전부 넣기 (${canIn})</button><button class="btn" data-a="bready" ${ready?'':'disabled'}>물 오른 꽃 전부 빼기 (${ready})</button></div>
+      ${two(i,bagGrid(i,'bin',it=>!!accepts(BK[0],it)),`<div class="lbl">물올림 통 ${BK.length}개</div><div class="grid">${cells.join('')}</div>`)}`;
+  }
+  else if(m.type==='box'){
     const st=S.st[m.st];const [title,desc]=BOX[st.type];
     h=head(i,title)+`<p class="req">${desc}${st.type==='storage'&&S.up.fridge?' 업그레이드 덕분에 천천히 시들어요.':''}</p>
       ${two(i,bagGrid(i,'in',it=>!!accepts(st,it)),`<div class="lbl">${title}</div><div class="grid">${st.slots.map((it,k)=>cellHTML(it,'out',k,{prog:it?boxProg(st,it):null,price:st.type==='display'})).join('')}</div>`)}${XST[st.type]?`<p class="note" style="text-align:left">${st.area!=='shop'&&st.type==='display'?'가게 밖 진열대예요. 영업 시간에 지나가는 사람들이 들러서 사 가요. ':''}설비 앞에서 행동 버튼을 길게 누르면 들 수 있어요. 진열대·물올림 통은 가게 밖에도 놓을 수 있어요.</p>`:''}${st.type==='display'?'<p class="note" style="text-align:left">자유 꽃다발 가격은 신선도에 따라 자동으로 정해져요. 시든 꽃다발은 팔리지 않으니 휴지통에 버려 주세요.</p>':''}`;
@@ -401,6 +426,7 @@ function renderModal(i){
     if(m.step==='pick'){h=head(i,'꽃 다듬기')+two(i,bagGrid(i,'tpick',it=>!(it.kind==='bunch'&&!it.trim&&!it.dried)),`<p class="req">왼쪽 가방에서 다듬을 꽃 묶음을 골라 주세요.</p>`)}
     else{const t=c.bag[m.slot].t,name=FL[t].name;
       if(m.step==='leaf'){const label=t==='gyp'?'곁가지 정리':'아랫잎 떼기';h=head(i,`${name} 다듬기`)+`<div class="stage"><p class="req" style="margin:0">${label}: 물에 잠길 ${t==='gyp'?'곁가지를':'잎을'} 떼어 주세요</p>${trimSVG(t,m)}<div class="row" style="justify-content:center"><button class="btn primary" data-a="leafnext">잎 떼기 (${m.removed.length}/${m.leaves})</button></div></div>`}
+      else if(S.up.autocut)h=head(i,`${name} 다듬기`)+`<p class="req">자동 사선 커터가 있어요. 버튼을 누르면 완벽한 각도로 잘라요.</p><div class="row" style="justify-content:center"><button class="btn primary" data-a="cut">자동으로 자르기</button></div>`;
       else h=head(i,`${name} 다듬기`)+`<p class="req" style="margin:0 0 0.38rem">사선 자르기: 선이 초록 구간에 올 때 그림이나 버튼을 누르세요</p><div class="cutwrap"><div class="cutsvg" data-a="cut">${cutSVG(m)}</div><button class="btn primary cutbtn" data-a="cut">자르기</button></div>`;
     }
   }
@@ -469,7 +495,7 @@ function renderModal(i){
   el.innerHTML=wrapBody(h);
   const r=el.querySelector('.invR'),l=el.querySelector('.invL'),mb=el.querySelector('.mbody');if(r)r.scrollTop=sy;if(l)l.scrollTop=sl;if(mb&&!r)mb.scrollTop=sm;const sc2=el.querySelector('.sscroll');if(sc2)sc2.scrollTop=ss;
   gpRefocus(i);
-  if(m.type==='trim'&&m.step==='cut')startCutAnim(i);
+  if(m.type==='trim'&&m.step==='cut'&&!S.up.autocut)startCutAnim(i);
   if(m.type==='wardrobe')drawPreview(i);
   if(MODAL_AFTER[m.type])MODAL_AFTER[m.type](i,m);
   if(m.type==='talk'){drawTalkFace(i,m.walker);startTalkType(i)}
@@ -508,7 +534,14 @@ function onModalClick(i,e){
   if(m.type==='talk'){if(a==='tchoice'){talkChoose(i,v);return}if(a==='close'){if(talkSkip(i))return;if(m.choose)return;talkNext(i);return}}
   if(a==='close'){closeModal(i);return}
   if(MODAL_C[m.type]){MODAL_C[m.type](i,a,v,m,t);return}
-  if(m.type==='box'){
+  if(m.type==='box'&&S.st[m.st].type==='bucket'){
+    const BK=allBuckets(),put=k=>{const it=bag[k];if(!it||accepts(BK[0],it))return false;for(const b of BK){const q=freeIdx(b.slots);if(q>=0){b.slots[q]=it;bag[k]=null;return true}}return null};
+    if(a==='bout'){const [bi,k]=v.split('|').map(Number),b=BK[bi],it=b&&b.slots[k];if(!it)return;if(!bagAdd(i,it)){toast(i,'가방이 꽉 찼어요');return}b.slots[k]=null;renderModal(i)}
+    if(a==='bin'){const r=put(+v);if(r===null)toast(i,'빈 칸이 없어요');else if(!r)toast(i,accepts(BK[0],bag[+v])||'넣을 수 없어요');renderModal(i)}
+    if(a==='ball'){let n=0;for(let k=0;k<bag.length;k++){const r=put(k);if(r===null)break;if(r)n++}toast(i,n?`${n}묶음을 물올림 통에 꽂았어요`:'넣을 꽃이 없어요');renderModal(i)}
+    if(a==='bready'){let n=0;for(const b of BK)b.slots.forEach((it,k)=>{if(it&&avg(it.stems.map(s=>s.hyd||0))>=.99&&bagAdd(i,it)){b.slots[k]=null;n++}});toast(i,n?`물 오른 꽃 ${n}묶음을 가방에 담았어요`:'가방이 꽉 찼어요');renderModal(i)}
+  }
+  else if(m.type==='box'){
     const st=S.st[m.st];
     if(a==='out'){const it=st.slots[+v];if(!it)return;if(!bagAdd(i,it)){toast(i,'가방이 꽉 찼어요');return}st.slots[+v]=null;renderModal(i)}
     if(a==='in'){const it=bag[+v];if(!it)return;const why=accepts(st,it);if(why){toast(i,why);return}
@@ -562,7 +595,7 @@ function onModalClick(i,e){
     if(a==='leafnext'){const k=[...Array(m.leaves).keys()].find(q=>!m.removed.includes(q));if(k!=null){m.removed.push(k);sfx('snip')}if(m.removed.length>=m.leaves)m.step='cut';renderModal(i)}
     if(a==='leaf'){const k=+v;if(!m.removed.includes(k))m.removed.push(k);if(m.removed.length>=m.leaves)m.step='cut';renderModal(i)}
     if(a==='cut'&&m.step==='cut'){
-      sfx('snip');const z=(S.up.scissors?14:8)+(S.up.g_scissors?5:0);const q=clamp(1-Math.max(0,Math.abs(m.angle-45)-z)/30,0,1);m.step='done';if(m.raf)cancelAnimationFrame(m.raf);
+      sfx('snip');const z=(S.up.scissors?14:8)+(S.up.g_scissors?5:0);const q=S.up.autocut?1:clamp(1-Math.max(0,Math.abs(m.angle-45)-z)/30,0,1);m.step='done';if(m.raf)cancelAnimationFrame(m.raf);
       const b=bag[m.slot];if(b){b.trim=true;b.stems.forEach(s=>{s.trim=true;s.cut=q})}closeModal(i);
       toast(i,q>.9?'완벽한 각도로 잘랐어요':q>.55?'괜찮은 각도로 잘랐어요':'각도가 조금 아쉽지만 다듬었어요');
     }
