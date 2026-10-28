@@ -531,6 +531,7 @@ function flowerHead(g,t,x,y,s,f,dried){
   const w=dried?.62:wither(f);
   if(w>.25&&!dried){y+=w*s*.55;x+=(x%2?1:-1)*w*s*.3}
   if(s<1.6){ // 아주 작을 때는 가벼운 그림(점 몇 개)으로 — 굽는 시간 절약
+    if(t==='fir'){const c=wmix('#3F6B4E',w);ln(g,x,y+s*.6,x,y-s*.7,c,s*.18);ln(g,x,y,x-s*.45,y-s*.35,c,s*.14);ln(g,x,y,x+s*.45,y-s*.35,c,s*.14);ln(g,x,y+s*.3,x-s*.4,y,c,s*.12);ln(g,x,y+s*.3,x+s*.4,y,c,s*.12);return} /* 전나무는 작은 가지 모양(동그라미 X) */
     const c=(WINTER&&{gyp:'#BFE1F6'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#D8333C',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
   flowerArt(g,t,x,y,s*(FART_K[t]||.6),w,Math.round(x*7+y*3)&1023);
 }
@@ -547,6 +548,9 @@ function drawItemV(g,it,x,y){
     if(st.some(s=>s.hyd>=.99))el(g,x+4.5,y-3,.8,1.2,'#7FB8E6');
   }else if(it.kind==='bouquet'){
     const st=it.stems;
+    if(typeof isWreath==='function'&&isWreath(st)){/* 리스: 손에 든 작은 둥근 리스 */const cy=y-8;for(let k=0;k<14;k++){const a=k/14*Math.PI*2;el(g,x+Math.cos(a)*4.6,cy+Math.sin(a)*4.6,1.9,1.2,k%2?'#3F7D55':'#2F6B48',a+1.2)}
+      st.filter(s=>s.t!=='fir').slice(0,6).forEach((s,k,A)=>{const a=-Math.PI/2+(k+.5)/A.length*Math.PI*2;flowerHead(g,s.t,x+Math.cos(a)*4.6,cy+Math.sin(a)*4.6,2.2,s.f,s.dried)});
+      const R=RIBBONS[it.ribbon]||RIBBONS.red||{c:'#C0303A',d:'#8E1E28'};poly(g,[x,cy+4.6,x-2.6,cy+3,x-2.4,cy+6],R.c);poly(g,[x,cy+4.6,x+2.6,cy+3,x+2.4,cy+6],R.c);el(g,x,cy+4.6,.8,.8,R.d);return}
     if(it.wrapped){const sh=it.shape||'cone',P=PAPERS[it.paper]||PAPERS.pink;
       if(sh==='hatbox'){el(g,x,y-7,6.6,1.8,mix(P.c,P.d,.45));rr(g,x-6.6,y-7,13.2,8.5,3,P.c);el(g,x,y-7,6.8,1.3,P.d);el(g,x+5,y-10,4,1.4,mix(P.c,P.d,.3),-.5)}
       else if(sh==='bag'){g.strokeStyle=P.d;g.lineWidth=.6;g.beginPath();g.arc(x-2.5,y-7,2,Math.PI,0);g.arc(x+2.5,y-7,2,Math.PI,0);g.stroke();poly(g,[x-6.5,y-7,x+6.5,y-7,x+6,y+1.5,x-6,y+1.5],P.c);ln(g,x-6.5,y-6.5,x+6.5,y-6.5,P.l,.8)}

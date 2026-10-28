@@ -37,7 +37,7 @@ const FL={
   amaryllis:{name:'아마릴리스',decay:4.5,price:14000,dot:'#D8333C',lock:true,season:'winter',tier:'fl_ranunculus'},
   camellia:{name:'동백',decay:5,price:22000,dot:'#B81E32',lock:true,season:'winter',tier:'fl_peony'},
   /* 겨울 소재(리스 재료): 겨울이면 누구나 살 수 있어요 */
-  fir:{name:'전나무 가지',decay:2.5,price:6000,dot:'#3F6B4E',season:'winter',green:true},
+  fir:{name:'전나무 가지',decay:0,price:6000,dot:'#3F6B4E',season:'winter',green:true},
   cotton:{name:'목화',decay:2,price:7000,dot:'#F4F1EA',season:'winter'}
 };
 if(WINTER){FL.gyp.dot='#BFE1F6'} /* 겨울: 안개꽃은 하늘빛, 튤립은 원래 색. 프리지아·수국은 겨울엔 시장에 안 나와요(남은 재고는 그대로 팔 수 있어요) */

@@ -24,8 +24,7 @@ function bowSwatch(k,rb){const R=RIBBONS[rb]||RIBBONS.pink;return `<svg viewBox=
 let GID=0;
 /* 리스: 전나무 고리 + 꽃을 고리 둘레에, 아래에 리본. 포장하면 동그란 종이 받침 + 큰 리본 */
 function wreathSVG(stems,o={}){
-  const RB=o.ribbon?RIBBONS[o.ribbon]:null,P=o.wrapped&&o.paper?PAPERS[o.paper]:null;const cx=100,cy=108,R=52;let out='';const rr=seedRand(7+stems.length*13);
-  if(P)out+=`<circle cx="${cx}" cy="${cy}" r="${R+26}" fill="${P.l}" stroke="${P.d}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="${R+20}" fill="none" stroke="${P.c}" stroke-width="5" stroke-dasharray="3 5"/>`;
+  const RB=o.ribbon?RIBBONS[o.ribbon]:null;const cx=100,cy=108,R=52;let out='';const rr=seedRand(7+stems.length*13);
   out+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#6A4A30" stroke-width="5"/>`;
   const firs=stems.filter(s=>s.t==='fir'),others=stems.filter(s=>s.t!=='fir');const nF=Math.max(14,firs.length*4);
   for(let k=0;k<nF;k++){const a=k/nF*Math.PI*2,x=cx+Math.cos(a)*R,y=cy+Math.sin(a)*R,f=firs[k%Math.max(1,firs.length)];const w=f?wither(f.f):0;
@@ -622,7 +621,9 @@ function onModalClick(i,e){
       let o=orderById(W.orderId);if(o&&o.status!=='pending')o=null;let auto=false;
       if(!o){const taken=Object.entries(S.works).filter(([k])=>k!==m.st).map(([,w])=>w.orderId);o=bestOrderFor(W.stems,taken);auto=!!o}
       if(o)o.status='crafted';
-      bagAdd(i,{kind:'bouquet',orderId:o?o.id:null,stems:W.stems,wrapped:false});S.works[m.st]={orderId:null,stems:[]};closeModal(i);sfx('tie');
+      const wr=isWreath(W.stems); /* 리스는 포장 없이 완성(리본만 달아요) — 포장대를 거치지 않고 바로 카운터·손님에게 */
+      bagAdd(i,wr?{kind:'bouquet',orderId:o?o.id:null,stems:W.stems,wrapped:true,wreath:true,paper:o?o.paper:'cream',ribbon:'red',bow:'classic',pat:'plain'}:{kind:'bouquet',orderId:o?o.id:null,stems:W.stems,wrapped:false});S.works[m.st]={orderId:null,stems:[]};closeModal(i);sfx('tie');
+      if(wr){toast(i,o?`${o.name}님 리스 완성! 리스는 포장 없이 리본만 달아요. 카운터에 두거나 바로 건네요`:'리스 완성! 리스는 포장 없이 리본만 달아요');return}
       toast(i,auto?`${o.name}님 예약과 꽃이 똑같아서 ${o.name}님 꽃다발로 묶었어요. 포장대로 가져가세요`:o?`${o.name}님 꽃다발을 묶었어요. 포장대로 가져가세요`:'묶었어요. 포장대로 가져가세요');
     }
   }

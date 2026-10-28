@@ -23,24 +23,30 @@ if(WINTER){
   sunsetView=c=>!!(c&&c.rest&&c.rest.bench&&c.rest.bench.view&&wt(S.t)>=420);
 }
 
-/* ---------- 2. 눈 덮인 땅: 바닥 그림을 다 그린 뒤 '풀색 → 눈색, 물색 → 얼음색'으로 바꿔요 ---------- */
-function snowFilter(cv,leaves){
-  const w=cv.width,h=cv.height;if(w<2||h<2)return;const g=cv.getContext('2d');let im;try{im=g.getImageData(0,0,w,h)}catch(e){return}
-  const d=im.data;
-  for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;const r=d[i],gg=d[i+1],b=d[i+2];
-    if((gg>r+8&&gg>b+4)||(leaves&&r-b>115)){const L=r*.3+gg*.59+b*.11,t=L<95?0:L>220?1:(L-95)/125;d[i]=184+t*68|0;d[i+1]=198+t*55|0;d[i+2]=218+t*37|0}
-    else if(b>r+22&&b>=gg-6){d[i]=r*.45+124|0;d[i+1]=gg*.45+131|0;d[i+2]=b*.45+135|0}}
-  g.putImageData(im,0,0)}
+/* ---------- 2. 눈 덮인 땅: 바닥을 그리는 순간 '풀색 → 눈색, 물색 → 얼음색'으로 바꿔 칠해요
+   (다 그린 뒤 픽셀을 하나하나 고치던 방식은 TV에서 캠퍼스 땅 조각마다 멈칫해서, 색을 고를 때 바로 바꾸는 방식으로 바꿨어요 → 추가 시간·메모리 거의 0) */
+const SNOWC=new Map();let SNOW_LEAF=false;
+function snowRGB(r,gg,b){if((gg>r+8&&gg>b+4)||(SNOW_LEAF&&r-b>115)){const L=r*.3+gg*.59+b*.11,t=L<95?0:L>220?1:(L-95)/125;return [184+t*68|0,198+t*55|0,218+t*37|0]}
+  if(b>r+22&&b>=gg-6)return [r*.45+124|0,gg*.45+131|0,b*.45+135|0];return null}
+function snowCol(c){if(typeof c!=='string')return c;const key=(SNOW_LEAF?'L':'')+c;let v=SNOWC.get(key);if(v!==undefined)return v;v=c;
+  let m=/^#([0-9a-f]{6})$/i.exec(c),r,g,b,a=null;if(m){const n=parseInt(m[1],16);r=n>>16;g=(n>>8)&255;b=n&255}
+  else if((m=/^#([0-9a-f]{3})$/i.exec(c))){r=parseInt(m[1][0]+m[1][0],16);g=parseInt(m[1][1]+m[1][1],16);b=parseInt(m[1][2]+m[1][2],16)}
+  else if((m=/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(c))){r=+m[1];g=+m[2];b=+m[3];a=m[4]!=null?+m[4]:null}
+  if(r!=null){const o=snowRGB(r,g,b);if(o)v=a==null?`rgb(${o[0]},${o[1]},${o[2]})`:`rgba(${o[0]},${o[1]},${o[2]},${a})`}
+  if(SNOWC.size>4000)SNOWC.clear();SNOWC.set(key,v);return v}
+function withSnowColors(fn,leaves){const P=CanvasRenderingContext2D.prototype,F=Object.getOwnPropertyDescriptor(P,'fillStyle'),St=Object.getOwnPropertyDescriptor(P,'strokeStyle'),LG=P.createLinearGradient,RG=P.createRadialGradient;
+  const wrapG=f=>function(...a){const gr=f.apply(this,a),ac=gr.addColorStop;gr.addColorStop=function(o,c){return ac.call(this,o,snowCol(c))};return gr};
+  SNOW_LEAF=!!leaves;
+  Object.defineProperty(P,'fillStyle',{configurable:true,get:F.get,set(v){F.set.call(this,snowCol(v))}});Object.defineProperty(P,'strokeStyle',{configurable:true,get:St.get,set(v){St.set.call(this,snowCol(v))}});P.createLinearGradient=wrapG(LG);P.createRadialGradient=wrapG(RG);
+  try{return fn()}finally{Object.defineProperty(P,'fillStyle',F);Object.defineProperty(P,'strokeStyle',St);P.createLinearGradient=LG;P.createRadialGradient=RG;SNOW_LEAF=false}}
 const SNOW_BG={town:1,north:1,farm:1},NORTH_LEAF=new Set(['#E8B84A','#D9674A','#E8905A','#C9A23E','#B8543E']);
 if(WINTER){
   const _bg=bgDraw;bgDraw=function(area,s,q){
     if(!SNOW_BG[area])return _bg(area,s,q);
     XF_SKIP=1;const _el=el;if(area==='north')el=function(g,x,y,rx,ry,f,r){if(NORTH_LEAF.has(f))return;_el(g,x,y,rx,ry,f,r)}; /* 북쪽 길의 낙엽은 빼고 그려요 */
-    let cv;try{cv=_bg(area,s,q)}finally{XF_SKIP=0;el=_el}
+    let cv;try{cv=withSnowColors(()=>_bg(area,s,q),area==='north')}finally{XF_SKIP=0;el=_el}
     const g=cv.getContext('2d');g.setTransform(s*q,0,0,s*q,0,0);
-    if(area==='town'&&XMAS){g.fillStyle='#A9D08F';g.fillRect(296,292,80,18)} // 큰 트리 자리의 꽃밭을 덮어요
-    snowFilter(cv,area==='north');
-    g.setTransform(s*q,0,0,s*q,0,0);
+    if(area==='town'&&XMAS){g.fillStyle=snowCol('#A9D08F');g.fillRect(296,292,80,18)} // 큰 트리 자리의 꽃밭을 덮어요
     if(area==='town')FACADES.forEach(f=>{if(f.t!=='shopFront')drawFacade(g,f)});
     snowDrifts(g,area);
     return cv};
@@ -61,6 +67,7 @@ function drawGarland(g,x0,x1,y,step,sag,opt){const P=garlandPts(x0,x1,y,step,sag
   for(const [x2] of P.hooks){bowV(g,x2,y-.5,opt&&opt.bow||'#C8303E')}
   if(!opt||!opt.noDots)for(const [bx,by] of P.bulbs){ln(g,bx,by-1.6,bx,by-.6,'#3A3A3A',.35);el(g,bx,by,.75,.95,XBC[Math.round(bx*.37)%5])}
   return P}
+function bowS(g,x,y,k,c){g.save();g.translate(x,y);g.scale(k,k);bowV(g,0,0,c);g.restore()}
 function bowV(g,x,y,c){const d=mix(c,'#3A1A20',.3);poly(g,[x,y,x-3.4,y-2,x-3.2,y+1.8],c);poly(g,[x,y,x+3.4,y-2,x+3.2,y+1.8],c);ln(g,x,y,x-1.6,y+3.6,d,.8);ln(g,x,y,x+1.6,y+3.6,d,.8);el(g,x,y,1,1,d)}
 function wreathV(g,x,y,r,opt){const q=seedRand(Math.round(x*13+y));for(let k=0;k<16;k++){const a=k/16*Math.PI*2;el(g,x+Math.cos(a)*r,y+Math.sin(a)*r,r*.42,r*.3,k%2?'#3F7D55':'#2F6B48',a+1.2)}
   for(let k=0;k<5;k++){const a=q()*6.28;el(g,x+Math.cos(a)*r,y+Math.sin(a)*r,r*.13,r*.13,'#D8343F')}if(opt&&opt.cotton){const a=q()*6.28;el(g,x+Math.cos(a)*r,y+Math.sin(a)*r,r*.18,r*.16,'#FFFFFF')}
@@ -156,7 +163,7 @@ const SNOW_FALL={town:1,north:1,farm:1,campus:1};
 function snowfall(area,tt){
   const r=prRec('XS|'+area);prBegin(r);
   const amt=SNOW_FALL[area]?snowAmt():0;
-  if(amt>0&&VIEW){const C=140,per=Math.round((prIsTV()?3.2:6.5)*amt+.4),seen=new Set();
+  if(amt>0&&VIEW){const C=140,per=Math.round((prIsTV()?2.2:6.5)*amt+.4),seen=new Set();
     const e1=prFxT('flk1',area,[-1.4,-1.4,2.8,2.8],g=>el(g,0,0,1,1,'rgba(255,255,255,.95)')),e2=prFxT('flk2',area,[-2.4,-2.4,4.8,4.8],g=>{const gr=g.createRadialGradient(0,0,0,0,0,2.3);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.55,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(-2.4,-2.4,4.8,4.8)});
     for(const R of (VIEWS&&VIEWS.length?VIEWS:[VIEW])){for(let cy=Math.floor(R[1]/C)-1;cy<=Math.floor(R[3]/C);cy++)for(let cx=Math.floor(R[0]/C);cx<=Math.floor(R[2]/C);cx++){const key=cx+','+cy;if(seen.has(key))continue;seen.add(key);
       for(let k=0;k<per;k++){const h1=xHash(cx,cy,k),h2=xHash(cy,k,cx),h3=xHash(k,cx,cy);const sp=13+h2*12,yy=(h3*C+tt*sp)%C,sx=cx*C+h1*C+Math.sin(tt*(.6+h2)+h3*6)*7,sy=cy*C+yy;
@@ -171,11 +178,11 @@ function seasonDyn(area,tt){
   if(!WINTER)return;
   if(XMAS&&XG_IN[area]){const W=AREAS[area].w*TILE,rg=prRec('XG|'+area);prBegin(rg);const e=prFxT('garl|'+area,area,[0,-3,W,18],g=>drawGarland(g,16,W-16,3,XG_IN[area],3.6,{noDots:true}));prFx(rg,area,e,0,0,-2.4e6);prEnd(rg)}
   const list=xbList(area);const rc=prRec('XC|'+area),ra=prRec('XA|'+area);prBegin(rc);prBegin(ra);
-  if(list.length){const L=lampAt(S.t),cap=prIsTV()?90:200,inside=!!XG_IN[area];let n=0;
+  if(list.length){const L=lampAt(S.t),tv=prIsTV(),cap=tv?55:200,inside=!!XG_IN[area],glowOn=inside||L>.15;let n=0; /* TV는 전구 수를 줄이고, 낮(바깥)엔 빛 번짐을 그리지 않아요 */
     for(const b of list){if(n>=cap)break;if(!inView(b[0],b[1],10))continue;n++;
       const tw=(Math.sin(tt*b[4]+b[3])+1)/2;
       prFx(rc,area,xbTex(area,b[2]),b[0],b[1],b[5],.72+.28*tw);
-      const ga=(.14+.5*tw)*(inside?.75:(.3+.7*L))*b[6];if(ga>.05)prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
+      const ga=(.14+.5*tw)*(inside?.75:(.3+.7*L))*b[6];if(glowOn&&ga>.05)prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
   prEnd(rc);prEnd(ra);
   snowfall(area,tt);
 }
@@ -192,11 +199,13 @@ const XT_SLOTS=(()=>{const L=[[0,-104]];XT_TIERS.forEach(([b,t,w,n])=>{for(let k
 const XORN={
   ballR:{name:'빨간 오너먼트 볼',price:3000},ballG:{name:'금빛 오너먼트 볼',price:3000},ballB:{name:'은청색 오너먼트 볼',price:3000},
   candy:{name:'지팡이 사탕',price:3500},bow:{name:'빨간 리본',price:3500},snowf:{name:'눈꽃 장식',price:4000},bell:{name:'금종',price:4000},
-  gift:{name:'작은 선물상자',price:5000},dried:{name:'드라이플라워 오너먼트',price:6000,desc:'꽃집 특제! 말린 꽃을 엮었어요'},light:{name:'전구 줄',price:8000,desc:'반짝반짝 작은 전구 다섯 알'},
+  gift:{name:'작은 선물상자',price:5000},light:{name:'전구 줄',price:8000,desc:'반짝반짝 작은 전구 다섯 알'},
+  wreathO:{name:'미니 리스',price:4500},pine:{name:'솔방울',price:2500},sock:{name:'크리스마스 양말',price:4500},icicle:{name:'고드름',price:3000,desc:'투명하게 반짝여요'},
+  dSanta:{name:'산타 인형',price:6000},dRudolph:{name:'루돌프 인형',price:6000},dSnow:{name:'눈사람 인형',price:6000},dGinger:{name:'진저브레드 쿠키맨',price:6000},dBear:{name:'곰 인형',price:6000},
   star:{name:'꼭대기 별',price:15000,top:true}};
 const XT_REWARD=[0,5000,8000,12000,18000,30000];
 const XT_STAGE_MSG=['','트리 1단계! 지나가던 이웃이 걸음을 멈추고 구경해요.','트리 2단계! 트리 아래에 선물 상자가 생겼어요.','트리 3단계! 반짝이 줄이 트리를 감쌌어요. 구경 오는 사람이 늘었어요.','트리 4단계! 눈꽃이 반짝여요. 마을 사람들이 사진을 찍으러 와요.','트리 5단계 완성! 마을 최고의 크리스마스 트리가 됐어요 ✨'];
-function xm(){S.xm=S.xm||{};const x=S.xm;if(!Array.isArray(x.o)||x.o.length!==21)x.o=Array(21).fill(null);return x}
+function xm(){S.xm=S.xm||{};const x=S.xm;if(!Array.isArray(x.o)||x.o.length!==21)x.o=Array(21).fill(null);x.o.forEach((v,k)=>{if(v&&!XORN[v])x.o[k]='pine'});return x} /* 없어진 장식(드라이플라워)은 솔방울로 바꿔 줘요 */
 function xtCount(){return xm().o.slice(1).filter(Boolean).length}
 function xtStage(){const n=xtCount();let st=Math.min(5,Math.floor(n/4));if(st===5&&xm().o[0]!=='star')st=4;return st}
 function xtSig(){if(!XM_ON||!S.xm)return '0';return xm().o.map(v=>v||'-').join(',')}
@@ -214,10 +223,19 @@ function xtOrn(g,k,x,y,s){s=s||1;
     case 'candy':{g.save();g.lineCap='round';g.strokeStyle='#FFFFFF';g.lineWidth=1.5*s;g.beginPath();g.moveTo(x+.8*s,y+3.6*s);g.lineTo(x+.8*s,y-1.6*s);g.arc(x-.4*s,y-1.6*s,1.2*s,0,Math.PI,true);g.stroke();g.setLineDash([.9*s,.9*s]);g.strokeStyle='#D32F3E';g.stroke();g.restore();return}
     case 'bow':bowV(g,x,y,'#D32F3E');return;
     case 'snowf':{for(let j=0;j<3;j++){const a=j*Math.PI/3;ln(g,x-Math.cos(a)*2.8*s,y-Math.sin(a)*2.8*s,x+Math.cos(a)*2.8*s,y+Math.sin(a)*2.8*s,'#FFFFFF',.7*s)}el(g,x,y,.8*s,.8*s,'#DDEBFA');return}
-    case 'bell':{poly(g,[x-2.4*s,y+2*s,x-1.6*s,y-1.6*s,x,y-2.6*s,x+1.6*s,y-1.6*s,x+2.4*s,y+2*s],'#E3B23C');rr(g,x-2.6*s,y+1.6*s,5.2*s,1*s,.4*s,'#C99A2E');el(g,x,y+2.8*s,.7*s,.7*s,'#B8862A');bowV(g,x,y-2.8*s,'#D32F3E');return}
+    case 'bell':{poly(g,[x-2.4*s,y+2*s,x-1.6*s,y-1.6*s,x,y-2.6*s,x+1.6*s,y-1.6*s,x+2.4*s,y+2*s],'#E3B23C');rr(g,x-2.6*s,y+1.6*s,5.2*s,1*s,.4*s,'#C99A2E');el(g,x,y+2.8*s,.7*s,.7*s,'#B8862A');bowS(g,x,y-2.8*s,s*.55,'#D32F3E');return}
     case 'gift':{rr(g,x-2.4*s,y-1.6*s,4.8*s,4*s,.5*s,'#4F8FD8');g.fillStyle='#F2C230';g.fillRect(x-.45*s,y-1.6*s,.9*s,4*s);g.fillRect(x-2.4*s,y+.2*s,4.8*s,.8*s);el(g,x-1*s,y-2.1*s,1*s,.7*s,'#F2C230');el(g,x+1*s,y-2.1*s,1*s,.7*s,'#F2C230');return}
-    case 'dried':{ln(g,x,y-3*s,x,y+2.6*s,'#9C7A55',.6*s);[[-1.6,-2.6,'#D9A0A8'],[1.4,-2.2,'#E8D6B8'],[0,-3.6,'#C98F7A'],[-.4,-1.2,'#B8A0C8']].forEach(([a,b,c])=>el(g,x+a*s,y+b*s,1.15*s,1.15*s,c));el(g,x+1.8*s,y-.8*s,.8*s,1.4*s,'#A8B898',.5);rr(g,x-1.2*s,y+.4*s,2.4*s,.9*s,.3*s,'#C9A27A');return}
     case 'light':{g.strokeStyle='#2A3A2E';g.lineWidth=.5*s;g.beginPath();g.moveTo(x-10*s,y-1*s);g.quadraticCurveTo(x,y+5.4*s,x+10*s,y-1*s);g.stroke();for(let j=0;j<5;j++){const t=j/4;el(g,x-10*s+t*20*s,y-1*s+Math.sin(t*Math.PI)*3.2*s,.8*s,1*s,XBC[j])}return}
+    case 'wreathO':{for(let j=0;j<10;j++){const a=j/10*Math.PI*2;el(g,x+Math.cos(a)*2.4*s,y+Math.sin(a)*2.4*s,1.1*s,.75*s,j%2?'#3F7D55':'#2F6B48',a+1.2)}el(g,x+1.6*s,y-1.6*s,.5*s,.5*s,'#D8343F');el(g,x-1.8*s,y-1.2*s,.5*s,.5*s,'#D8343F');bowS(g,x,y+2.4*s,s*.5,'#D32F3E');return}
+    case 'pine':{ln(g,x,y-3.4*s,x,y-2.4*s,'#B8A060',.4*s);el(g,x,y,1.8*s,2.6*s,'#7A5236');for(let j=0;j<4;j++){const yy=y-1.6*s+j*1.1*s;g.strokeStyle='#5A3A26';g.lineWidth=.35*s;g.beginPath();g.moveTo(x-1.7*s,yy);g.quadraticCurveTo(x,yy+.8*s,x+1.7*s,yy);g.stroke()}el(g,x-.5*s,y-1.8*s,.8*s,.45*s,'#FBFCFF');return}
+    case 'sock':{ln(g,x,y-4*s,x,y-3*s,'#B8A060',.4*s);rr(g,x-1.6*s,y-3*s,3.2*s,4.4*s,.6*s,'#D32F3E');rr(g,x-1.6*s,y+.4*s,4.2*s,2.2*s,1.1*s,'#D32F3E');rr(g,x-1.9*s,y-3.4*s,3.8*s,1.4*s,.6*s,'#FBFCFF');el(g,x+.2*s,y+1.6*s,.6*s,.4*s,'#3F7D55');return}
+    case 'icicle':{poly(g,[x-1.3*s,y-3*s,x+1.3*s,y-3*s,x+.15*s,y+4.2*s],'rgba(200,228,250,.95)');poly(g,[x-.6*s,y-3*s,x,y-3*s,x,y+3*s],'rgba(255,255,255,.9)');el(g,x,y-3.1*s,1.5*s,.5*s,'#FBFCFF');return}
+    case 'dSanta':{el(g,x,y+1.6*s,2.4*s,2.2*s,'#D32F3E');rr(g,x-2.4*s,y+1.2*s,4.8*s,.7*s,.3*s,'#2E2B30');el(g,x,y-1.4*s,1.8*s,1.8*s,'#F6D2B8');el(g,x,y-.4*s,1.7*s,1.1*s,'#FFFFFF');poly(g,[x-1.9*s,y-2.2*s,x+1.9*s,y-2.2*s,x+1.2*s,y-4.6*s],'#D32F3E');rr(g,x-2*s,y-2.6*s,4*s,.8*s,.4*s,'#FFFFFF');el(g,x+1.2*s,y-4.6*s,.6*s,.6*s,'#FFFFFF');el(g,x-.6*s,y-1.6*s,.25*s,.25*s,'#2A2626');el(g,x+.6*s,y-1.6*s,.25*s,.25*s,'#2A2626');return}
+    case 'dRudolph':{ln(g,x-1.2*s,y-1.8*s,x-2.4*s,y-4*s,'#7A5236',.5*s);ln(g,x-2*s,y-3.3*s,x-2.9*s,y-3.4*s,'#7A5236',.4*s);ln(g,x+1.2*s,y-1.8*s,x+2.4*s,y-4*s,'#7A5236',.5*s);ln(g,x+2*s,y-3.3*s,x+2.9*s,y-3.4*s,'#7A5236',.4*s);el(g,x,y+1.8*s,2*s,1.8*s,'#9C6A44');el(g,x,y-.6*s,2*s,2*s,'#A8744A');el(g,x,y+.6*s,1.1*s,.8*s,'#D8B08A');el(g,x,y+.4*s,.6*s,.6*s,'#E8343F');el(g,x-.7*s,y-1*s,.25*s,.28*s,'#2A2626');el(g,x+.7*s,y-1*s,.25*s,.28*s,'#2A2626');return}
+    case 'dSnow':{el(g,x,y+1.6*s,2.3*s,2.1*s,'#FBFCFF');el(g,x,y-1.2*s,1.7*s,1.6*s,'#FFFFFF');rr(g,x-1.6*s,y-.4*s,3.2*s,.7*s,.3*s,'#3F7D55');rr(g,x-1.1*s,y-4.2*s,2.2*s,1.8*s,.3*s,'#2E2B30');rr(g,x-1.6*s,y-2.6*s,3.2*s,.5*s,.2*s,'#2E2B30');poly(g,[x,y-1.1*s,x+1.4*s,y-.9*s,x,y-.7*s],'#F08A3C');el(g,x-.5*s,y-1.5*s,.2*s,.2*s,'#2A2626');el(g,x+.5*s,y-1.5*s,.2*s,.2*s,'#2A2626');return}
+    case 'dGinger':{const c='#B9773E';el(g,x,y-2*s,1.5*s,1.5*s,c);rr(g,x-1.3*s,y-.8*s,2.6*s,3*s,.8*s,c);ln(g,x-1.2*s,y-.2*s,x-2.6*s,y+.6*s,c,1*s);ln(g,x+1.2*s,y-.2*s,x+2.6*s,y+.6*s,c,1*s);ln(g,x-.6*s,y+2*s,x-1.3*s,y+3.6*s,c,1*s);ln(g,x+.6*s,y+2*s,x+1.3*s,y+3.6*s,c,1*s);
+      g.strokeStyle='#FFFFFF';g.lineWidth=.3*s;g.beginPath();g.arc(x,y-1.8*s,.7*s,.3,Math.PI-.3);g.stroke();el(g,x-.5*s,y-2.3*s,.2*s,.2*s,'#FFFFFF');el(g,x+.5*s,y-2.3*s,.2*s,.2*s,'#FFFFFF');el(g,x,y+.2*s,.3*s,.3*s,'#E8343F');el(g,x,y+1.2*s,.3*s,.3*s,'#3F9A5A');return}
+    case 'dBear':{const c='#C99A6A';el(g,x-1.4*s,y-2.6*s,.8*s,.8*s,c);el(g,x+1.4*s,y-2.6*s,.8*s,.8*s,c);el(g,x,y+1.8*s,2.1*s,2*s,c);el(g,x,y-1.2*s,1.9*s,1.7*s,c);el(g,x,y-.7*s,.9*s,.65*s,'#EED8BC');el(g,x,y-.9*s,.3*s,.22*s,'#3A2A22');el(g,x-.7*s,y-1.6*s,.22*s,.22*s,'#2A2626');el(g,x+.7*s,y-1.6*s,.22*s,.22*s,'#2A2626');poly(g,[x,y+.4*s,x-1*s,y-.2*s,x-1*s,y+1*s],'#D32F3E');poly(g,[x,y+.4*s,x+1*s,y-.2*s,x+1*s,y+1*s],'#D32F3E');return}
     case 'star':{const gr=g.createRadialGradient(x,y,0,x,y,10*s);gr.addColorStop(0,'rgba(255,236,150,.6)');gr.addColorStop(1,'rgba(255,236,150,0)');g.fillStyle=gr;g.fillRect(x-10*s,y-10*s,20*s,20*s);
       starPath(g,x,y,6.4*s,2.7*s,0);g.fillStyle='#F2C230';g.fill();g.strokeStyle='#D8A020';g.lineWidth=.6*s;g.stroke();starPath(g,x-.6*s,y-.6*s,3*s,1.3*s,0);g.fillStyle='rgba(255,250,210,.8)';g.fill();return}
   }}
@@ -453,7 +471,7 @@ function drawWinterScene(g,X,Y,W,H,who){
 }
 if(WINTER){drawSunsetScene=drawWinterScene}
 /* 캠퍼스 땅 조각도 그릴 때 바로 눈 덮인 색으로 바꿔요(조각마다 한 번, 추가 메모리 없음) */
-if(WINTER&&typeof AREA_CHUNK!=='undefined'&&AREA_CHUNK.campus){const _cg=AREA_CHUNK.campus;AREA_CHUNK.campus=function(g,X0,Y0,W,H){_cg(g,X0,Y0,W,H);snowFilter(g.canvas)}}
+if(WINTER&&typeof AREA_CHUNK!=='undefined'&&AREA_CHUNK.campus){const _cg=AREA_CHUNK.campus;AREA_CHUNK.campus=function(g,X0,Y0,W,H){withSnowColors(()=>_cg(g,X0,Y0,W,H))}}
 
 /* =====================================================================
    17. 겨울 꽃시장: 프리지아·수국은 쉬어요(가판대 빠짐). 튤립·안개꽃·장미 세 가판대를 가운데로 고르게.
