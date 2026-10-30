@@ -34,6 +34,16 @@ function wreathSVG(stems,o={}){
   const rc=RB?RB.c:'#C0303A',rd=RB?(RB.d||mix(rc,'#000',.25)):'#8E1E28';
   out+=`<g transform="translate(${cx} ${cy+R})"><path d="M0,0 C-18,-16 -30,-4 -26,8 C-20,14 -8,6 0,0Z" fill="${rc}" stroke="${rd}" stroke-width="1"/><path d="M0,0 C18,-16 30,-4 26,8 C20,14 8,6 0,0Z" fill="${rc}" stroke="${rd}" stroke-width="1"/><path d="M-3,2 L-12,30 L-6,27 L-2,32Z M3,2 L12,30 L6,27 L2,32Z" fill="${rc}" stroke="${rd}" stroke-width=".8"/><circle r="5" fill="${rd}"/></g>`;
   return `<svg viewBox="0 0 200 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="리스">${out}</svg>`}
+/* 잎 한 장: 끝이 뾰족하고 살짝 휜 잎 + 가운데 잎맥 + 한쪽 그늘 (예전 초록 타원 대신) */
+function leafSVG(x,y,len,wid,ang,w,col,bend){const c=mix(col||'#7FAA62','#A8A070',w),d=mix(c,'#2F4A2A',.32),L=mix(c,'#FFFFFF',.28),b=(bend||.25)*wid;
+  const tip=`0,${-len}`;const a=`M0,0 C${(-wid*.9).toFixed(1)},${(-len*.28).toFixed(1)} ${(-wid*.75+b).toFixed(1)},${(-len*.78).toFixed(1)} ${tip}`,bk=`C${(wid*.6+b).toFixed(1)},${(-len*.74).toFixed(1)} ${(wid*.95).toFixed(1)},${(-len*.3).toFixed(1)} 0,0Z`;
+  return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(0)})"><path d="${a} ${bk}" fill="${c}"/><path d="M0,0 C${(wid*.6+b).toFixed(1)},${(-len*.3).toFixed(1)} ${(wid*.45+b).toFixed(1)},${(-len*.74).toFixed(1)} ${tip} C${(wid*.15+b*.6).toFixed(1)},${(-len*.6).toFixed(1)} ${(wid*.12).toFixed(1)},${(-len*.3).toFixed(1)} 0,0Z" fill="${d}" opacity=".45"/><path d="M0,-1 Q${(b*.5).toFixed(1)},${(-len*.5).toFixed(1)} 0,${(-len*.92).toFixed(1)}" stroke="${L}" stroke-width="${Math.max(.4,wid*.1).toFixed(2)}" fill="none" stroke-linecap="round" opacity=".85"/></g>`}
+/* 그린 소재 한 가지(줄기 + 잎 여러 장) */
+function sprigSVG(x,y,len,ang,w,seed,kind){const r=seedRand(seed);let o=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${ang.toFixed(0)})">`;const sc=mix('#6E9A5A','#9C8B62',w);
+  o+=`<path d="M0,0 Q${(len*.08).toFixed(1)},${(-len*.5).toFixed(1)} 0,${(-len).toFixed(1)}" stroke="${sc}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`;
+  const n=kind?5:4;for(let k=0;k<n;k++){const t=.35+k*(.6/n),side=k%2?1:-1,ly=-len*t;o+=leafSVG(side*1,ly,len*(kind?.26:.36)*(1-t*.35),len*(kind?.1:.13),side*(48+r()*18),w,kind?'#86A98A':(k%2?'#7FAA62':'#6E9C58'),side*.3)}
+  o+=leafSVG(0,-len*.96,len*(kind?.24:.32),len*(kind?.09:.12),(r()-.5)*16,w,kind?'#86A98A':'#7FAA62',.2);
+  return o+'</g>'}
 function bouquetSVG(stems,o={}){
   const SH=o.wrapped?(o.shape||'cone'):'cone',BK=SH==='rattan'||SH==='white'||SH==='tin',BOXY=BK||SH==='box'||SH==='hatbox'||SH==='bag';
   const BKC={rattan:['#C99A63','#A87A48','#E0BC88','#B8864F'],white:['#F6F3EC','#D2CABB','#FFFFFF','#E6E0D4'],tin:['#C9D1D7','#8F9BA5','#EEF2F4','#AAB4BC']}[SH];
@@ -84,10 +94,10 @@ function bouquetSVG(stems,o={}){
     stemS+=`<ellipse cx="${ex.toFixed(1)}" cy="228.5" rx="1.4" ry=".7" fill="${mix('#B9D39A','#C9B98E',w)}"/>`;
     if(s.t==='tulip'&&k%2===0){
       const dir=hx>=bx?1:-1;const lx=bx+(hx-bx)*.4,ly=by-26;
-      leaves+=`<path d="M${lx.toFixed(1)},${ly} Q${(lx+dir*3).toFixed(1)},${ly-20} ${(lx+dir*22).toFixed(1)},${ly-30} Q${(lx+dir*18).toFixed(1)},${ly-8} ${lx.toFixed(1)},${ly}Z" fill="${mix('#88B271','#A8A070',w)}" stroke="${mix('#6E9A5A','#8E7F58',w)}" stroke-width=".6"/>`;
+      leaves+=leafSVG(lx,ly,36,9,dir*38,w,'#88B271',dir*.5);
     }
   });
-  if(stems.length>=3){const nL=Math.min(9,3+Math.floor(stems.length/2));for(let k=0;k<nL;k++){const th=Math.PI*(1.05+k/(nL-1)*.9)+(rr()-.5)*.2;const lx=bx+Math.cos(th)*(BOXY?56:50),ly=(BOXY?134:112)+Math.sin(th)*(BOXY?14:34);const ang=th*180/Math.PI+90;const avgW=wither(avg(stems.map(q=>q.f)));leaves+=`<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="5" ry="13" transform="rotate(${ang.toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})" fill="${mix(k%2?'#8DB874':'#7AA864','#A8A070',avgW)}" stroke="${mix('#6E9A5A','#8E7F58',avgW)}" stroke-width=".5"/>`}}
+  if(stems.length>=3){const nL=Math.min(9,3+Math.floor(stems.length/2));for(let k=0;k<nL;k++){const th=Math.PI*(1.05+k/(nL-1)*.9)+(rr()-.5)*.2;const lx=bx+Math.cos(th)*(BOXY?56:50),ly=(BOXY?134:112)+Math.sin(th)*(BOXY?14:34);const ang=th*180/Math.PI+90;const avgW=wither(avg(stems.map(q=>q.f)));leaves+=sprigSVG(lx-Math.cos(th)*15,ly-Math.sin(th)*15,26+rr()*6,ang,avgW,k*31+stems.length,k%3===1)}}
   pos.sort((a,b)=>a.hy-b.hy).forEach(({s,hx,hy})=>{
     const w=wither(s.f);const dir=hx>=bx?1:-1;
     if(s.t==='gyp')gypS+=imgHead('gyp',hx,hy-2+w*4,15,(rr()-.5)*40,w,Math.floor(rr()*8));

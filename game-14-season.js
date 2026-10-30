@@ -143,7 +143,7 @@ PR_DEB.snowducks=[0,-6,0,1];
 const XB_CACHE={};
 function xbList(area){
   if(!XMAS)return [];
-  const sig=area==='town'?xtSig():'';const c=XB_CACHE[area];if(c&&c.sig===sig)return c.list;
+  const sig=(area==='town'?xtSig():'')+'|'+XB_VER;const c=XB_CACHE[area];if(c&&c.sig===sig)return c.list;
   const L=[],add=(x,y,dep,sp,gl)=>{const h=xHash(Math.round(x*3),Math.round(y*3),L.length);L.push([x,y,Math.floor(h*5),h*6.28,sp||(1.3+h*2.2),dep,gl||1])};
   if(area==='town'){
     FACADES.forEach(f=>{const [a,b,y,st,sg]=facadeGar(f);garlandPts(a,b,y,st,sg).bulbs.forEach(([bx,by])=>add(bx,by,97.5))});
@@ -151,7 +151,9 @@ function xbList(area){
     xtBulbs().forEach(([bx,by,dep,sp])=>add(bx,by,dep,sp));
   }else if(area==='north'){DECOR.north.forEach(d=>{if(d.t==='lamp'){const x=d.x*TILE,y=d.y*TILE;add(x+5.6,y-9,(d.y+1)*TILE-1,2.2,.7);add(x+10.4,y-9.6,(d.y+1)*TILE-1,2.6,.7)}})}
   else if(XG_IN[area]){const W=AREAS[area].w*TILE;garlandPts(16,W-16,3,XG_IN[area],3.6).bulbs.forEach(([bx,by])=>add(bx,by,-2.39e6,1.6))}
+  XB_HOOKS.forEach(f=>{try{f(area,add)}catch(e){console.error(e)}});
   XB_CACHE[area]={sig,list:L};return L}
+const XB_HOOKS=[];let XB_VER=0; /* 다른 곳(크리스마스 마켓·마을 장식)이 전구 자리를 더해요 */
 const XG_IN={shop:30,market:28,supply:26,salon:26}; // 실내 벽 위 가랜드(갈고리 간격)
 function xbTex(area,ci){return prFxT('xbc'+ci,area,[-1.6,-1.6,3.2,3.2],g=>{el(g,0,.1,1.05,1.25,XBC[ci]);el(g,-.35,-.35,.38,.38,'rgba(255,255,255,.85)')})}
 function xgTex(area,ci){return prFxT('xbg'+ci,area,[-6,-6,12,12],g=>{const gr=g.createRadialGradient(0,0,0,0,0,6);gr.addColorStop(0,hexA(XBC[ci],.95));gr.addColorStop(.3,hexA(XBC[ci],.4));gr.addColorStop(1,hexA(XBC[ci],0));g.fillStyle=gr;g.fillRect(-6,-6,12,12)})}
@@ -178,11 +180,11 @@ function seasonDyn(area,tt){
   if(!WINTER)return;
   if(XMAS&&XG_IN[area]){const W=AREAS[area].w*TILE,rg=prRec('XG|'+area);prBegin(rg);const e=prFxT('garl|'+area,area,[0,-3,W,18],g=>drawGarland(g,16,W-16,3,XG_IN[area],3.6,{noDots:true}));prFx(rg,area,e,0,0,-2.4e6);prEnd(rg)}
   const list=xbList(area);const rc=prRec('XC|'+area),ra=prRec('XA|'+area);prBegin(rc);prBegin(ra);
-  if(list.length){const L=lampAt(S.t),tv=prIsTV(),cap=tv?55:200,inside=!!XG_IN[area],glowOn=inside||L>.15;let n=0; /* TV는 전구 수를 줄이고, 낮(바깥)엔 빛 번짐을 그리지 않아요 */
+  if(list.length){const L=lampAt(S.t),tv=prIsTV(),cap=tv?(list.length>150?40:55):200,inside=!!XG_IN[area],glowOn=inside||L>.15;let n=0; /* TV는 전구 수를 줄이고, 낮(바깥)엔 빛 번짐을 그리지 않아요 */
     for(const b of list){if(n>=cap)break;if(!inView(b[0],b[1],10))continue;n++;
       const tw=(Math.sin(tt*b[4]+b[3])+1)/2;
       prFx(rc,area,xbTex(area,b[2]),b[0],b[1],b[5],.72+.28*tw);
-      const ga=(.14+.5*tw)*(inside?.75:(.3+.7*L))*b[6];if(glowOn&&ga>.05)prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
+      const ga=(.14+.5*tw)*(inside?.75:(.3+.7*L))*b[6];if(glowOn&&ga>.05&&!(tv&&n%2))prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
   prEnd(rc);prEnd(ra);
   snowfall(area,tt);
 }
@@ -255,7 +257,7 @@ function drawXTree(g,cx,by,o,opt){opt=opt||{};const st=opt.stage!=null?opt.stage
   if(st>=3){g.save();g.strokeStyle='#E8C450';g.lineWidth=.9;g.setLineDash([1.6,1.1]);XT_TIERS.forEach(([b,t,w])=>{g.beginPath();g.moveTo(cx-w*.9,by+b-5);g.quadraticCurveTo(cx,by+b+1,cx+w*.9,by+b-8);g.stroke()});g.restore()}
   if(st>=4){for(let k=0;k<10;k++){const [b,t,w]=XT_TIERS[k%5],u=q()*1.4-.7;starPath(g,cx+u*w*.7,by+b-4-q()*12,1.6,.5,0);g.fillStyle='rgba(255,255,255,.9)';g.fill()}}
   const o2=o||xm().o;
-  o2.forEach((v,k)=>{if(!v)return;const [dx,dy]=XT_SLOTS[k];xtOrn(g,v,cx+dx,by+dy,k===0?1.1:1)});
+  o2.forEach((v,k)=>{if(!v||!XT_SLOTS[k])return;const [dx,dy]=XT_SLOTS[k];xtOrn(g,v,cx+dx,by+dy,k===0?1.1:1)});
   if(opt.marks){XT_SLOTS.forEach(([dx,dy],k)=>{if(o2[k])return;g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=.6;g.setLineDash([1,1]);g.beginPath();g.arc(cx+dx,by+dy,2.6,0,7);g.stroke();g.setLineDash([])})}
   if(opt.sel!=null){const [dx,dy]=XT_SLOTS[opt.sel];g.strokeStyle='#FF6FA0';g.lineWidth=1.2;g.beginPath();g.arc(cx+dx,by+dy,4.6,0,7);g.stroke();g.strokeStyle='#FFFFFF';g.lineWidth=.5;g.beginPath();g.arc(cx+dx,by+dy,5.6,0,7);g.stroke()}
   if(st>=2){const G=[[-21,'#D03A46','#F2C230',6,5],[-13,'#4F8FD8','#FFFFFF',5,4.2],[15,'#3F8F5F','#D03A46',6,4.6],[23,'#F2C230','#D03A46',4.4,3.6]].concat(st>=4?[[-27,'#F4F1EA','#D03A46',4.4,3.4],[8,'#B88AD0','#FFFFFF',4.6,3.8]]:[]);
@@ -276,28 +278,40 @@ OPEN_LABEL.xtree='트리 꾸미기';
 {const _sig=prStSig;prStSig=function(s){if(s.type==='xtree')return 'xt|'+xtSig()+'|'+s.x+','+s.y+'|'+prBakeScale(s.area);return _sig(s)}}
 STATION_ACT.xtree=i=>{const o=xm().o;let sel=o.findIndex((v,k)=>k>0&&!v);if(sel<0)sel=o[0]?1:0;openModal(i,{type:'xtree',sel,say:pick(XT_SAY[xtStage()])})};
 const XT_SAY=[['아직 조금 허전한 트리예요. 하나씩 걸어 볼까요?','전나무 향이 은은하게 나요.'],['장식이 하나둘 늘었어요!','지나가던 아이가 “우와!” 하고 멈췄어요.'],['선물 상자가 쌓이니 진짜 크리스마스 같아요.','동네 사람들이 하나씩 구경하러 와요.'],['반짝이 줄이 감기니 훨씬 화려해졌어요.','밤에 보면 더 예뻐요!'],['사진 찍으러 오는 사람이 많아졌어요.','조금만 더 하면 완성이에요!'],['마을 최고의 트리예요! 두 사람 덕분이에요.','오늘 밤엔 트리 앞이 제일 붐비겠어요.']];
-MODAL_R.xtree=(i,m)=>{const x=xm(),st=xtStage(),n=xtCount(),sel=m.sel,isTop=sel===0,cur=x.o[sel];
-  const nextNeed=st>=5?0:st===4&&n>=20?1:(st+1)*4-n;
-  const stars='★'.repeat(st)+'☆'.repeat(5-st);
-  const list=Object.entries(XORN).filter(([k,v])=>isTop?v.top:!v.top).map(([k,v])=>`<div class="li"><span class="grow">${v.name}<br><small>${won(v.price)}${v.desc?' · '+v.desc:''}</small></span><button class="btn small ${m.pick===k?'primary':''}" data-a="xbuy" data-v="${k}" ${S.money<v.price?'disabled':''}>${S.money<v.price?'돈 부족':cur?'바꿔 걸기':'걸기'}</button></div>`).join('');
+/* 40차: 트리는 '보관함의 오너먼트를 거는 곳'. 오너먼트는 크리스마스 마켓에서 사요.
+   자리 옮기기: 조이콘 위쪽 버튼(SL·SR / L·R) 또는 화면의 ◀ ▶ · 방향키로 보관함의 장식을 골라 행동 버튼으로 걸기 · '빼기'는 보관함으로 */
+function xtKeyHint(i){const K=(SET.keys&&SET.keys[typeof kOf==='function'?kOf(i):i])||{},L=b=>b?bindLabel(b):null;const a=L(K.tprev),b=L(K.tnext);return a||b?`자리 옮기기: ${a||'-'} / ${b||'-'}`:'조이콘 위쪽 버튼으로도 자리를 옮겨요 (설정 → 조이콘 키 지정에서 바꿀 수 있어요)'}
+function xmInv(){const x=xm();return x.inv||(x.inv={})}
+MODAL_R.xtree=(i,m)=>{const x=xm(),st=xtStage(),n=xtCount(),sel=m.sel,isTop=sel===0,cur=x.o[sel],inv=xmInv();
+  const nextNeed=st>=5?0:st===4&&n>=20?1:(st+1)*4-n,stars='★'.repeat(st)+'☆'.repeat(5-st);
+  const keys=Object.keys(XORN).filter(k=>(inv[k]||0)>0&&(isTop?XORN[k].top:!XORN[k].top));
+  const list=keys.length?`<div class="shopgrid">${keys.map(k=>`<div class="scard"><div class="sart">${typeof ornArt==='function'?ornArt(k):''}</div><div class="sname">${XORN[k].name}</div><div class="sdesc">보관함 ${inv[k]}개</div><button class="btn small soft" data-a="xeq" data-v="${k}">${cur?'바꿔 걸기':'걸기'}</button></div>`).join('')}</div>`
+    :`<p class="req">${isTop?'꼭대기에는 별만 달 수 있어요.':'보관함에 걸 수 있는 장식이 없어요.'} 크리스마스 마켓(북쪽 언덕길)에서 오너먼트를 사 오세요.</p>`;
   return head(i,'크리스마스 트리 꾸미기')+`<p class="req" style="margin:.1rem 0 .3rem">${esc(m.say||'')}</p>
     <div class="row" style="align-items:center;gap:.6rem"><canvas class="sprev4" id="xtp${i}" width="300" height="300" style="max-width:15rem"></canvas>
     <div class="grow" style="min-width:9rem"><p class="req"><b>트리 ${st}단계</b> ${stars}<br>장식 ${n}/20 · 별 ${x.o[0]?'달았어요':'아직'}<br>${st>=5?'완성! 정말 멋져요.':nextNeed>0?`다음 단계까지 장식 ${nextNeed}개`:'꼭대기 별을 달면 완성!'}</p>
-    <div class="row"><button class="btn small" data-a="xsel" data-v="-1">◀ 자리</button><button class="btn small" data-a="xsel" data-v="1">자리 ▶</button>${cur?'<button class="btn small" data-a="xoff">떼기</button>':''}</div>
-    <p class="req">${isTop?'꼭대기 자리(별)':'몸통 '+sel+'번 자리'} · ${cur?'지금: '+XORN[cur].name:'비어 있어요'}</p></div></div>
-    <div class="sscroll scr"><div class="list">${list}</div></div>`};
+    <div class="row"><button class="btn small" data-a="xsel" data-v="-1">◀ 자리</button><button class="btn small" data-a="xsel" data-v="1">자리 ▶</button>${cur?'<button class="btn small" data-a="xoff">빼기</button>':''}</div>
+    <p class="req">${isTop?'꼭대기 자리(별)':'몸통 '+sel+'번 자리'} · ${cur?'지금: '+XORN[cur].name:'비어 있어요'}<br><small>${xtKeyHint(i)}</small></p></div></div>
+    <div class="sscroll scr">${list}</div>`};
 MODAL_AFTER.xtree=(i,m)=>{const cv=$('#xtp'+i);if(!cv)return;const g=cv.getContext('2d');g.clearRect(0,0,300,300);const gr=g.createLinearGradient(0,0,0,300);gr.addColorStop(0,'#2B3560');gr.addColorStop(1,'#56648F');g.fillStyle=gr;g.fillRect(0,0,300,300);
   const q=seedRand(5);for(let k=0;k<40;k++)el(g,q()*300,q()*300,.8+q(),.8+q(),'rgba(255,255,255,.7)');g.fillStyle='#EEF4FA';g.fillRect(0,262,300,38);
   g.save();g.translate(150,268);g.scale(2.35,2.35);drawXTree(g,0,0,null,{sel:m.sel,marks:true});g.restore()};
-MODAL_C.xtree=(i,a,v,m)=>{const x=xm();
+MODAL_C.xtree=(i,a,v,m)=>{const x=xm(),inv=xmInv();
   if(a==='xsel'){m.sel=(m.sel+(+v)+21)%21;GP.ctxFocus['m'+i]=`[data-a="xsel"][data-v="${v}"]`;renderModal(i);return}
-  if(a==='xoff'){if(x.o[m.sel]){x.o[m.sel]=null;bump();saveMid();toast(i,'장식을 뗐어요');renderModal(i)}return}
-  if(a==='xbuy'){const it=XORN[v];if(!it||S.money<it.price)return;if(!!it.top!==(m.sel===0)){toast(i,it.top?'별은 꼭대기에만 달 수 있어요':'꼭대기엔 별을 달아요');return}
-    const st0=xtStage();S.money-=it.price;S.stats.spent=(S.stats.spent||0)+it.price;x.o[m.sel]=v;sfx('buy');bump();
+  if(a==='xoff'){const k=x.o[m.sel];if(k){x.o[m.sel]=null;inv[k]=(inv[k]||0)+1;bump();saveMid();toast(i,`${XORN[k]?XORN[k].name:'장식'}을(를) 떼서 보관함에 넣었어요`);renderModal(i)}return}
+  if(a==='xeq'){const it=XORN[v];if(!it||!(inv[v]>0))return;if(!!it.top!==(m.sel===0)){toast(i,it.top?'별은 꼭대기에만 달 수 있어요':'꼭대기엔 별을 달아요');return}
+    const st0=xtStage(),old=x.o[m.sel];inv[v]--;if(old)inv[old]=(inv[old]||0)+1;x.o[m.sel]=v;sfx('buy');bump();
     const st=xtStage();toast(i,`${it.name}을(를) 걸었어요`);
     if(st>st0){x.st=Math.max(x.st||0,st);if(st>(x.paid||0)){const rw=XT_REWARD[st];for(let k=(x.paid||0)+1;k<=st;k++)S.money+=XT_REWARD[k];x.paid=st;toastAll(XT_STAGE_MSG[st]+(rw?` 동네 상인회가 고맙다며 ${won(rw)}을 보냈어요.`:''));sfx('gift')}xtWatchers();m.say=pick(XT_SAY[st])}
-    const nx=x.o.findIndex((w,k)=>k>0&&!w);if(nx>0&&m.sel!==0)m.sel=nx;
-    GP.ctxFocus['m'+i]=`[data-a="xbuy"][data-v="${v}"]`;saveMid();renderModal(i)}};
+    const nx=x.o.findIndex((w,k)=>k>0&&!w);if(nx>0&&m.sel!==0&&!old)m.sel=nx;
+    GP.ctxFocus['m'+i]=inv[v]>0?`[data-a="xeq"][data-v="${v}"]`:'[data-a="xsel"][data-v="1"]';saveMid();renderModal(i)}};
+/* 조이콘 위쪽 버튼으로 트리 자리 옮기기 (game-5 의 패드 읽기에서 불러요) */
+function xtShoulder(slot,side,combo,fresh,B){const c=S.chars[slot];if(!c||!c.modal||c.modal.type!=='xtree')return false;
+  /* 설정 → 조이콘 키 지정에서 '트리 자리 ◀/▶'를 정했으면 그 버튼, 안 정했으면 위쪽 버튼(SL·SR / L·R)이 기본이에요 */
+  const M=(B&&(B.tprev||B.tnext))?{p:B.tprev||[],n:B.tnext||[]}:combo?(side==='L'?{p:[6],n:[4]}:{p:[5],n:[7]}):{p:[4,6],n:[5,7]};
+  if(M.p.some(fresh)){MODAL_C.xtree(slot,'xsel','-1',c.modal);return true}if(M.n.some(fresh)){MODAL_C.xtree(slot,'xsel','1',c.modal);return true}return false}
+addEventListener('keydown',e=>{const k=e.key;const d=(k==='q'||k==='Q'||k==='['||k==='PageUp')?-1:(k==='e'||k==='E'||k===']'||k==='PageDown')?1:0;if(!d||!S.chars)return;
+  const i=S.chars.findIndex(c=>c&&c.modal&&c.modal.type==='xtree');if(i<0)return;e.preventDefault();MODAL_C.xtree(i,'xsel',String(d),S.chars[i].modal)});
 
 /* 트리 구경꾼: 단계만큼 늘어요(1~6명) — 마을 엑스트라 두 명을 빼고 대신 넣어서 전체 수는 크게 안 늘어요 */
 const XT_SPOTS=[[16.6,22.2,23.4,23.6,3],[15.4,19.6,16.6,22.4,1],[23,19.4,23.6,22.4,1]];
@@ -492,4 +506,62 @@ if(WINTER){
   const _go=genOrder;genOrder=function(tpl,time,day){const o=_go(tpl,time,day),ch=[];
     for(const [k,to] of [['freesia','tulip'],['hydrangea','gyp']]){const v=o.req[k];if(!v||stockOf(k)>=v)continue;o.req[to]=(o.req[to]||0)+v;delete o.req[k];ch.push(`${FL[k].name} 대신 ${FL[to].name}`)}
     if(ch.length)o.text=(o.text||'')+` (겨울이라 ${ch.join(', ')}(으)로 부탁해요)`;return o};
+}
+
+/* =====================================================================
+   18. 마을 크리스마스 장식 더하기 (40차)
+   · 시계탑: 시계 둘레 리스 · 지붕 눈과 금별 · 기둥을 감은 가랜드 · 작은 전구
+   · 집 지붕선 전구 · 창가 촛불
+   · 가로등 사이 전구 줄(길 위로 늘어진 줄 전구)
+   · 길가 화분 전나무 · 북쪽 길 입구에 '크리스마스 마켓' 아치
+   ===================================================================== */
+function clockXmas(g,d){const x=d.x*TILE,w=d.w*TILE,cx=x+w/2,by=(d.y+d.h)*TILE,fy=by-81;
+  poly(g,[cx-16.5,by-94,cx,by-112.5,cx+16.5,by-94,cx+14,by-93,cx,by-108.5,cx-14,by-93],'#FBFCFF');
+  starPath(g,cx,by-117,4.2,1.8,0);g.fillStyle='#F2C230';g.fill();g.strokeStyle='#D8A020';g.lineWidth=.5;g.stroke();
+  for(let k=0;k<20;k++){const a=k/20*Math.PI*2;el(g,cx+Math.cos(a)*12,fy+Math.sin(a)*12,2.3,1.5,k%2?'#3F7D55':'#2F6B48',a+1.2)}
+  for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3;el(g,cx+Math.cos(a)*12,fy+Math.sin(a)*12,.9,.9,'#D8343F')}
+  bowV(g,cx,fy+12.5,'#C8303E');
+  for(let k=0;k<3;k++){const y0=by-66+k*17;g.strokeStyle='#2D5A3D';g.lineWidth=2.4;g.beginPath();g.moveTo(cx-10,y0);g.quadraticCurveTo(cx,y0+6,cx+10,y0+2);g.stroke();for(let j=0;j<=6;j++){const t=j/6;el(g,cx-10+20*t,y0+t*2+4*t*(1-t)*2,1.4,.9,j%2?'#3F7D55':'#4E9165',j)}}
+  rr(g,cx-14,by-11,28,2.4,1,'#FBFCFF')}
+function clockBulbs(d){const x=d.x*TILE,w=d.w*TILE,cx=x+w/2,by=(d.y+d.h)*TILE,L=[];
+  for(let k=0;k<=8;k++){const t=k/8;L.push([cx-15+t*15,by-94-t*16]);L.push([cx+15-t*15,by-94-t*16])}
+  for(let k=0;k<3;k++){const y0=by-66+k*17;for(let j=1;j<6;j+=2){const t=j/6;L.push([cx-10+20*t,y0+t*2+4*t*(1-t)*2+1.6])}}return L}
+/* 가로등 사이 줄 전구 */
+const XSTR_ROWS=[[12,[5,15,23]],[12,[37,46,55]],[24,[37,44,54]]];
+function lampHead(x,y){return [x*TILE+8,y*TILE-25]}
+function strPts(x0,x1,y,n){const [ax,ay]=lampHead(x0,y),[bx]=lampHead(x1,y),P=[];for(let k=1;k<n;k++){const t=k/n;P.push([ax+(bx-ax)*t,ay+Math.sin(t*Math.PI)*9])}return P}
+DECOR_DRAW.xstring=(g,d)=>{const [ax,ay]=lampHead(d.a,d.y),[bx]=lampHead(d.b,d.y);g.strokeStyle='#2E3A30';g.lineWidth=.45;g.beginPath();g.moveTo(ax,ay);g.quadraticCurveTo((ax+bx)/2,ay+18,bx,ay);g.stroke();
+  strPts(d.a,d.b,d.y,d.n).forEach(([x,y],k)=>{ln(g,x,y-1.2,x,y-.2,'#2E3A30',.3);el(g,x,y+.5,.75,.95,XBC[k%5])})};
+PR_DEB.xstring=d=>[0,-34,0,0];
+/* 길가 화분 전나무 · 사탕 지팡이 · 마켓 아치 */
+DECOR_DRAW.xfirpot=(g,d,x,y)=>{shadow(g,x+8,y+15,7,1.8);rr(g,x+2,y+6,12,9,1.5,'#B8574A');rr(g,x+1.5,y+5,13,2.4,1,'#C96A5C');rr(g,x+2,y+9,12,1.4,.5,'#E8C450');
+  [[0,8],[6,6.6],[11,5],[15,3.4]].forEach(([dy,wd],k)=>{poly(g,[x+8-wd,y+5-dy,x+8,y-6-dy,x+8+wd,y+5-dy],k%2?'#2F6B48':'#3A7A52');poly(g,[x+8,y-6-dy,x+8-wd*.5,y+1-dy,x+8+wd*.2,y-.4-dy],'#FBFCFF')});
+  starPath(g,x+8,y-22,2.4,1,0);g.fillStyle='#F2C230';g.fill();bowV(g,x+8,y+9.5,'#C8303E')};
+PR_DEB.xfirpot=[0,-26,0,1];
+DECOR_DRAW.xcane=(g,d,x,y)=>{const cx=x+8;shadow(g,cx,y+15,3,1);g.save();g.lineCap='round';g.strokeStyle='#FFFFFF';g.lineWidth=2.6;g.beginPath();g.moveTo(cx+2,y+14);g.lineTo(cx+2,y-14);g.arc(cx-1.5,y-14,3.5,0,Math.PI,true);g.stroke();g.setLineDash([2.2,2.2]);g.strokeStyle='#D32F3E';g.stroke();g.restore();bowV(g,cx+2,y-8,'#3F7D55')};
+PR_DEB.xcane=[0,-22,0,1];
+DECOR_DRAW.xarch=(g,d,x,y,w)=>{const L=x+3,R=x+w-3;[L,R].forEach(px=>{rr(g,px-1.6,y-30,3.2,45,1,'#8C6448');g.save();g.strokeStyle='#C8303E';g.lineWidth=1.2;for(let k=0;k<9;k++){g.beginPath();g.moveTo(px-1.6,y-28+k*5);g.lineTo(px+1.6,y-25+k*5);g.stroke()}g.restore()});
+  g.strokeStyle='#2D5A3D';g.lineWidth=3;g.beginPath();g.moveTo(L,y-30);g.quadraticCurveTo((L+R)/2,y-44,R,y-30);g.stroke();for(let k=0;k<=14;k++){const t=k/14,xx=L+(R-L)*t,yy=y-30-Math.sin(t*Math.PI)*10.5;el(g,xx,yy,1.6,1,k%2?'#3F7D55':'#4E9165',k)}
+  rr(g,(L+R)/2-17,y-46,34,9,2,'#C8303E');rr(g,(L+R)/2-16,y-45,32,7,1.6,'#FFF8EE');g.fillStyle='#C8303E';g.font="4.4px 'Jua',sans-serif";g.textAlign='center';g.textBaseline='middle';g.fillText('크리스마스 마켓 ↑',(L+R)/2,y-41.3);
+  bowV(g,L,y-30,'#C8303E');bowV(g,R,y-30,'#C8303E');starPath(g,(L+R)/2,y-49,2.6,1.1,0);g.fillStyle='#F2C230';g.fill()};
+PR_DEB.xarch=[0,-52,0,1];
+function archBulbs(d){const L=d.x*TILE+3,R=(d.x+d.w)*TILE-3,y=d.y*TILE,P=[];for(let k=1;k<14;k+=2){const t=k/14;P.push([L+(R-L)*t,y-30-Math.sin(t*Math.PI)*10.5+1.8])}return P}
+/* 집 창가 촛불 */
+function houseCandles(g,f){const x=f.x*TILE,w=f.w*TILE;if(f.t!=='house'||w<48)return;[[x+15,44],[x+w-15,44]].forEach(([cx,cy])=>{rr(g,cx-1,cy-4,2,4,.4,'#F4EEDC');el(g,cx,cy-5,.8,1.3,'#FFC94A');el(g,cx,cy-5.2,.35,.6,'#FFF4C2')})}
+if(XM_ON){
+  DECOR_BASE.town.push(
+    ...XSTR_ROWS.flatMap(([y,L])=>L.slice(0,-1).map((a,k)=>({t:'xstring',a,b:L[k+1],n:Math.round((L[k+1]-a)*1.4),x:a,y,w:L[k+1]-a+1,h:1,walk:true,flat:false}))),
+    {t:'xfirpot',x:10,y:12,w:1,h:1},{t:'xfirpot',x:19,y:12,w:1,h:1},{t:'xfirpot',x:41,y:12,w:1,h:1},{t:'xfirpot',x:51,y:12,w:1,h:1},
+    {t:'xcane',x:13,y:6,w:1,h:1,walk:true},{t:'xcane',x:15,y:6,w:1,h:1,walk:true},
+    {t:'xarch',x:24,y:3,w:3,h:1,walk:true},{t:'xarch',x:34,y:3,w:3,h:1,walk:true});
+  for(let k=DECOR_BASE.town.length-1;k>=0;k--){const d=DECOR_BASE.town[k];if(d.t==='lamp'&&d.y===2&&(d.x===24||d.x===36))DECOR_BASE.town.splice(k,1)} /* 북쪽 길 입구 가로등 자리에 마켓 아치 */
+  {const _dd2=drawDecor;drawDecor=function(g,d){_dd2(g,d);if(d.t==='clocktower')clockXmas(g,d)}}
+  {const _fw=facadeWinter;facadeWinter=function(g,f){_fw(g,f);houseCandles(g,f)}}
+  XB_HOOKS.push((area,add)=>{if(area!=='town')return;
+    DECOR.town.forEach(d=>{const dep=(d.y+d.h)*TILE-1;
+      if(d.t==='clocktower')clockBulbs(d).forEach(([x,y])=>add(x,y,dep+.5,2));
+      else if(d.t==='xstring')strPts(d.a,d.b,d.y,d.n).forEach(([x,y])=>add(x,y+.5,dep+.5,1.6));
+      else if(d.t==='xarch')archBulbs(d).forEach(([x,y])=>add(x,y,dep+.5,2.4))});
+    FACADES.forEach(f=>{if(f.t!=='house'&&f.t!=='salonFront'&&f.t!=='marketFront')return;const x=f.x*TILE,w=f.w*TILE,o=f.t==='marketFront'?[x-4,20,x+w+4,-4]:[x-2,12.5,x+w+2,-2.5];const n=Math.max(4,Math.round(w/7));
+      for(let k=1;k<n;k++){const t=k/n,px=o[0]+(o[2]-o[0])*t,py=t<.5?o[1]+(o[3]-o[1])*t*2:o[3]+(o[1]-o[3])*(t-.5)*2;add(px,py+1.6,97.6,1.8)}})});
 }

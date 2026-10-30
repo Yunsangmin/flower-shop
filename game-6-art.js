@@ -4,7 +4,7 @@
 /* =========================================================
    조이콘 키 지정 (리모컨 키 / 게임패드 버튼 모두)
    ========================================================= */
-const BFN=[['up','위'],['down','아래'],['left','왼쪽'],['right','오른쪽'],['act','행동·확인'],['back','닫기·취소'],['menu','메뉴'],['swap','캐릭터 바꾸기']];
+const BFN=[['up','위'],['down','아래'],['left','왼쪽'],['right','오른쪽'],['act','행동·확인'],['back','닫기·취소'],['menu','메뉴'],['swap','캐릭터 바꾸기'],['tprev','트리 자리 ◀ (위쪽 버튼)'],['tnext','트리 자리 ▶ (위쪽 버튼)']];
 const BFN_UI=BFN.filter(([fn])=>!['up','down','left','right','swap'].includes(fn));
 const VOLKEYS=[447,448,449,174,175,173,427,428];
 if(!SET.keys)SET.keys={0:{},1:{}};
@@ -47,6 +47,7 @@ function doBind(p,fn,rep){
   if(fn==='back'){if(ctx)navBack(ctx);else if(S.phase==='play'&&S.chars[slot]&&(S.chars[slot].rest||S.chars[slot].carry))backAct(slot);return}
   if(fn==='menu'){if(ctx&&ctx.key==='screen'&&S.phase==='play')navMenu();else if(S.phase==='play')togglePause();return}
   if(fn==='swap'){if(S.mode==='solo'&&!ctx)swapChar();return}
+  if(fn==='tprev'||fn==='tnext'){const c=S.chars&&S.chars[slot];if(c&&c.modal&&c.modal.type==='xtree'&&typeof MODAL_C!=='undefined')MODAL_C.xtree(slot,'xsel',fn==='tprev'?'-1':'1',c.modal);return}
 }
 function padBindPoll(gp,st){
   let used=false;for(const k of [0,1]){const K=SET.keys[k]||{},p=kOf(k);for(const [fn] of BFN){const b=K[fn];if(!b||b.t!=='p'||b.id!==gp.id)continue;used=true;const on=gp.buttons[b.b]&&gp.buttons[b.b].pressed;
@@ -111,7 +112,7 @@ function bunchSVG(it){
     const bx=30+(k-(n-1)/2)*1.6,by=trim?49:57+(k%3)*1.5;
     stems+=`<path d="M${fx.toFixed(1)},${fy+2} Q${((fx+bx)/2).toFixed(1)},${(fy+by)/2} ${bx.toFixed(1)},${by}" stroke="${stemC}" stroke-width="1.4" fill="none"/>`;
     if(trim)stems+=`<path d="M${(bx-1.1).toFixed(1)},${by-.8} L${(bx+1.1).toFixed(1)},${by+1}" stroke="${mix(stemC,'#fff',.4)}" stroke-width="1.2"/>`;
-    else if(k%2===0){const lx=bx+(k<n/2?-1:1)*2;leaves+=`<ellipse cx="${(lx+(k<n/2?-3:3)).toFixed(1)}" cy="${by-12}" rx="2.2" ry="6" transform="rotate(${k<n/2?-30:30} ${lx.toFixed(1)} ${by-12})" fill="${wcol('#7CA85F',w)}"/>`}
+    else if(k%2===0){const lx=bx+(k<n/2?-1:1)*2;leaves+=leafSVG(lx,by-6,13,3.2,k<n/2?-38:38,w,'#7CA85F',k<n/2?-.4:.4)}
     heads+=fHeadSVG(it.t,fx,fy,sc,w,wet);
   }
   if(!trim)extra+=`<path d="M17,36 L43,36 L38,58 L22,58Z" fill="#D8B994"/><path d="M17,36 L43,36 L41,40 L19,40Z" fill="#E6CDAA"/><path d="M26,40 L25,58 M34,40 L35,58" stroke="#C4A27A" stroke-width=".6"/>`;
@@ -880,7 +881,7 @@ let EYE_GAZE=0;
 function hatV(g,p,hx,t,back){
   const a=p.hat||(p.acc!=='glasses'&&p.acc);if(!a)return;
   if(a==='santa'&&p.hat){/* 산타 모자: 빨간 모자가 한쪽으로 접혀 내려오고 흰 털 테두리·방울 */const sd=back?1:-1;
-    g.beginPath();g.moveTo(hx-24,-110);g.bezierCurveTo(hx-20,-136,hx+8,-142,hx+20,-130);g.quadraticCurveTo(hx+29,-122,hx+31,-108);g.lineTo(hx+26,-108);g.quadraticCurveTo(hx+22,-118,hx+18,-120);g.lineTo(hx+24,-110);g.closePath();g.fillStyle='#C8262E';g.fill();
+    g.beginPath();g.moveTo(hx-24,-110);g.bezierCurveTo(hx-20,-136,hx+8,-142,hx+20,-130);g.quadraticCurveTo(hx+29,-122,hx+31,-108);g.lineTo(hx+26,-108);g.quadraticCurveTo(hx+22,-118,hx+18,-120);g.lineTo(hx+24,-110);g.closePath();g.fillStyle=p.hatC||'#C8262E';g.fill();
     g.save();g.globalAlpha=.22;el(g,hx+2,-128,10,4,'#FFFFFF',-.3);g.restore();
     rr(g,hx-26,-114,52,9,4.5,'#FBF8F2');for(let k=0;k<9;k++)el(g,hx-22+k*5.5,-110+(k%2)*1.2,2.2,1.6,'#EEE8DE');el(g,hx+31,-106,5,5,'#FBF8F2');el(g,hx+30,-107,2,2,'#FFFFFF');return}
   if(a==='earmuff'&&p.hat){/* 털 귀마개: 머리띠 + 양쪽 복슬복슬 */const c=p.hatC||'#F2B6C6';g.strokeStyle=mix(c,'#000',.25);g.lineWidth=2.4;g.beginPath();g.arc(hx,-100,24,Math.PI*1.08,Math.PI*1.92);g.stroke();

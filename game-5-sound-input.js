@@ -42,15 +42,20 @@ function bgmLoop(c,type,f,q){const s=c.createBufferSource();s.buffer=BGM.noise;s
    - 곡 추가 예: music 폴더에 lunch.mp3 를 올리고
         MUSIC_FILES 에  lunch:'music/lunch.mp3',  를 넣고
         MUSIC_TIMES 에  ['12:00','lunch'],  를 시각 순서에 맞게 끼워 넣어요.
-   - 파일이 없거나 못 불러오면 그 시간에는 조용해요(1분 뒤 다시 시도). */
+   - 파일이 없거나 못 불러오면 그 시간에는 조용해요(1분 뒤 다시 시도).
+   - 여러 곡을 번갈아 틀고 싶으면(재생 목록) 파일 위치에 {n} 을 넣어요.  예) christmas:'music/christmas{n}.mp3'
+        → music 폴더에 christmas1.mp3, christmas2.mp3, christmas3.mp3 … 처럼 1번부터 빈 번호 없이 올리면
+          1번부터 차례로 한 곡씩 틀고, 마지막 곡이 끝나면 다시 1번부터 반복해요. 곡을 더 넣고 싶으면 다음 번호로 올리기만 하면 돼요(코드 수정 필요 없음). */
 const MUSIC_FILES={
   morning:'music/morning.mp3',
-  evening:'music/evening.mp3'
+  evening:'music/evening.mp3',
+  christmas:'music/christmas{n}.mp3'   // 크리스마스(XMAS) 동안 오후~저녁: christmas1.mp3, christmas2.mp3 … 순서대로 반복
 };
 const MUSIC_TIMES=[
-  ['09:00','morning'],   // 오전 9시 ~ 오후 3시 전
-  ['15:00','evening']    // 오후 3시 ~ 하루 끝
+  ['09:00','morning'],                         // 오전 9시 ~ 오후 3시 전
+  ['15:00',XMAS?'christmas':'evening']         // 오후 3시 ~ 하루 끝 (크리스마스 동안은 크리스마스 곡들, 끝나면 다시 evening)
 ];
+function mpSrc(k,t){const f=MUSIC_FILES[k];return f.includes('{n}')?f.replace('{n}',String(t&&t.n||1)):f}
 /* 'HH:MM' → 게임 속 분(오전 9시=0) */
 const MUSIC_AT=MUSIC_TIMES.map(([hm,k])=>{const [h,m]=String(hm).split(':').map(Number);return [(h||0)*60+(m||0)-540,k]}).sort((a,b)=>a[0]-b[0]);
 function musicAt(t){let k=MUSIC_AT.length?MUSIC_AT[0][1]:null;for(const [st,n] of MUSIC_AT){if(t>=st)k=n;else break}return k}
@@ -60,11 +65,13 @@ function bgmMood(){const area=S.chars&&S.chars[0]?S.chars.map(c=>c.area):['shop'
   return {out,eve,morn,north,market,campus,song:musicAt(t)}}
 const MP={cur:null,tracks:{},failAt:{}};
 function mpTrack(k){let t=MP.tracks[k];if(t)return t;const c=AU.ctx;
-  const a=new Audio();a.loop=true;a.preload='auto';a.crossOrigin='anonymous';
-  t={a,k,src:null,gain:c.createGain(),ok:true,idle:0};t.gain.gain.value=0;
+  const a=new Audio(),list=MUSIC_FILES[k].includes('{n}');a.loop=!list;a.preload='auto';a.crossOrigin='anonymous';
+  t={a,k,src:null,gain:c.createGain(),ok:true,idle:0,list,n:1,max:0};t.gain.gain.value=0;
+  /* 재생 목록: 한 곡이 끝나면 다음 번호로, 없는 번호(마지막 다음)를 만나면 1번으로 */
+  if(list)a.addEventListener('ended',()=>{t.n=(t.max&&t.n>=t.max)?1:t.n+1;a.src=mpSrc(k,t);a.load();if(MP.cur===k)mpPlay(t)});
   try{t.src=c.createMediaElementSource(a);t.src.connect(t.gain);t.gain.connect(AU.music)}catch(e){t.ok=false}
-  a.addEventListener('error',()=>{if(!a.getAttribute('src'))return;t.bad=true;MP.failAt[k]=performance.now()});
-  a.src=MUSIC_FILES[k];MP.tracks[k]=t;return t}
+  a.addEventListener('error',()=>{if(!a.getAttribute('src'))return;if(t.list&&t.n>1){t.max=t.n-1;t.n=1;a.src=mpSrc(k,t);a.load();if(MP.cur===k)mpPlay(t);return}t.bad=true;MP.failAt[k]=performance.now()});
+  a.src=mpSrc(k,t);MP.tracks[k]=t;return t}
 /* 안 쓰는 곡은 1분 뒤 메모리에서 비워요(곡이 많아져도 한 번에 1~2곡분만 차지) */
 function mpRelease(k){const t=MP.tracks[k];if(!t)return;try{t.a.pause();t.a.removeAttribute('src');t.a.load()}catch(e){}
   try{t.src&&t.src.disconnect();t.gain.disconnect()}catch(e){}delete MP.tracks[k]}
@@ -74,7 +81,7 @@ function schedMusic(){
   let want=null;try{want=bgmMood().song}catch(e){want=null}
   if(want&&!MUSIC_FILES[want])want=null;
   // 못 불러온 곡은 1분 뒤에 다시 시도
-  const bad=want&&MP.tracks[want]&&MP.tracks[want].bad;if(bad&&performance.now()-(MP.failAt[want]||0)>60000){const t=MP.tracks[want];t.bad=false;t.a.src=MUSIC_FILES[want]+'?r='+Date.now();t.a.load()}
+  const bad=want&&MP.tracks[want]&&MP.tracks[want].bad;if(bad&&performance.now()-(MP.failAt[want]||0)>60000){const t=MP.tracks[want];t.bad=false;t.n=1;t.a.src=mpSrc(want,t)+'?r='+Date.now();t.a.load()}
   if(on&&want&&want!==MP.cur){MP.cur=want;const t=mpTrack(want);if(t.ok&&!t.bad){if(t.a.ended||t.a.paused)try{t.a.currentTime=0}catch(e){}mpPlay(t)}}
   for(const k in MP.tracks){const t=MP.tracks[k],act=on&&k===MP.cur&&!t.bad;
     t.gain.gain.setTargetAtTime(act?1:0,now,act?1.2:.9);
@@ -250,8 +257,8 @@ function padUnits(gp,st){
 }
 function applyPadBinds(gp,u){
   const p=u.slot,K=SET.keys[(S.mode!=='solo'||S.phase!=='play')?(SET.swapSides?1-p:p):(u.side==='R'?1:0)]||{},own={};let any=false;
-  for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='p'&&b.id===gp.id){own[fn]=[b.b];any=true}}
-  if(!any)return u.btn;const out={act:[],back:[],menu:[],swap:[]};Object.assign(out,own);return out;
+  for(const [fn] of BFN){const b=K[fn];if(b&&b.t==='p'&&b.id===gp.id){own[fn]=[b.b];if(fn!=='tprev'&&fn!=='tnext')any=true}}
+  if(!any)return Object.assign({},u.btn,own.tprev?{tprev:own.tprev}:{},own.tnext?{tnext:own.tnext}:{}); /* 트리 버튼만 지정했으면 나머지 버튼은 기본 그대로 */const out={act:[],back:[],menu:[],swap:[]};Object.assign(out,own);return out;
 }
 /* ---------- 토토 (마을 고양이) ---------- */
 const CAT_LINES=['냐아~ (꼬리를 살랑살랑 흔들어요)','미야옹? (노란 눈을 동그랗게 떠요)','골골골… (다리에 몸을 비벼요)','냥! (앞발로 신발을 톡톡 건드려요)','먀아아~ (배를 보이며 뒹굴어요)','냥냥. (햇볕 좋은 자리를 알려주려는 것 같아요)','…냐. (하품을 크게 하고 눈을 깜빡여요)','미야~ 냐냐! (오늘 누가 간식을 줬나 봐요. 기분이 아주 좋아요)'];
@@ -302,6 +309,7 @@ function pollPads(dt){
         if(d&&d!==st.dir[dk]){st.dir[dk]=d;st.hold[dk]=0;navMove(ctx,d)}else if(d){st.hold[dk]=(st.hold[dk]||0)+dt;if(st.hold[dk]>.38){st.hold[dk]=.26;navMove(ctx,d)}}else st.dir[dk]=null;
         /* 창이 열려 있어도 행동 버튼을 '누르고 있는지'는 알려 줘요 → 설비를 꾹 누르면 열렸던 창을 닫고 들 수 있게(예전엔 창이 열리는 순간 손을 뗀 걸로 봐서 못 들었어요) */
         if(B.act.some(k=>pressed(k)))PADACT[slot]=true;
+        if(typeof xtShoulder==='function'&&xtShoulder(slot,u.side,isCombo(gp.id),k=>pressed(k)&&!st.prev[k],B))continue; /* 트리 꾸미기: 위쪽 버튼으로 자리 옮기기 */
         if(any(B.act))navPress(ctx);else if(any(B.back))navBack(ctx);else if(any(B.menu))navMenu();
       }else{
         /* 신호가 아주 잠깐(0.05초 이내) 0으로 끊기는 경우만 보정 — 예전엔 2프레임이라 TV가 느릴 때 손을 떼도 미끄러졌어요 */
