@@ -169,7 +169,7 @@ function xmStallBase(g,x,y,w,roof,open,name,sub){
     [x+1.5,x+w-3.5].forEach(px=>rr(g,px,y-34,2,47,.6,'#6B4A36'));
     poly(g,[x-5,y-31,x+w/2,y-47,x+w+5,y-31,x+w+3,y-29.4,x+w/2,y-44.6,x-3,y-29.4],roof);poly(g,[x-3,y-29.4,x+w/2,y-44.6,x+w+3,y-29.4],mix(roof,'#000000',.18));
     poly(g,[x-5.6,y-30.6,x+w/2,y-48,x+w+5.6,y-30.6,x+w+3,y-31.8,x+w/2,y-45.6,x-3,y-31.8],'#FBFCFF');for(let k=0;k<6;k++)el(g,x-3+k*(w+6)/5,y-30.4,1.6,1,'#FBFCFF');for(let k=0;k<5;k++){const ix=x-1+k*(w+2)/4;poly(g,[ix-.8,y-30,ix+.8,y-30,ix,y-27.4-(k%2)*1.4],'rgba(220,238,250,.95)')}
-    drawGarland(g,x-1,x+w+1,y-29,w/3.2,2.6,{noDots:true});
+    drawGarland(g,x-1,x+w+1,y-29,w/3.2,2.6);
     let fs=4.1;g.font=`${fs}px 'Jua',sans-serif`;let tw=g.measureText(name).width;if(tw>w-6){fs*= (w-6)/tw;g.font=`${fs}px 'Jua',sans-serif`;tw=g.measureText(name).width}const sw=Math.max(26,tw+6);
     rr(g,x+w/2-sw/2,y-41,sw,8,1.6,'#FFF8EE');g.strokeStyle=mix(roof,'#000',.1);g.lineWidth=.7;rr(g,x+w/2-sw/2,y-41,sw,8,1.6);g.stroke();g.fillStyle=mix(roof,'#2A1A1A',.35);g.textAlign='center';g.textBaseline='middle';g.fillText(name,x+w/2,y-36.8);
     if(!open){rr(g,x+4,y-28,w-8,23,1,'#9C6B4C');for(let k=0;k<5;k++){g.fillStyle='rgba(0,0,0,.14)';g.fillRect(x+4,y-28+k*4.6,w-8,.6)}rr(g,x+w/2-9,y-20,18,7,1.4,'#FFF8EE');g.fillStyle='#8A5A3C';g.font="3.6px 'Jua',sans-serif";g.fillText(sub||'준비 중',x+w/2,y-16.4)}
@@ -280,7 +280,7 @@ MODAL_C.xmshop=(i,a,v,m)=>{const V=XM_VBY[m.st];
 
 /* ---------- 9. 마켓 손님(구경꾼) · 산타 · 루돌프 · 엘프 분장 ---------- */
 ZONE_AREA.xmkt='north';
-const XM_VISITORS=16; // 메모리 측정으로 정한 수(아래 '확인한 것' 참고)
+const XM_VISITORS=12; // 메모리 측정으로 정한 수(아래 '확인한 것' 참고)
 const XM_COSTUME={santa:{coat:'pad',coatC:'#C8303E',hat:'santa',acc:'santa',scarf:'#FBF8F2',mitten:'#2E2B30',noW:1},rudolph:{coat:'pad',coatC:'#8A5A3A',pin:'rudolph',scarf:'#C8303E',noW:1},elf:{coat:'pad',coatC:'#3F7D55',hat:'santa',acc:'santa',hatC:'#3F7D55',scarf:'#C8303E',noW:1},hatonly:{hat:'santa',acc:'santa'}};
 const XM_TALK={
   santa:['호호호! 메리 크리스마스! 착한 아이에게는 선물이 있단다.','올해 꽃집 사장님들은 착한 일을 정말 많이 했지. 다 보고 있었단다. 호호!','썰매 포토존에서 사진 한 장 찍고 가렴!','루돌프는 오늘 쉬는 날이라 내가 혼자 나왔지. 쉿!'],
@@ -297,7 +297,7 @@ function xmWalkers(){if(!XM_ON)return [];const W=[];
   const kinds=['adult','adult','kid','elder','adult','student','kid','adult','adult','elder'];for(let k=0;W.length<XM_VISITORS;k++)W.push(mk(kinds[k%kinds.length]));
   return W}
 if(XM_ON){
-  const _mw=makeWalkers;makeWalkers=function(){_mw();S.walkers.push(...xmWalkers())};
+  const _mw=makeWalkers;makeWalkers=function(){_mw();S.walkers=S.walkers.filter(w=>w.zone!=='north'&&!(w.follow&&w.follow.zone==='north'));S.walkers.push(...xmWalkers())}; /* 41차: 겨울 동안 북쪽 길 산책객은 빼요(마켓 구경꾼이 대신해요) */
   const _ws=walkerStep;walkerStep=function(w,dt){if(w.zone!=='xmkt')return _ws(w,dt);if(w.talking)return;
     if(w.role==='santa'){w.hidden=S.t<XM_OPEN_T-60?1:0;w.walk=0;w.mv=false;w.dir='down';w.throwT=(Math.sin(performance.now()/600)>.6)?.3:0;return} // 트리 옆에서 손 흔드는 산타
     const vis=xmOpen()||((w.x*7+w.y*3|0)%3===0); if(!vis){w.hidden=1;return} if(w.hidden){w.hidden=0;[w.x,w.y]=xmSpot(w.side);w.tx=w.x;w.ty=w.y}
@@ -309,12 +309,18 @@ if(XM_ON){
 /* ---------- 10. 마켓 전구(노점 처마 · 줄 전구 · 큰 트리) ---------- */
 XB_HOOKS.push((area,add)=>{if(area!=='north'||!XM_ON)return;
   const stalls=XM_VENDORS.map(v=>[v.x,v.y]).concat([[XM_OURS.x,XM_OURS.y]]);
-  stalls.forEach(([sx,sy])=>{const x=sx*TILE,y=sy*TILE,w=48,dep=(sy+1)*TILE+.5;for(let k=0;k<=8;k++){const t=k/8;add(x-1+(w+2)*t,y-29+Math.sin(t*Math.PI*3.2)*2.2+3.2,dep,1.6)}});
+  stalls.forEach(([sx,sy])=>{const x=sx*TILE,y=sy*TILE,w=48,dep=(sy+1)*TILE+.5;garlandPts(x-1,x+w+1,y-29,w/3.2,2.6).bulbs.forEach(([bx,by])=>add(bx,by,dep,1.6))});
   [0,1].forEach(side=>xmStrings(side).forEach(P=>P.forEach(([x,y],k)=>{if(k%2)add(x,y+1,16*TILE,1.8)})));
-  {const cx=XM_TREE.x*TILE+16,by=XM_TREE.y*TILE+14,dep=(XM_TREE.y+1)*TILE-1;XT_TIERS.forEach(([b,t,w],i)=>{for(let j=0;j<8-i;j++){const u=(j+.5)/(8-i)*2-1;add(cx+u*(w-5)*.92*1.3,by+(b-3-Math.abs(u)*2.5-8+i*.5)*1.3,dep,2.4)}})}});
+  {const cx=XM_TREE.x*TILE+16,by=XM_TREE.y*TILE+14,dep=(XM_TREE.y+1)*TILE-1;XT_TIERS.forEach(([b,t,w],i)=>{for(let j=0;j<7-i;j++){const u=(j+.5)/(7-i)*2-1;add(cx+u*(w-5)*.92*1.3,by+(b-3-Math.abs(u)*2.5-8+i*.5)*1.3,dep,2.4)}})}});
 
 /* 줄 전구의 전깃줄은 큰 그림으로 굽지 않고 선 몇 개로 그려요(그림 메모리 약 2MB 절약) */
 function xmWires(area){if(area!=='north'||!XM_ON)return;const a=prArea(area);if(!a.xmG){a.xmG=prW(PR.sc.add.graphics().setDepth(16*TILE));const G=a.xmG,ox=AOFF.north;G.lineStyle(.5,0x2E3A30,1);
-  [0,1].forEach(side=>xmStrings(side).forEach(P=>{G.beginPath();P.forEach(([x,y],k)=>k?G.lineTo(ox+x,y):G.moveTo(ox+x,y));G.strokePath()}))}a.xmG.setVisible(true);a.xmSeen=PR.frame}
+  [0,1].forEach(side=>xmStrings(side).forEach(P=>{G.beginPath();P.forEach(([x,y],k)=>k?G.lineTo(ox+x,y):G.moveTo(ox+x,y));G.strokePath();P.forEach(([x,y],k)=>{if(k%2){G.fillStyle(parseInt(XBC[k%5].slice(1),16),1);G.fillCircle(ox+x,y+1,.8)}})}))}a.xmG.setVisible(true);a.xmSeen=PR.frame}
 if(XM_ON){const _sd=seasonDyn;seasonDyn=function(area,tt){_sd(area,tt);xmWires(area)};
   const _pr=prRender;prRender=function(){_pr();const a=PR.areaObj&&PR.areaObj.north;if(a&&a.xmG&&a.xmSeen!==PR.frame)a.xmG.setVisible(false)}}
+
+/* 41차: 마켓을 떠나 20초가 지나면 노점·마켓 장식 그림을 정리해요(다른 장소에 있을 때 메모리 3~4MB 절약, 다시 오면 금방 새로 그려요) */
+const XM_DEC_T=new Set(['xmtree','xmsleigh','xmdeer','xmsign','xmphoto','xminitree','xgifts','snowman']);
+if(XM_ON){const _st=prStaticTrim;prStaticTrim=function(){_st();if(PR.frame%60)return;const north=PR.areaObj&&PR.areaObj.north;if(north&&PR.frame-(north.seenF||0)<prSec(20))return;
+  const ids=new Set(XM_VENDORS.map(v=>'s'+v.id).concat(['sxmours','sxmb1','sxmb2']));DECOR_BASE.north.forEach(d=>{if(XM_DEC_T.has(d.t))ids.add('d'+prOid(d))});
+  for(const id of ids){const r=PR.recs.get(id);if(r&&r.layers&&PR.frame-r.seen>prSec(20)){prKillRec(r);PR.recs.delete(id)}}}}

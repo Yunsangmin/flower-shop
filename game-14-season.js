@@ -119,7 +119,7 @@ function winterTree(g,x,by,v,seed,orig){
 if(WINTER){const _dt=drawTree;drawTree=function(g,x,by,v,seed){winterTree(g,x,by,v,seed,_dt)}}
 
 /* ---------- 6. 가로등: 눈 모자 + 작은 리스 ---------- */
-if(WINTER){const _dd=drawDecor;drawDecor=function(g,d){_dd(g,d);if(d.t==='lamp'){const x=d.x*TILE,y=d.y*TILE;el(g,x+8,y-28.6,4.6,1.5,'#FBFCFF');el(g,x+6,y-27.8,1.4,1,'#FBFCFF');if(XMAS){wreathV(g,x+8,y-10,2.6)}}}}
+if(WINTER){const _dd=drawDecor;drawDecor=function(g,d){_dd(g,d);if(d.t==='lamp'){const x=d.x*TILE,y=d.y*TILE;el(g,x+8,y-28.6,4.6,1.5,'#FBFCFF');el(g,x+6,y-27.8,1.4,1,'#FBFCFF');if(XMAS){wreathV(g,x+8,y-10,2.6);el(g,x+5.6,y-9,.7,.8,XBC[0]);el(g,x+10.4,y-9.6,.7,.8,XBC[1])}}}}
 
 /* ---------- 7. 꽃시장 겨울 소품: 화분 전나무 ---------- */
 DECOR_DRAW.potFir=(g,d,x,y)=>{shadow(g,x+8,y+15,6,1.6);poly(g,[x+3,y+6,x+13,y+6,x+12,y+15,x+4,y+15],'#B8574A');rr(g,x+2.5,y+5,11,2.4,1,'#C96A5C');
@@ -178,13 +178,14 @@ function snowfall(area,tt){
 /* ---------- 10. 매 프레임: 전구·눈·실내 가랜드 (game-7 의 prSyncDyn 끝에서 불러요) ---------- */
 function seasonDyn(area,tt){
   if(!WINTER)return;
-  if(XMAS&&XG_IN[area]){const W=AREAS[area].w*TILE,rg=prRec('XG|'+area);prBegin(rg);const e=prFxT('garl|'+area,area,[0,-3,W,18],g=>drawGarland(g,16,W-16,3,XG_IN[area],3.6,{noDots:true}));prFx(rg,area,e,0,0,-2.4e6);prEnd(rg)}
+  if(XMAS&&XG_IN[area]){const W=AREAS[area].w*TILE,rg=prRec('XG|'+area);prBegin(rg);const e=prFxT('garl2|'+area,area,[0,-3,W,18],g=>drawGarland(g,16,W-16,3,XG_IN[area],3.6));prFx(rg,area,e,0,0,-2.4e6);prEnd(rg)}
   const list=xbList(area);const rc=prRec('XC|'+area),ra=prRec('XA|'+area);prBegin(rc);prBegin(ra);
-  if(list.length){const L=lampAt(S.t),tv=prIsTV(),cap=tv?(list.length>150?40:55):200,inside=!!XG_IN[area],glowOn=inside||L>.15;let n=0; /* TV는 전구 수를 줄이고, 낮(바깥)엔 빛 번짐을 그리지 않아요 */
-    for(const b of list){if(n>=cap)break;if(!inView(b[0],b[1],10))continue;n++;
-      const tw=(Math.sin(tt*b[4]+b[3])+1)/2;
-      prFx(rc,area,xbTex(area,b[2]),b[0],b[1],b[5],.72+.28*tw);
-      const ga=(.14+.5*tw)*(inside?.75:(.3+.7*L))*b[6];if(glowOn&&ga>.05&&!(tv&&n%2))prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
+  /* 41차: 전구 알은 바닥·장식 그림에 미리 그려 두고, 지금 가장 밝게 반짝이는 몇 개만 따로 그려요(화면 속 그림 수를 크게 줄여요) */
+  if(list.length){const L=lampAt(S.t),tv=prIsTV(),cap=tv?18:50,inside=!!XG_IN[area],glowOn=inside||L>.15,vis=[];
+    for(const b of list){if(!inView(b[0],b[1],10))continue;const tw=(Math.sin(tt*b[4]+b[3])+1)/2;if(tw>.55)vis.push([tw,b])}
+    if(vis.length>cap){vis.sort((p,q)=>q[0]-p[0]);vis.length=cap}
+    for(const [tw,b] of vis){const k=(tw-.55)/.45;prFx(rc,area,xbTex(area,b[2]),b[0],b[1],b[5],.5+.5*k);
+      const ga=(.12+.55*k)*(inside?.75:(.3+.7*L))*b[6];if(glowOn&&ga>.05)prFx(ra,area,xgTex(area,b[2]),b[0],b[1],5e6+2,ga).setBlendMode(1)}}
   prEnd(rc);prEnd(ra);
   snowfall(area,tt);
 }
@@ -255,6 +256,7 @@ function drawXTree(g,cx,by,o,opt){opt=opt||{};const st=opt.stage!=null?opt.stage
     el(g,pts[0][0]+2,pts[0][1]-.6,2.2,1,'#F4F8FC');el(g,pts[n][0]-2,pts[n][1]-.6,2,1,'#E6EEF6');
     if(i===4){poly(g,[cx,T-1,cx+w*.36,T+(B-T)*.36,cx+w*.08,T+(B-T)*.3,cx-w*.12,T+(B-T)*.38,cx-w*.4,T+(B-T)*.3],'#F4F8FC')}});
   if(st>=3){g.save();g.strokeStyle='#E8C450';g.lineWidth=.9;g.setLineDash([1.6,1.1]);XT_TIERS.forEach(([b,t,w])=>{g.beginPath();g.moveTo(cx-w*.9,by+b-5);g.quadraticCurveTo(cx,by+b+1,cx+w*.9,by+b-8);g.stroke()});g.restore()}
+  if(st>=3)XT_TIERS.forEach(([b,t,w],i)=>{for(let j=0;j<7-i;j++){const u=(j+.5)/(7-i)*2-1;el(g,cx+u*(w-5)*.92,by+b-3-Math.abs(u)*2.5-8+i*.5,.75,.9,XBC[(i+j)%5])}});
   if(st>=4){for(let k=0;k<10;k++){const [b,t,w]=XT_TIERS[k%5],u=q()*1.4-.7;starPath(g,cx+u*w*.7,by+b-4-q()*12,1.6,.5,0);g.fillStyle='rgba(255,255,255,.9)';g.fill()}}
   const o2=o||xm().o;
   o2.forEach((v,k)=>{if(!v||!XT_SLOTS[k])return;const [dx,dy]=XT_SLOTS[k];xtOrn(g,v,cx+dx,by+dy,k===0?1.1:1)});
@@ -522,7 +524,7 @@ function clockXmas(g,d){const x=d.x*TILE,w=d.w*TILE,cx=x+w/2,by=(d.y+d.h)*TILE,f
   for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3;el(g,cx+Math.cos(a)*12,fy+Math.sin(a)*12,.9,.9,'#D8343F')}
   bowV(g,cx,fy+12.5,'#C8303E');
   for(let k=0;k<3;k++){const y0=by-66+k*17;g.strokeStyle='#2D5A3D';g.lineWidth=2.4;g.beginPath();g.moveTo(cx-10,y0);g.quadraticCurveTo(cx,y0+6,cx+10,y0+2);g.stroke();for(let j=0;j<=6;j++){const t=j/6;el(g,cx-10+20*t,y0+t*2+4*t*(1-t)*2,1.4,.9,j%2?'#3F7D55':'#4E9165',j)}}
-  rr(g,cx-14,by-11,28,2.4,1,'#FBFCFF')}
+  rr(g,cx-14,by-11,28,2.4,1,'#FBFCFF');clockBulbs(d).forEach(([bx,by2],k)=>el(g,bx,by2,.7,.85,XBC[k%5]))}
 function clockBulbs(d){const x=d.x*TILE,w=d.w*TILE,cx=x+w/2,by=(d.y+d.h)*TILE,L=[];
   for(let k=0;k<=8;k++){const t=k/8;L.push([cx-15+t*15,by-94-t*16]);L.push([cx+15-t*15,by-94-t*16])}
   for(let k=0;k<3;k++){const y0=by-66+k*17;for(let j=1;j<6;j+=2){const t=j/6;L.push([cx-10+20*t,y0+t*2+4*t*(1-t)*2+1.6])}}return L}
@@ -543,10 +545,12 @@ PR_DEB.xcane=[0,-22,0,1];
 DECOR_DRAW.xarch=(g,d,x,y,w)=>{const L=x+3,R=x+w-3;[L,R].forEach(px=>{rr(g,px-1.6,y-30,3.2,45,1,'#8C6448');g.save();g.strokeStyle='#C8303E';g.lineWidth=1.2;for(let k=0;k<9;k++){g.beginPath();g.moveTo(px-1.6,y-28+k*5);g.lineTo(px+1.6,y-25+k*5);g.stroke()}g.restore()});
   g.strokeStyle='#2D5A3D';g.lineWidth=3;g.beginPath();g.moveTo(L,y-30);g.quadraticCurveTo((L+R)/2,y-44,R,y-30);g.stroke();for(let k=0;k<=14;k++){const t=k/14,xx=L+(R-L)*t,yy=y-30-Math.sin(t*Math.PI)*10.5;el(g,xx,yy,1.6,1,k%2?'#3F7D55':'#4E9165',k)}
   rr(g,(L+R)/2-17,y-46,34,9,2,'#C8303E');rr(g,(L+R)/2-16,y-45,32,7,1.6,'#FFF8EE');g.fillStyle='#C8303E';g.font="4.4px 'Jua',sans-serif";g.textAlign='center';g.textBaseline='middle';g.fillText('크리스마스 마켓 ↑',(L+R)/2,y-41.3);
-  bowV(g,L,y-30,'#C8303E');bowV(g,R,y-30,'#C8303E');starPath(g,(L+R)/2,y-49,2.6,1.1,0);g.fillStyle='#F2C230';g.fill()};
+  bowV(g,L,y-30,'#C8303E');bowV(g,R,y-30,'#C8303E');archBulbs(d).forEach(([bx,by],k)=>el(g,bx,by,.75,.9,XBC[k%5]));starPath(g,(L+R)/2,y-49,2.6,1.1,0);g.fillStyle='#F2C230';g.fill()};
 PR_DEB.xarch=[0,-52,0,1];
 function archBulbs(d){const L=d.x*TILE+3,R=(d.x+d.w)*TILE-3,y=d.y*TILE,P=[];for(let k=1;k<14;k+=2){const t=k/14;P.push([L+(R-L)*t,y-30-Math.sin(t*Math.PI)*10.5+1.8])}return P}
 /* 집 창가 촛불 */
+function roofBulbs(f){if(f.t!=='house'&&f.t!=='salonFront'&&f.t!=='marketFront')return [];const x=f.x*TILE,w=f.w*TILE,o=f.t==='marketFront'?[x-4,20,x+w+4,-4]:[x-2,12.5,x+w+2,-2.5],n=Math.max(4,Math.round(w/7)),P=[];
+  for(let k=1;k<n;k++){const t=k/n;P.push([o[0]+(o[2]-o[0])*t,(t<.5?o[1]+(o[3]-o[1])*t*2:o[3]+(o[1]-o[3])*(t-.5)*2)+1.6])}return P}
 function houseCandles(g,f){const x=f.x*TILE,w=f.w*TILE;if(f.t!=='house'||w<48)return;[[x+15,44],[x+w-15,44]].forEach(([cx,cy])=>{rr(g,cx-1,cy-4,2,4,.4,'#F4EEDC');el(g,cx,cy-5,.8,1.3,'#FFC94A');el(g,cx,cy-5.2,.35,.6,'#FFF4C2')})}
 if(XM_ON){
   DECOR_BASE.town.push(
@@ -556,12 +560,11 @@ if(XM_ON){
     {t:'xarch',x:24,y:3,w:3,h:1,walk:true},{t:'xarch',x:34,y:3,w:3,h:1,walk:true});
   for(let k=DECOR_BASE.town.length-1;k>=0;k--){const d=DECOR_BASE.town[k];if(d.t==='lamp'&&d.y===2&&(d.x===24||d.x===36))DECOR_BASE.town.splice(k,1)} /* 북쪽 길 입구 가로등 자리에 마켓 아치 */
   {const _dd2=drawDecor;drawDecor=function(g,d){_dd2(g,d);if(d.t==='clocktower')clockXmas(g,d)}}
-  {const _fw=facadeWinter;facadeWinter=function(g,f){_fw(g,f);houseCandles(g,f)}}
+  {const _fw=facadeWinter;facadeWinter=function(g,f){_fw(g,f);houseCandles(g,f);roofBulbs(f).forEach(([bx,by],k)=>el(g,bx,by,.7,.85,XBC[k%5]))}}
   XB_HOOKS.push((area,add)=>{if(area!=='town')return;
     DECOR.town.forEach(d=>{const dep=(d.y+d.h)*TILE-1;
       if(d.t==='clocktower')clockBulbs(d).forEach(([x,y])=>add(x,y,dep+.5,2));
       else if(d.t==='xstring')strPts(d.a,d.b,d.y,d.n).forEach(([x,y])=>add(x,y+.5,dep+.5,1.6));
       else if(d.t==='xarch')archBulbs(d).forEach(([x,y])=>add(x,y,dep+.5,2.4))});
-    FACADES.forEach(f=>{if(f.t!=='house'&&f.t!=='salonFront'&&f.t!=='marketFront')return;const x=f.x*TILE,w=f.w*TILE,o=f.t==='marketFront'?[x-4,20,x+w+4,-4]:[x-2,12.5,x+w+2,-2.5];const n=Math.max(4,Math.round(w/7));
-      for(let k=1;k<n;k++){const t=k/n,px=o[0]+(o[2]-o[0])*t,py=t<.5?o[1]+(o[3]-o[1])*t*2:o[3]+(o[1]-o[3])*(t-.5)*2;add(px,py+1.6,97.6,1.8)}})});
+    FACADES.forEach(f=>roofBulbs(f).forEach(([px,py])=>add(px,py,97.6,1.8)))});
 }
