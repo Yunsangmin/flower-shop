@@ -498,17 +498,17 @@ if(WINTER){
   ['st_freesia','st_hydrangea'].forEach(id=>{const d=D(id);if(d)d[7]='$nowinter'});
   [['st_tulip',4],['st_gyp',10],['st_rose',16]].forEach(([id,x])=>{const d=D(id);if(d)d[3]=x});
 }
-function stockOf(t){let n=0;const scan=it=>{if(it&&it.stems&&it.kind!=='bouquet')it.stems.forEach(s=>{if(s.t===t&&!s.dried&&wither(s.f)<.6)n++})};
-  (S.bags||[]).forEach(b=>(b||[]).forEach(scan));(S.stList||[]).forEach(s=>(s.slots||[]).forEach(scan));return n}
-if(WINTER){
-  const _tp=tplPool;tplPool=function(){const base=_tp();
-    const extra=TEMPLATES.filter(t=>!base.includes(t)&&!/여름|해바라기|봄/.test(t.title+t.text)&&Object.entries(t.req).every(([k,v])=>flOpen(k)||((OFF_SEASON.winter[k])&&stockOf(k)>=v)));
-    return extra.length&&Math.random()<.6?base.concat(extra):base};
-  /* 이야기 특별 주문처럼 쉬는 꽃이 들어간 주문은, 재고가 모자라면 겨울 꽃으로 바꿔서 받아요 */
-  const _go=genOrder;genOrder=function(tpl,time,day){const o=_go(tpl,time,day),ch=[];
-    for(const [k,to] of [['freesia','tulip'],['hydrangea','gyp']]){const v=o.req[k];if(!v||stockOf(k)>=v)continue;o.req[to]=(o.req[to]||0)+v;delete o.req[k];ch.push(`${FL[k].name} 대신 ${FL[to].name}`)}
-    if(ch.length)o.text=(o.text||'')+` (겨울이라 ${ch.join(', ')}(으)로 부탁해요)`;return o};
-}
+/* 42차: 시장에서 안 파는 꽃(겨울의 프리지아·수국, 아직 거래를 안 연 단계 꽃 등)은 예약·주문에 나오지 않아요.
+   이야기 특별 주문처럼 꼭 정해진 주문에 그런 꽃이 있으면, 지금 시장에서 살 수 있는 꽃으로 바꿔서 받아요. */
+function flSub(k){if(flOpen(k))return k;const tf=TIER_OF[k]&&tierFlower(TIER_OF[k]);if(tf&&flOpen(tf))return tf;return {freesia:'tulip',hydrangea:'gyp',sunflower:'tulip',ranunculus:'rose',peony:'rose',poinsettia:'rose',amaryllis:'rose',camellia:'rose'}[k]||'rose'}
+function fixReq(o){const ch=[];for(const k of Object.keys(o.req)){if(flOpen(k))continue;const to=flSub(k),v=o.req[k];delete o.req[k];o.req[to]=(o.req[to]||0)+v;ch.push(`${FL[k].name} 대신 ${FL[to].name}`)}
+  if(ch.length)o.text=(o.text||'')+` (${WINTER?'겨울이라 ':''}${ch.join(', ')}(으)로 부탁해요)`;return o}
+{const _go=genOrder;genOrder=function(tpl,time,day){return fixReq(_go(tpl,time,day))}}
+/* 이미 받아 둔 예약 중 아직 만들지 않은 것도 하루를 시작할 때 맞춰요 */
+function fixPending(){[S.orders||[],S.tomorrow||[]].forEach(L=>L.forEach(o=>{if(o&&o.req&&o.status==='pending')fixReq(o)}))}
+{const _sd=startDaySetup;startDaySetup=function(){try{fixPending()}catch(e){}return _sd()}}
+{const _rm=resumeMid;resumeMid=function(m){try{fixPending()}catch(e){}return _rm(m)}}
+
 
 /* =====================================================================
    18. 마을 크리스마스 장식 더하기 (40차)

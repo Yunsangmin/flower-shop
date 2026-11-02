@@ -480,12 +480,13 @@ function poinsettiaArt(g,s,w,seed){
   for(let k=0;k<6;k++){const a=k*1.047;fEl(g,Math.cos(a)*.1,Math.sin(a)*.1,.06,.06,Y)}fEl(g,0,0,.05,.05,wmix('#7FA85A',w));
   fEl(g,-.28,-.42,.12,.06,'rgba(255,255,255,.35)',-.5);g.restore()}
 /* 아마릴리스: 크고 빨간 나팔꽃잎 여섯 장 + 흰 줄무늬 + 노란 수술 */
-function amaryllisArt(g,s,w){
-  const A=wmix('#D8333C',w),B=wmix('#EE5A60',w),D=wmix('#9E1A26',w,'#6E5646'),L=wmix('#FFD6D2',w,'#E6D8C6'),Y=wmix('#F2D46A',w,'#C9B88E');
+function amaryllisArt(g,s,w){ /* 42차: 연분홍 아마릴리스(포인세티아와 구분되게) — 연분홍 꽃잎 + 흰 줄 + 연두 목 */
+  const A=wmix('#F4A9B4',w),B=wmix('#FBD9DD',w),D=wmix('#D8707E',w,'#6E5646'),L=wmix('#FFFFFF',w,'#E6D8C6'),Y=wmix('#F2D46A',w,'#C9B88E');
   g.save();g.scale(s,s);
   for(let k=0;k<6;k++){const a=k*1.0472+(k%2?.08:0);g.save();g.rotate(a);g.beginPath();g.moveTo(0,0);g.bezierCurveTo(.4,-.2,.38,-.82,0,-1);g.bezierCurveTo(-.38,-.82,-.4,-.2,0,0);
-    g.fillStyle=fgrad(g,0,0,0,-1,[[0,D],[.35,A],[1,k%2?B:A]]);g.fill();g.strokeStyle=L;g.globalAlpha=.55;g.lineWidth=.06;g.beginPath();g.moveTo(0,-.12);g.lineTo(0,-.62);g.stroke();g.globalAlpha=1;g.restore()}
-  fEl(g,0,0,.2,.2,frad(g,0,0,.22,[[0,wmix('#B8E07A',w)],[1,D]]));
+    g.fillStyle=fgrad(g,0,0,0,-1,[[0,wmix('#C9E09A',w)],[.3,B],[1,k%2?A:mix(A,B,.35)]]);g.fill();g.strokeStyle=D;g.globalAlpha=.35;g.lineWidth=.025;g.stroke();g.globalAlpha=1;
+    g.strokeStyle=L;g.globalAlpha=.7;g.lineWidth=.05;g.beginPath();g.moveTo(0,-.12);g.lineTo(0,-.62);g.stroke();g.globalAlpha=1;g.restore()}
+  fEl(g,0,0,.2,.2,frad(g,0,0,.22,[[0,wmix('#B8E07A',w)],[1,wmix('#8FB060',w)]]));
   g.strokeStyle=wmix('#F6EAD0',w);g.lineWidth=.035;g.lineCap='round';for(let k=0;k<6;k++){const a=-1.9+k*.16;g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(Math.cos(a)*.3,Math.sin(a)*.3-.05,Math.cos(a)*.52,Math.sin(a)*.52);g.stroke();fEl(g,Math.cos(a)*.54,Math.sin(a)*.54,.045,.03,Y)}
   fEl(g,-.35,-.4,.13,.07,'rgba(255,255,255,.4)',-.6);g.restore()}
 /* 동백: 둥근 붉은 꽃잎 겹겹 + 노란 수술 다발 + 윤기 나는 짙은 잎 */
@@ -533,7 +534,7 @@ function flowerHead(g,t,x,y,s,f,dried){
   if(w>.25&&!dried){y+=w*s*.55;x+=(x%2?1:-1)*w*s*.3}
   if(s<1.6){ // 아주 작을 때는 가벼운 그림(점 몇 개)으로 — 굽는 시간 절약
     if(t==='fir'){const c=wmix('#3F6B4E',w);ln(g,x,y+s*.6,x,y-s*.7,c,s*.18);ln(g,x,y,x-s*.45,y-s*.35,c,s*.14);ln(g,x,y,x+s*.45,y-s*.35,c,s*.14);ln(g,x,y+s*.3,x-s*.4,y,c,s*.12);ln(g,x,y+s*.3,x+s*.4,y,c,s*.12);return} /* 전나무는 작은 가지 모양(동그라미 X) */
-    const c=(WINTER&&{gyp:'#BFE1F6'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#D8333C',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
+    const c=(WINTER&&{gyp:'#BFE1F6'}[t])||{rose:'#B81A35',tulip:'#EE7FA0',freesia:'#F6C93F',hydrangea:'#9DB6EE',gyp:'#FFFFFF',sunflower:'#F6C21F',ranunculus:'#F29A86',peony:'#F4B3C7',poinsettia:'#C8262E',amaryllis:'#F4A9B4',camellia:'#B81E32',fir:'#3F6B4E',cotton:'#FFFFFF'}[t]||'#fff';el(g,x,y,s*.5,s*.45,wmix(c,w));return}
   flowerArt(g,t,x,y,s*(FART_K[t]||.6),w,Math.round(x*7+y*3)&1023);
 }
 function wetSparkle(g,x,y,s){if(BAKE&&BAKE.fx){BAKE.fx.push({k:'spk',x:x-BAKE.ax,y:y-BAKE.ay,s});return}const tt=performance.now()/400+x;const a=(Math.sin(tt)+1)/2;g.globalAlpha=.35+.55*a;el(g,x,y,s*.18,s*.18,'#FFFFFF');ln(g,x-s*.35,y,x+s*.35,y,'#FFFFFF',.3);ln(g,x,y-s*.35,x,y+s*.35,'#FFFFFF',.3);g.globalAlpha=1}

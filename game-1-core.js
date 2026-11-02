@@ -34,7 +34,7 @@ const FL={
   peony:{name:'작약',decay:5,price:22000,dot:'#F2A9C0',lock:true},
   /* 겨울 단계 꽃(1·2·3단계 = 해바라기·라넌큘러스·작약 거래권으로 열려요) */
   poinsettia:{name:'포인세티아',decay:4,price:11000,dot:'#C8262E',lock:true,season:'winter',tier:'fl_sunflower'},
-  amaryllis:{name:'아마릴리스',decay:4.5,price:14000,dot:'#D8333C',lock:true,season:'winter',tier:'fl_ranunculus'},
+  amaryllis:{name:'아마릴리스',decay:4.5,price:14000,dot:'#F4A9B4',lock:true,season:'winter',tier:'fl_ranunculus'},
   camellia:{name:'동백',decay:5,price:22000,dot:'#B81E32',lock:true,season:'winter',tier:'fl_peony'},
   /* 겨울 소재(리스 재료): 겨울이면 누구나 살 수 있어요 */
   fir:{name:'전나무 가지',decay:0,price:6000,dot:'#3F6B4E',season:'winter',green:true},
@@ -141,7 +141,7 @@ const TEMPLATES=[
   {title:'송년회 테이블 꽃',text:'회사 송년회 테이블에 놓을 거예요. 화사하게요.',req:{amaryllis:2,rose:3,gyp:3},paper:'lilac',price:70000},
   {title:'첫눈 고백',text:'첫눈 오는 날 고백하려고요. 튤립이랑 하늘빛 안개꽃으로요.',req:{tulip:4,gyp:3},paper:'sky',price:44000},
   {title:'눈꽃 꽃다발',text:'하늘빛 안개꽃이랑 목화로 눈송이처럼요.',req:{gyp:4,cotton:3},paper:'sky',price:40000},
-  {title:'아마릴리스 선물',text:'크리스마스 선물이에요. 아마릴리스로 크고 근사하게!',req:{amaryllis:3,fir:2},paper:'cream',price:68000},
+  {title:'아마릴리스 선물',text:'크리스마스 선물이에요. 연분홍 아마릴리스로 크고 근사하게!',req:{amaryllis:3,fir:2},paper:'cream',price:68000},
   {title:'신년 인사',text:'부모님께 드릴 새해 꽃이에요. 동백이랑 장미로 우아하게요.',req:{camellia:2,rose:3},paper:'pink',price:86000},
   {title:'연말 감사 꽃',text:'한 해 고마웠던 선생님께요. 튤립이랑 장미로 따뜻하게요.',req:{tulip:3,rose:2,gyp:2},paper:'lilac',price:46000},
   {title:'포인세티아 화분 대신',text:'화분 대신 꽃다발로! 포인세티아를 듬뿍이요.',req:{poinsettia:4,gyp:3},paper:'cream',price:50000},
