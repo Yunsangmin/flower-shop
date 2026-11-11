@@ -214,6 +214,9 @@ const SHOP_ITEMS=[
   {id:'pickup2',cat:'equip',name:'픽업대 넓히기 (4칸)',desc:'자동 픽업대에 꽃다발을 4개까지 올려둘 수 있어요.',price:120000,need:'pickup'},
   {id:'pickup3',cat:'equip',name:'픽업대 넓히기 (6칸)',desc:'자동 픽업대가 6칸이 돼요.',price:220000,need:'pickup2'},
   {id:'pickup4',cat:'equip',name:'픽업대 넓히기 (8칸)',desc:'자동 픽업대가 8칸이 돼요.',price:380000,need:'pickup3'},
+  {id:'depot2',cat:'equip',name:'창고 넓히기 (18칸)',desc:'창고가 18칸이 돼요. 창고는 가게와 농막에서 함께 써요.',price:50000},
+  {id:'depot3',cat:'equip',name:'창고 넓히기 (24칸)',desc:'창고가 24칸이 돼요.',price:100000,need:'depot2'},
+  {id:'depot4',cat:'equip',name:'창고 넓히기 (30칸)',desc:'창고가 30칸이 돼요.',price:200000,need:'depot3'},
   {id:'fridge2',cat:'equip',name:'냉장고 칸 늘리기 (16칸)',desc:'꽃 냉장고가 16칸이 돼요.',price:90000},
   {id:'fridge3',cat:'equip',name:'냉장고 칸 늘리기 (20칸)',desc:'꽃 냉장고가 20칸이 돼요.',price:180000,need:'fridge2'},
   {id:'fridge4',cat:'equip',name:'냉장고 칸 늘리기 (24칸)',desc:'꽃 냉장고가 24칸이 돼요.',price:320000,need:'fridge3'},
@@ -335,7 +338,7 @@ const STATION_DEFS=[
   ['trim','trim','shop',1,5,6,1],
   ['board','board','shop',15,4,1,1],['trash','trash','shop',16,4,1,1],
   ['counter','counter','shop',8,5,5,1],['phone','phone','shop',13,5,1,1],['pickup','pickup','shop',14,5,2,1,'pickup'],
-  ['display','display','shop',1,7,3,1],
+  ['display','display','shop',1,7,3,1],['depot','depot','shop',5,7,2,1],
   ['st_tulip','stall','market',2,2,3,1],['st_freesia','stall','market',6,2,3,1],['st_gyp','stall','market',10,2,3,1],['st_rose','stall','market',14,2,3,1],['st_hydrangea','stall','market',18,2,3,1],['st_sunflower','stall','market',5,6,3,1,'fl_sunflower'],['st_ranunculus','stall','market',9,6,3,1,'fl_ranunculus'],['st_peony','stall','market',13,6,3,1,'fl_peony'],['st_cotton','stall','market',1,6,3,1,'$winter'],['st_fir','stall','market',18,6,3,1,'$winter'],['seedstall','seedstall','market',15,8,3,1],
   ['keeper','keeper','supply',5,3,4,1],
   ['bench1','bench','town',16,15,2,1],['bench2','bench','town',20,19,2,1],['bench3','bench','town',37,18,2,1],['bench4','bench','town',21,24,2,1],['bench5','bench','town',50,24,2,1],['bench6','bench','town',40,29,2,1],['rb1','bench','town',24,15,2,1],['rb2','bench','town',24,20,2,1],['rb3','bench','town',35,9+11,2,1],
@@ -386,12 +389,13 @@ const FACADES=[
   {t:'shopFront',x:1,w:11,door:6},{t:'house',x:12,w:4,c:'#F3D7D0'},{t:'supplyFront',x:16,w:8,door:19},
   {t:'marketFront',x:37,w:12,door:42},{t:'house',x:49,w:5,c:'#D9DDF0'},{t:'house',x:54,w:3,c:'#F3D7D0'}
 ];
-const SLOTN={storage:12,shelf:2,bucket:2,dryer:2,pickup:2,display:6,counter:4};
+const SLOTN={depot:12,storage:12,shelf:2,bucket:2,dryer:2,pickup:2,display:6,counter:4};
 /* 업그레이드로 늘어나는 칸 수 */
-function slotN(type){if(type==='pickup')return S.up.pickup4?8:S.up.pickup3?6:S.up.pickup2?4:2;if(type==='storage')return S.up.fridge4?24:S.up.fridge3?20:S.up.fridge2?16:12;return SLOTN[type]}
+function slotN(type){if(type==='depot')return S.up.depot4?30:S.up.depot3?24:S.up.depot2?18:12;if(type==='pickup')return S.up.pickup4?8:S.up.pickup3?6:S.up.pickup2?4:2;if(type==='storage')return S.up.fridge4?24:S.up.fridge3?20:S.up.fridge2?16:12;return SLOTN[type]}
 function resizeSlots(){S.stList.forEach(s=>{if(!s.slots)return;const n=slotN(s.type);while(s.slots.length<n)s.slots.push(null)})}
 /* 여러 개 살 수 있는 설비(물올림 통·진열대): S.up.n_bucket / S.up.n_display 개수만큼 'xbucket1'… 'xdisplay1'… 로 만들어요 */
 const XST={bucket:{w:1,h:1},display:{w:3,h:1},storage:{w:2,h:1}};
+const MOVE_HINT={depot:1}; /* 여러 개 사는 설비는 아니지만 들어서 옮길 수 있다는 안내를 보여 줄 설비 */
 function addXStation(type,n){const id='x'+type+n;if(S.st[id])return S.st[id];const o={id,type,area:'shop',home:'shop',x:2,y:7,w:XST[type].w,h:XST[type].h,item:null,slots:Array(slotN(type)).fill(null)};S.st[id]=o;S.stList.push(o);return o}
 const BAGN=8;
 function bagSize(){return S.up.bag3?16:S.up.bag2?12:8}
@@ -454,6 +458,9 @@ function moveChar(c,dx,dy){
 const Q=Math.SQRT1_2;
 const DIRV={down:[0,1],up:[0,-1],left:[-1,0],right:[1,0],dr:[Q,Q],dl:[-Q,Q],ur:[Q,-Q],ul:[-Q,-Q]};
 const OCT=['right','dr','down','dl','left','ul','up','ur'];
+/* 바라보는 지점(fx,fy)에서 물건까지의 거리: 물건 안이면 0에 가깝고(가운데일수록 작음), 밖이면 떨어진 만큼 */
+function aimDist(s,fx,fy){const x0=s.x*TILE,y0=s.y*TILE,x1=x0+s.w*TILE,y1=y0+s.h*TILE,cx=clamp(fx,x0,x1),cy=clamp(fy,y0,y1),out=Math.hypot(fx-cx,fy-cy);
+  return out>0?out:-1+Math.hypot(fx-(x0+x1)/2,fy-(y0+y1)/2)/1000}
 function targetOf(c){
   const [dx,dy]=DIRV[c.dir];const fx=c.x+dx*12,fy=c.y-3+dy*12;
   /* 말 걸기: 바라보는 방향이 아니어도 가까이(약 2칸) 있으면 대화. 여럿이면 가깝고 바라보는 쪽 사람 우선 */
@@ -462,7 +469,14 @@ function targetOf(c){
     for(const w of pool){const ex=w.x-c.x,ey=(w.y+(w.yo||0)*.5)-c.y,d=Math.hypot(ex,ey);if(d>R)continue;const dot=d>0?(ex*dx+ey*dy)/d:1;const sc=d-dot*10;if(sc<bs){bs=sc;best=w}}
     if(best){const front=Math.hypot(best.x-fx,best.y-3-fy)<14;if(!front){if(c.area==='shop'&&Math.hypot(best.x-c.x,best.y-c.y)>14)best=null;else if(stationsIn(c.area).some(s=>fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3))best=null}if(best)return {type:'npc',walker:best}}}
   const hasSpr=c.bag.some(it=>it&&it.kind==='sprinkler');const list=stationsIn(c.area).filter(s=>s.type!=='sprspot'||s.on||hasSpr);
-  for(const s of list){if(fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3)return s}
+  /* 45차: 바라보는 지점에 여러 설비가 걸치면(붙어 있는 설비) 목록 순서가 아니라 그 지점에 가장 가까운 것을 골라요 */
+  {let hit=null,hd=1e9;for(const s of list){if(fx>=s.x*TILE-3&&fx<=(s.x+s.w)*TILE+3&&fy>=s.y*TILE-3&&fy<=(s.y+s.h)*TILE+3){const d=aimDist(s,fx,fy);if(d<hd){hd=d;hit=s}}}
+    /* 바로 앞에 옮길 수 있는 가구가 더 정확히 있으면(설비는 여백에만 걸친 경우) 가구가 먼저 */
+    const fd=!S.edit&&typeof furnAny==='function'?furnAny(c):null,deco=fd&&!fd.type?fd:null;
+    if(hit&&deco&&aimDist(deco,fx,fy)<hd)hit=null;
+    if(hit)return hit;
+    /* 바로 앞이 가구면, 옆에 있는 설비(물통 등)를 대신 잡지 않아요 */
+    if(deco){const seat=seatAt(c);return seat?{type:'seat',deco:seat}:null}}
   let best=null,bd=18;
   for(const s of list){const cx=clamp(c.x,s.x*TILE,(s.x+s.w)*TILE),cy=clamp(c.y-3,s.y*TILE,(s.y+s.h)*TILE);const d=Math.hypot(cx-c.x,cy-(c.y-3));if(d<bd){bd=d;best=s}}
   if(best||S.edit)return best;

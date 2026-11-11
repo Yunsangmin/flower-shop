@@ -17,6 +17,20 @@ function tableV(g,x,y,w,top,front){shadow(g,x+w/2,y+19,w/2,2.2);rr(g,x,y+7,w,6,1
 function vaseFlowers(g,x,y,sc,types){types.forEach((t,j)=>{const a=(j-(types.length-1)/2)*.35;ln(g,x,y,x+Math.sin(a)*6*sc,y-8*sc,CO.leafD,.5*sc);flowerHead(g,t,x+Math.sin(a)*6*sc,y-8*sc-(j%2)*1.5*sc,3.2*sc,100)})}
 function leafyBlob(g,x,y,r,c1,c2){el(g,x,y,r,r*.8,c1);el(g,x-r*.45,y-r*.35,r*.55,r*.45,c2);el(g,x+r*.5,y-r*.1,r*.5,r*.4,c2)}
 
+/* 창고(45차): 나무 궤짝. n=들어 있는 칸 수, N=전체 칸 수(옆 눈금으로 찬 정도를 보여 줘요) */
+function drawDepot(g,x,y,w,n,N,snow){
+  shadow(g,x+w/2,y+16,w/2,2.2);
+  rr(g,x+1,y-5,w-2,20,1.8,'#B98463');rr(g,x+1,y+9,w-2,6,1.8,'#A47250');g.fillStyle='#B98463';g.fillRect(x+1,y+8,w-2,3);
+  g.strokeStyle='#9A6A49';g.lineWidth=.4;for(let k=1;k<4;k++){g.beginPath();g.moveTo(x+1.5,y-5+k*4.6);g.lineTo(x+w-1.5,y-5+k*4.6);g.stroke()}
+  rr(g,x,y-13,w,10,2.2,'#C99A74');rr(g,x+.8,y-12.4,w-1.6,3,1.4,'#DDB48E');g.fillStyle='#A47250';g.fillRect(x,y-5,w,1.6);
+  for(const bx of [x+4,x+w-6.5]){rr(g,bx,y-13,2.5,28,.6,'#6E5B4B');g.fillStyle='#8C7866';g.fillRect(bx+.4,y-12.5,.7,27)}
+  rr(g,x+w/2-2.6,y-6.5,5.2,5.4,1,'#D8B25A');rr(g,x+w/2-1.2,y-4.6,2.4,2.2,.6,'#8A6A2A');
+  /* 이름표: 꽃 한 송이 */
+  rr(g,x+w/2-5,y+3,10,7.5,1,'#FFF8EE');for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;el(g,x+w/2+Math.cos(a)*1.7,y+6.6+Math.sin(a)*1.7,1.25,1.25,'#F2A6B8')}el(g,x+w/2,y+6.6,.95,.95,'#F6C744');
+  /* 찬 정도 눈금 */
+  if(N){const h=11,f=clamp(n/N,0,1);rr(g,x+w-3.6,y+1.5,1.6,h,.6,'#8A6348');if(f>0)rr(g,x+w-3.6,y+1.5+h*(1-f),1.6,h*f,.6,f>=1?'#E0708C':'#8FCB7A')}
+  if(snow){g.fillStyle='#FFFFFF';g.beginPath();g.moveTo(x-.5,y-11);g.quadraticCurveTo(x+w*.25,y-16.5,x+w*.5,y-14.6);g.quadraticCurveTo(x+w*.78,y-17,x+w+.5,y-11);g.quadraticCurveTo(x+w*.5,y-12.6,x-.5,y-11);g.fill()}
+}
 /* ---------- stations ---------- */
 function drawStationV(g,s){
   const x=s.x*TILE,y=s.y*TILE,w=s.w*TILE,h=s.h*TILE,t=S.t;
@@ -94,6 +108,7 @@ function drawStationV(g,s){
         if(!it.dried){const p=clamp((it.dryT||0)/DRY_MIN,0,1);g.lineCap='round';g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=1.6;g.beginPath();g.arc(hx,y-31,2.6,0,7);g.stroke();g.strokeStyle='#D8B36A';g.lineWidth=1.1;g.beginPath();g.arc(hx,y-31,2.6,-Math.PI/2,-Math.PI/2+Math.PI*2*p);g.stroke()}});
       if(!s.slots.some(Boolean))hang(x+25,'tulip',true,2);
       break;}
+    case 'depot':drawDepot(g,x,y,w,s.slots.filter(Boolean).length,s.slots.length,false);break;
     case 'shelf':{
       shadow(g,x+8,y+15,7,1.6);rr(g,x+1,y-8,14,22,1.5,'#B98463');rr(g,x+2.5,y-6.5,11,9,1,'#E9D3B6');rr(g,x+2.5,y+4,11,8,1,'#E9D3B6');
       [y-2,y+9].forEach(by=>{rr(g,x+3.5,by-1,9,4,1.2,'#D6B27A');g.strokeStyle='#B58E57';g.lineWidth=.35;for(let k=0;k<4;k++){g.beginPath();g.moveTo(x+4.5+k*2.2,by-1);g.lineTo(x+4.5+k*2.2,by+3);g.stroke()}});
@@ -196,6 +211,7 @@ const KEEPER={style:'m',hair:'#8A8A8A',hairHi:'#B5B5B5',skin:'#EBC3A0',skinSh:'#
 function visRect(s){
   const X=s.x*TILE,Y=s.y*TILE,W=s.w*TILE,H=s.h*TILE;
   switch(s.type){
+    case 'depot':case 'depotf':return [X,Y-14,W,31];
     case 'storage':return [X,Y-28,W,48];case 'dryer':return [X,Y-28,W,46];case 'wrap':return [X,Y-18,W,35];
     case 'bucket':{const has=s.slots.some(Boolean);return [X+.5,Y-(has?22:0),15,(has?22:0)+16]}
     case 'shelf':return [X+.5,Y-9,15,24];case 'board':return [X+1,Y-11,14,28];

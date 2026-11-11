@@ -362,7 +362,7 @@ function two(i,bag,right){return `<div class="inv"><div class="invL scr">${bag}<
 function bagGrid(i,act,dimFn,selK){
   return `<div class="lbl">${PAL[i].name} 가방 (${S.bags[i].length-bagFree(i)}/${S.bags[i].length})</div><div class="grid">${S.bags[i].map((it,k)=>cellHTML(it,act,k,{dim:it&&dimFn?dimFn(it):false,sel:k===selK})).join('')}</div>`;
 }
-const BOX={counter:['카운터','꽃다발을 보관해요.'],storage:['꽃 냉장고','사 온 꽃을 보관해요. 칸을 누르면 가방으로, 가방 칸을 누르면 냉장고로 옮겨요.'],shelf:['선반','무엇이든 잠깐 올려둘 수 있어요.'],bucket:['물올림 통','다듬은 꽃을 꽂아 두면 물을 머금고 오래가요.'],dryer:['드라이플라워 건조대','한 시간 걸어두면 시들지 않는 드라이플라워가 돼요.'],pickup:['자동 픽업대','포장한 꽃다발을 올려두면 손님이 알아서 찾아가요.'],display:['진열대','진열한 꽃은 지나가던 손님이 사 가요.']};
+const BOX={depot:['창고','꽃·모종·꽃다발 무엇이든 넣어 둘 수 있어요. 가게와 농막의 창고는 서로 이어져 있어요. 꽃은 평소대로 시드니 오래 둘 꽃은 냉장고에 넣어 주세요.'],counter:['카운터','꽃다발을 보관해요.'],storage:['꽃 냉장고','사 온 꽃을 보관해요. 칸을 누르면 가방으로, 가방 칸을 누르면 냉장고로 옮겨요.'],shelf:['선반','무엇이든 잠깐 올려둘 수 있어요.'],bucket:['물올림 통','다듬은 꽃을 꽂아 두면 물을 머금고 오래가요.'],dryer:['드라이플라워 건조대','한 시간 걸어두면 시들지 않는 드라이플라워가 돼요.'],pickup:['자동 픽업대','포장한 꽃다발을 올려두면 손님이 알아서 찾아가요.'],display:['진열대','진열한 꽃은 지나가던 손님이 사 가요.']};
 function allBuckets(){return S.stList.filter(s=>s.type==='bucket'&&owned(s)&&s.slots)}
 function boxProg(st,it){if(st.type==='dryer')return it.dried?1:clamp((it.dryT||0)/DRY_MIN,0,1);return null}
 /* 새 장소 파일이 자기 창(그리기·누르기·그린 뒤)을 등록하는 곳 */
@@ -381,7 +381,7 @@ function renderModal(i){
   else if(m.type==='box'){
     const st=S.st[m.st];const [title,desc]=BOX[st.type];
     h=head(i,title)+`<p class="req">${desc}${st.type==='storage'&&S.up.fridge?' 업그레이드 덕분에 천천히 시들어요.':''}</p>
-      ${two(i,bagGrid(i,'in',it=>!!accepts(st,it)),`<div class="lbl">${title}</div><div class="grid">${st.slots.map((it,k)=>cellHTML(it,'out',k,{prog:it?boxProg(st,it):null,price:st.type==='display'})).join('')}</div>`)}${XST[st.type]?`<p class="note" style="text-align:left">${st.area!=='shop'&&st.type==='display'?'가게 밖 진열대예요. 영업 시간에 지나가는 사람들이 들러서 사 가요. ':''}설비 앞에서 행동 버튼을 길게 누르면 들 수 있어요. 진열대·물올림 통은 가게 밖에도 놓을 수 있어요.</p>`:''}${st.type==='display'?'<p class="note" style="text-align:left">자유 꽃다발 가격은 신선도에 따라 자동으로 정해져요. 시든 꽃다발은 팔리지 않으니 휴지통에 버려 주세요.</p>':''}`;
+      ${two(i,bagGrid(i,'in',it=>!!accepts(st,it)),`<div class="lbl">${title}</div><div class="grid">${st.slots.map((it,k)=>cellHTML(it,'out',k,{prog:it?boxProg(st,it):null,price:st.type==='display'})).join('')}</div>`)}${XST[st.type]||MOVE_HINT[st.type]?`<p class="note" style="text-align:left">${st.area!=='shop'&&st.type==='display'?'가게 밖 진열대예요. 영업 시간에 지나가는 사람들이 들러서 사 가요. ':''}${st.type==='depot'?(S.chars[i].area==='shop'?'가게 창고는 행동 버튼을 길게 누르면 들어서 옮길 수 있어요. 칸은 자재상에서 늘려요.':'농막 창고예요. 가게 창고와 같은 칸을 써요.'):'설비 앞에서 행동 버튼을 길게 누르면 들 수 있어요. 진열대·물올림 통은 가게 밖에도 놓을 수 있어요.'}</p>`:''}${st.type==='display'?'<p class="note" style="text-align:left">자유 꽃다발 가격은 신선도에 따라 자동으로 정해져요. 시든 꽃다발은 팔리지 않으니 휴지통에 버려 주세요.</p>':''}`;
   }
   else if(m.type==='buy'){
     const f=FL[m.flower],p=S.prices[m.flower],tot=p*m.qty,free=bagFree(i);
@@ -873,11 +873,18 @@ if(SET.see==null)SET.see=1;
 function charScreenRect(j){const c=S.chars[j];if(!c)return null;let vs;try{vs=viewports()}catch(e){return null}
   const v=vs.find(v=>v.chars.includes(j));if(!v)return null;const cam=camera(v),s=cam.s;
   const x=cam.ox+c.x*s,y=cam.oy+c.y*s;return {l:x-9*s,r:x+9*s,t:y-36*s,b:y+2*s}}
+/* 45차: 창 전체가 아니라 상대가 서 있는 자리 둘레만 동그랗게 비쳐요(창의 나머지는 또렷하게).
+   · 0.1초마다 상대 위치를 보고, 6픽셀 넘게 움직였을 때만 구멍 자리를 옮겨요
+   · 구멍(마스크)을 못 쓰는 오래된 TV에서는 예전처럼 창 전체가 비쳐요 */
+const SEE_MASK=(()=>{try{return !!(window.CSS&&CSS.supports&&(CSS.supports('-webkit-mask-image','radial-gradient(#000,#000)')||CSS.supports('mask-image','radial-gradient(#000,#000)')))}catch(e){return false}})();
 function modalSeeTick(){if(S.mode==='solo'||S.phase!=='play'||!S.chars||S.chars.length<2)return;
-  for(const i of [0,1]){const el=modalEl(i);if(!el)continue;const m=S.chars[i].modal;let k=0;
+  for(const i of [0,1]){const el=modalEl(i);if(!el)continue;const m=S.chars[i].modal;let k=0,want='';
     if(m&&m.type!=='talk'&&SET.see&&el.classList.contains('open')){const R=charScreenRect(1-i);
-      if(R){const M=el.getBoundingClientRect();if(R.r>M.left&&R.l<M.right&&R.b>M.top&&R.t<M.bottom)k=SET.see}}
-    const want=k?'see'+k:'';if(el.dataset.see!==want){el.classList.remove('see1','see2');if(want)el.classList.add(want);el.dataset.see=want}}}
-setInterval(modalSeeTick,200);
+      if(R){const M=el.getBoundingClientRect();if(R.r>M.left&&R.l<M.right&&R.b>M.top&&R.t<M.bottom){k=SET.see;
+        if(SEE_MASK){const w=R.r-R.l,h=R.b-R.t,cx=Math.round(((R.l+R.r)/2-M.left)/6)*6,cy=Math.round(((R.t+R.b)/2-M.top)/6)*6,rx=Math.round(w*1.25+14),ry=Math.round(h*.72+12),al=k>1?.1:.3;
+          want=`radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px,rgba(0,0,0,${al}) 0,rgba(0,0,0,${al}) 55%,#000 100%)`}}}}
+    if(SEE_MASK){if(el.dataset.see!==want){el.style.webkitMaskImage=want;el.style.maskImage=want;el.dataset.see=want}}
+    else{want=k?'see'+k:'';if(el.dataset.see!==want){el.classList.remove('see1','see2');if(want)el.classList.add(want);el.dataset.see=want}}}}
+setInterval(modalSeeTick,100);
 try{const t=document.createElement('div');t.style.cssText='display:flex;flex-direction:column;row-gap:1px;position:absolute';t.innerHTML='<div></div><div></div>';document.body.appendChild(t);if(t.scrollHeight!==1)document.documentElement.classList.add('oldflex');t.remove()}catch(e){}
 

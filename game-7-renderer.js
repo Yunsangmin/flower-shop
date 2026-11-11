@@ -167,7 +167,7 @@ function prBgTrim(){
    ---------------------------------------------------------------------
    · 그림 메모리 = 사람·물건 + 가구·건물 + 효과 + 장소 바닥 + 캠퍼스 땅 조각 (전부 합친 값)
    · 예산(PR_BUDGET): TV 42MB(겨울 업데이트 전에 모든 장소를 돌았을 때 쓰던 양). 합계가 예산에 가까워지면(95%) '지금 안 보이는 것'부터 순서대로 비워요.
-       ① 다시 쓰려고 모아 둔 빈 자리 → ② 안 보이는 가구·건물(오래된 순) → ③ 아무도 없는 장소의 바닥
+       ① 다시 쓰려고 모아 둔 빈 자리 → ② 안 보이는 가구·건물(오래된 순) → ③ 아무도 없는 장소의 바닥(가게·마을은 맨 마지막)
        → ④ 한동안 안 쓴 사람·물건 그림. 비운 그림은 다시 볼 때 새로 구워요(잠깐의 굽기 시간과 맞바꿈).
    · '지금 장면에 꼭 필요한 양'(need)이 예산의 85%를 넘으면 그 장면이 너무 무거운 것 → 성능 표시에 ⚠ 로 알려요.
    새 컨텐츠를 넣을 때 지킬 것(다음 작업자·다음의 나에게):
@@ -178,6 +178,7 @@ function prBgTrim(){
      5) 한 장면의 need 가 TV 예산의 85%(약 36MB)를 넘으면 사람 수·장식 수·굽는 배율부터 줄이기
    ===================================================================== */
 let PR_BUDGET=(PR_TV?42:220)*1048576; /* TV 42MB = 크리스마스 업데이트 전(36차)에 모든 장소를 돌았을 때의 사용량 */
+const PR_KEEP={shop:1,town:1};
 const PR_MEM={tot:0,need:0,peak:0,needPeak:0,trims:0,freed:0,over:0,warn:''};
 function prMemStat(){
   const M={c:0,s:0,p:0,b:0,h:0,tot:0,need:0};const fr=PR.frame,near=fr-prSec(2);
@@ -202,8 +203,9 @@ function prMemTrim(){
   if(tot>goal){const old=[...PR.recs.values()].filter(r=>r.layers&&PR.frame-r.seen>prSec(5)).sort((a,b)=>(a.pin?1:0)-(b.pin?1:0)||a.seen-b.seen);
     for(const r of old){if(tot<=goal)break;let b=0;for(const e of r.layers)b+=e.w*e.h*4;prKillRec(r);PR.recs.delete(r.id);tot-=b}}
   /* ③ 아무도 없는 장소의 바닥·땅 조각(오래 안 간 곳부터) */
-  if(tot>goal){const L=Object.entries(PR.areaObj).filter(([a,o])=>PR.frame-(o.seenF||0)>prSec(5)).sort((p,q)=>(p[1].seenF||0)-(q[1].seenF||0));
-    for(const [a,o] of L){if(tot<=goal)break;
+  /* 45차: 늘 돌아오는 가게·마을 바닥은 지키고(PR_KEEP), 가끔 가는 곳부터 비워요. 그래도 예산을 넘을 때만 마지막으로 비워요 */
+  if(tot>goal){const L=Object.entries(PR.areaObj).filter(([a,o])=>PR.frame-(o.seenF||0)>prSec(5)).sort((p,q)=>(PR_KEEP[p[0]]?1:0)-(PR_KEEP[q[0]]?1:0)||(p[1].seenF||0)-(q[1].seenF||0));
+    for(const [a,o] of L){if(tot<=goal)break;if(PR_KEEP[a]&&tot<=PR_BUDGET)break;
       if(o.bgKey){o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);tot-=o.bgBytes||0;o.bgKey=null;o.bgSig=null;o.bgBytes=0}
       if(o.ch){for(const c of o.ch.values()){tot-=c.sz*c.sz*4;c.img.setVisible(false);if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}o.ch.clear()}}}
   /* ④ 한동안(3초) 안 쓴 사람·물건·효과 그림 */
@@ -219,7 +221,7 @@ function prProxy(){
 }
 
 /* ---------- 구울 때의 크기(측정값 + 여유) ---------- */
-const PR_STB={storage:[0,-36,0,4.5],wardrobe:[-2,-38.5,0,3.5],bucket:[0,-24,0,1],craft:[-.3,-26,.3,3.3],wrap:[-.3,-23,.3,3.3],dryer:[0,-27,0,2],trim:[0,-14,0,2.5],board:[0,-12,0,2],trash:[0,-4,0,1],counter:[0,-24,0,3.5],phone:[0,-8,0,1],pickup:[0,-24,0,2],display:[0,-24,0,3.5],stall:[-.8,-28,.3,5.3],seedstall:[-.3,-32,.3,5.3],keeper:[0,-29,0,3.5],bench:[0,-3,0,1],plot:[0,-20,0,1],sprspot:[-14,-14,14,8],shelf:[0,-14,0,2]};
+const PR_STB={depot:[0,-22,0,3.5],depotf:[0,-22,0,3.5],storage:[0,-36,0,4.5],wardrobe:[-2,-38.5,0,3.5],bucket:[0,-24,0,1],craft:[-.3,-26,.3,3.3],wrap:[-.3,-23,.3,3.3],dryer:[0,-27,0,2],trim:[0,-14,0,2.5],board:[0,-12,0,2],trash:[0,-4,0,1],counter:[0,-24,0,3.5],phone:[0,-8,0,1],pickup:[0,-24,0,2],display:[0,-24,0,3.5],stall:[-.8,-28,.3,5.3],seedstall:[-.3,-32,.3,5.3],keeper:[0,-29,0,3.5],bench:[0,-3,0,1],plot:[0,-20,0,1],sprspot:[-14,-14,14,8],shelf:[0,-14,0,2]};
 const PR_DEB={tree:[-4,-23,4.8,2],lamp:[0,-28,0,0],table:[-6.5,-12,6.5,1.5],waitbench:[0,-4,0,1],bigplant:[-4,-13,4,.8],easel:[0,-9,0,.5],crate:[0,-6,1.5,.8],planterTree:[0,-14,0,.8],bucketRow:[-.3,-10,0,1],boxes:[0,-7,0,1],tallshelf:[0,-26,0,3],tooltable:[-.3,-4,.3,3.3],pottable:[-.3,-3,.3,3.3],fridgeDemo:[0,-20,0,1.8],seedRack:[0,-14,0,.8],canRack:[0,-14,0,.8],clocktower:[0,-80,.8,2],fenceH:[-1,-2,2,2],fenceV:[0,0,0,0],shed:[0,-4,0,2.5],mailbox:[0,-3,0,0],planterBox:[0,-6,0,1],hoursSign:[-.5,-9,.5,.5],school:[-8,-92,32,8],schoolclock:[-4,-126,4,0],playmat:[0,-4,0,0],swing:[0,-16,0,2],slide:[0,-20,1,1],sandbox:[0,0,0,0]};
 /* 상점 가구·선물 소품 그림 범위 · 벽 장식은 모두 같은 범위 */
 Object.assign(PR_DEB,{cafetable:[0,-14,0,1],flowercart:[-2,-18,2,1],bike:[-2,-16,2,1],bookshelf:[0,-28,0,1],record:[0,-20,0,1],catcushion:[0,-4,0,1],candles:[0,-16,0,1],armchair:[-1,-14,1,1],floorlamp:[-1,-30,1,1],flowerbench:[-2,-12,2,1],cactus:[0,-10,0,1],fiddle:[-2,-30,2,1],birdcage:[-1,-30,1,1],piano:[0,-24,0,1],xmastree:[-4,-36,4,1],sakura:[-6,-32,6,1],memocab:[0,-34,0,1],portrait_easel:[-2,-28,2,1],picbook:[0,-18,0,1],readnook:[-1,-16,1,1],notedesk:[0,-16,0,1],seapot:[-1,-16,1,1],mugtable:[0,-12,0,1],picnictable:[-1,-12,1,1],campchair:[-1,-12,1,1]});
@@ -324,6 +326,7 @@ function prStSig(s){
   switch(s.type){
     case 'craft':x+=JSON.stringify(S.works,prRound)+JSON.stringify(S.bench,prRound);break;
     case 'storage':case 'trim':case 'wrap':x+=JSON.stringify(S.up);break;
+    case 'depotf':x+=JSON.stringify(S.st.depot&&S.st.depot.slots,prRound);break;
     case 'counter':x+=S.shopName;break;
     case 'stall':case 'seedstall':return [s.type,s.x,s.y,s.w,s.h,s.flower||'',S.t>=MARKET_CLOSE,prBakeScale(s.area)].join('|'); // 가판대 그림은 위치·꽃 종류·마감 여부만 보면 돼요(꽃을 살 때마다 다시 굽던 것 방지)
     case 'sprspot':x+=(S.t<20);break;
@@ -661,7 +664,7 @@ function prSyncChars(area){
   S.chars.forEach(c=>{
     if(c.area!==area||c.modal||c.rest||c.waterT>0)return;if(S.mode==='solo'&&c.i!==S.active)return;
     if(S.edit&&area==='shop'){if(c.carry)return;const f=furnAt(c);if(!f)return;const b=f.type?visRect(f):[f.x*TILE,f.y*TILE-8,f.w*TILE,f.h*TILE+8];G.lineStyle(1.6,0xffffff,a);prRRect(G,ox+b[0]-1.5,b[1]-1.5,b[2]+3,b[3]+3,3);return}
-    const s=targetOf(c);if(!s)return;
+    const s=targetOf(c);if(!s){/* 45차: 들 수 있는 가구 앞이면 그 가구에 가는 테두리 */const f=typeof furnAny==='function'&&!c.carry?furnAny(c):null;if(f&&!f.type){const b=[f.x*TILE,f.y*TILE-8,f.w*TILE,f.h*TILE+8];G.lineStyle(1.2,0xffffff,a*.8);prRRect(G,ox+b[0]-1.5,b[1]-1.5,b[2]+3,b[3]+3,3)}return}
     if(s.type==='npc'){G.lineStyle(1.3,0xffffff,a);G.strokeEllipse(ox+s.walker.x,s.walker.y,16,5.2);return}
     const b=visRect(s);G.lineStyle(3.2,0xffffff,.35);prRRect(G,ox+b[0]-1.5,b[1]-1.5,b[2]+3,b[3]+3,3);G.lineStyle(1.5,0xffffff,a);prRRect(G,ox+b[0]-1.5,b[1]-1.5,b[2]+3,b[3]+3,3);
   });

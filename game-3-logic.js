@@ -35,6 +35,7 @@ function continueGame(mode){mode='duo';
   makeStations();
   Object.entries(d.slots||{}).forEach(([id,v])=>{const s=S.st[id];if(s&&s.slots)v.forEach((it,k)=>{if(k<s.slots.length)s.slots[k]=it})});
   Object.entries(d.pos||{}).forEach(([id,[x,y,a]])=>{const s=S.st[id];if(s){s.x=x;s.y=y;if(a&&AREAS[a]&&(XST[s.type]))s.area=a}});
+  {const dp=S.st.depot;if(dp&&!(d.pos&&d.pos.depot)&&!spotOK(dp,dp.x,dp.y)){const p=findSpot(dp);if(p){dp.x=p[0];dp.y=p[1]}}} /* 45차: 예전 세이브엔 창고 자리가 없어요 → 가구와 안 겹치는 빈 자리에 */
   Object.entries(d.plots||{}).forEach(([id,v])=>{const s=S.st[id];if(s)s.plot=v});
   Object.keys(d.spr||{}).forEach(id=>{if(S.st[id])S.st[id].on=true});
   if(d.mid)resumeMid(d.mid);else startDaySetup();
@@ -86,6 +87,7 @@ function itemName(it){
   return `${FL[it.t].name} ${it.stems.length}송이${it.dried?' · 드라이':it.trim?' · 다듬음':''}`;
 }
 function accepts(st,it){
+  if(st.type==='depot')return ''; /* 창고: 가방에 든 건 무엇이든 */
   if((it.kind==='seed'||it.kind==='sprinkler')&&st.type!=='counter')return it.kind==='seed'?'모종은 텃밭에 심어 주세요':'스프링클러는 텃밭에 설치해 주세요';
   switch(st.type){
     case 'storage':return it.dried?'드라이플라워는 냉장고에 넣지 않아도 돼요':'';
@@ -100,7 +102,7 @@ function accepts(st,it){
 
 /* ---------- action labels ---------- */
 function ringingCall(){return S.calls.find(k=>k.state==='ring')}
-const OPEN_LABEL={wardrobe:'옷 갈아입기',storage:'냉장고 열기',shelf:'선반 열기',bucket:'물통 열기',dryer:'건조대 열기',pickup:'픽업대 열기',display:'진열대 열기',trim:'꽃 다듬기',craft:'꽃다발 만들기',wrap:'포장하기',counter:'손님 맞기',trash:'버리기',board:'예약 보기',stall:'꽃 사기',seedstall:'모종 사기',keeper:'물건 보기',bench:'앉아 쉬기'};
+const OPEN_LABEL={depot:'창고 열기',depotf:'창고 열기',wardrobe:'옷 갈아입기',storage:'냉장고 열기',shelf:'선반 열기',bucket:'물통 열기',dryer:'건조대 열기',pickup:'픽업대 열기',display:'진열대 열기',trim:'꽃 다듬기',craft:'꽃다발 만들기',wrap:'포장하기',counter:'손님 맞기',trash:'버리기',board:'예약 보기',stall:'꽃 사기',seedstall:'모종 사기',keeper:'물건 보기',bench:'앉아 쉬기'};
 function plotReady(P){return P&&P.prog>=GROW[P.t]}
 function actionLabel(c){
   if(c.waterT>0)return ['물 주는 중',false];
@@ -119,8 +121,8 @@ function actionLabel(c){
 function movables(){return [...stationsIn('shop'),...S.decor.filter(d=>!d.carried)]}
 function furnAt(c){
   const [dx,dy]=DIRV[c.dir];const fx=c.x+dx*12,fy=c.y-3+dy*12;
-  for(const f of movables()){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}
-  return null;
+  let best=null,bd=1e9;for(const f of movables()){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3){const d=aimDist(f,fx,fy);if(d<bd){bd=d;best=f}}}
+  return best;
 }
 function placeSpot(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),f.wall?2:Math.round(cy/TILE-f.h/2)]} // 벽 장식은 늘 뒤 벽(2번 줄)
 function spotOK(f,x,y){
@@ -149,7 +151,7 @@ function carryList(c){if(c.area==='shop')return movables();if(OUT_AREAS.includes
 /* 가게 밖에 둘 수 있는 설비: 진열대·물올림 통(나머지 설비는 가게 안에서만 옮겨요) */
 function outOK(f){return !!(f.type&&(f.type==='display'||f.type==='bucket'))}
 function furnAny(c){const [dx,dy]=DIRV[c.dir]||[0,1];const fx=c.x+dx*12,fy=c.y-3+dy*12;
-  for(const f of carryList(c)){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3)return f}return null}
+  let best=null,bd=1e9;for(const f of carryList(c)){if(fx>=f.x*TILE-3&&fx<=(f.x+f.w)*TILE+3&&fy>=f.y*TILE-3&&fy<=(f.y+f.h)*TILE+3){const d=aimDist(f,fx,fy);if(d<bd){bd=d;best=f}}}return best}
 function placeSpotO(c,f){const [dx,dy]=DIRV[c.dir]||[0,1];const cx=c.x+dx*(10+f.w*8),cy=c.y-3+dy*(10+f.h*8);return [Math.round(cx/TILE-f.w/2),Math.round(cy/TILE-f.h/2)]}
 function spotOKO(area,f,x,y){const A=AREAS[area];if(x<1||y<1||x+f.w>A.w-1||y+f.h>A.h-1)return false;
   for(let yy=y;yy<y+f.h;yy++)for(let xx=x;xx<x+f.w;xx++)for(const [ox,oy] of [[4,4],[12,4],[4,12],[12,12]])if(solid(area,xx*TILE+ox,yy*TILE+oy))return false;
@@ -244,7 +246,7 @@ function doAction(i){
       c.rest={bench:s,seat,start:S.t};c.x=(s.x+.5+seat)*TILE;c.y=(s.y+1)*TILE-3;if(s.up){c.dir='up';c.face=c.ang=Math.PI;c.y=(s.y+1)*TILE-1}else{c.dir='down';c.face=c.ang=0}sfx('sit');if(s.view&&wt(S.t)>=420)setTimeout(()=>{if(c.rest&&c.rest.bench===s)sfx('sunset')},700);return;
     }
     case 'field':toast(i,'나중에 여기서 꽃을 키울 수 있어요');return;
-    case 'storage':case 'shelf':case 'bucket':case 'dryer':case 'pickup':case 'display':
+    case 'depot':case 'storage':case 'shelf':case 'bucket':case 'dryer':case 'pickup':case 'display':
       openModal(i,{type:'box',st:s.id});return;
     case 'wardrobe':openModal(i,{type:'wardrobe',cat:'tee'});return;
     case 'sprspot':{

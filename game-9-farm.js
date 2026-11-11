@@ -43,6 +43,11 @@ DECOR_BASE.farm=[
 Object.defineProperty(DECOR,'farm',{get(){return withOut('farm',DECOR_BASE.farm)},configurable:true});
 Object.assign(PR_DEB,{farmhouse:[-8,-78,10,14],greenhouse:[-6,-62,6,8],woodpile:[0,-12,0,2],tent:[-10,-44,14,10],firepit:[-8,-26,8,4],lightpole:[-2,-44,2,1],picnic:[0,-10,0,4],cathouse:[0,-18,0,2],catbowls:[0,0,0,0],farmsign:[-10,-26,10,2]});
 
+/* 농막 창고(45차): 가게 창고와 같은 칸을 써요(문만 하나 더 있는 셈) — 내용물은 가게 창고(S.st.depot)에만 있어요 */
+STATION_DEFS.push(['depotf','depotf','farm',16,6,2,1]);
+STATION_DRAW.depotf=(g,s,x,y,w)=>{const d=S.st.depot;drawDepot(g,x,y,w,d?d.slots.filter(Boolean).length:0,d?d.slots.length:0,typeof WINTER!=='undefined'&&WINTER)};
+STATION_ACT.depotf=(i)=>{const d=S.st.depot;if(!d){toast(i,'창고를 찾지 못했어요');return}if(d.carried){toast(i,'지금 가게에서 창고를 옮기는 중이에요');return}openModal(i,{type:'box',st:'depot'})};
+
 /* 캠핑 의자(앉아 쉬기) — 모닥불을 바라보고 앉아요 */
 STATION_DEFS.push(['fc1','bench','farm',21,19,2,1],['fc2','bench','farm',24,19,2,1]);
 {const _ms=makeStations;makeStations=function(){_ms();['fc1','fc2'].forEach(id=>{const s=S.st[id];if(s){s.up=true;s.camp=true}})}}
