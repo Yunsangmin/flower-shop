@@ -297,7 +297,7 @@ function pollPads(dt){
     if(GP.calib&&GP.calib.id===gp.id){calibStep(gp,st);st.prev=gp.buttons.map(b=>b.pressed);continue}
     /* 블루투스 신호가 멈추면(TV가 마지막 스틱 값을 계속 들고 있음) 0.4초 뒤 멈춘 것으로 봐요 → 손을 뗐는데 계속 가는 것 방지 */
     /* 단, 조이콘이 값이 그대로여도 신호를 계속 보내는 TV에서만 써요(그렇지 않은 TV에선 스틱을 꾹 밀고 있을 때 멈춰 버리니까) */
-    const nowT=performance.now(),axs=gp.axes.join(',');st.mpg=Math.max(st.mpg||0,nowT-(st.lp||nowT));st.lp=nowT;
+    const nowT=performance.now(),axs=gp.axes.join(',')+'|'+gp.buttons.map(b=>b.pressed?1:0).join(''); /* 44차: 버튼 상태도 함께 비교(버튼만 눌러도 '값이 그대로인데 신호가 왔다'로 잘못 세던 것 방지) */st.mpg=Math.max(st.mpg||0,nowT-(st.lp||nowT));st.lp=nowT;
     if(gp.timestamp!==st.ts){if(st.ts!=null&&axs===st.axs)st.tsOK=(st.tsOK||0)+1;
       /* 화면이 느려서 늦게 읽은 건 빼고(그동안 0.08초 안쪽으로 계속 읽었는데도 새 신호가 없었을 때만) 조이콘 신호 늦음으로 세요 */
       if(st.tsOK>10&&st.tsT&&st.mpg<80){const gap=nowT-st.tsT;if(gap>150&&S.phase==='play'){const sd=inSide(joySide(gp.id));INLOG.gap150++;sd.gap150++;if(gap>400){INLOG.gap400++;sd.gap400++}if(gap>INLOG.maxGap)INLOG.maxGap=gap;if(gap>sd.maxGap)sd.maxGap=gap}}st.ts=gp.timestamp;st.tsT=nowT;st.mpg=0}st.axs=axs;
