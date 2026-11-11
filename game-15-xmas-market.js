@@ -218,7 +218,8 @@ Object.assign(DECOR_DRAW,{
   xstrmk(g,d){xmStrings(d.side).forEach(P=>{g.strokeStyle='#2E3A30';g.lineWidth=.45;g.beginPath();P.forEach(([x,y],k)=>k?g.lineTo(x,y):g.moveTo(x,y));g.stroke()})}});
 Object.assign(PR_DEB,{xmtree:[-34,-158,34,6],xmsleigh:[0,-26,0,1],xmdeer:[-4,-20,4,1],xmsign:[-8,-22,8,1],xmphoto:[0,-38,0,1]});
 /* 광장 위로 늘어진 줄 전구: 가로등 머리끼리 이어요 */
-function xmStrings(side){const A=side?[[588,190],[40*16+8,215],[53*16+8,215],[920,190]]:[[10,190],[4*16+8,215],[17*16+8,215],[376,190]],L=[];
+function xmStrings(side){if(xmStrings.c&&xmStrings.c[side])return xmStrings.c[side];const R=xmStrings0(side);(xmStrings.c||(xmStrings.c=[]))[side]=R;return R} /* 43차: 한 번만 계산 */
+function xmStrings0(side){const A=side?[[588,190],[40*16+8,215],[53*16+8,215],[920,190]]:[[10,190],[4*16+8,215],[17*16+8,215],[376,190]],L=[];
   for(let k=0;k+1<A.length;k++){const [ax,ay]=A[k],[bx,by]=A[k+1],P=[];for(let j=0;j<=16;j++){const t=j/16;P.push([ax+(bx-ax)*t,ay+(by-ay)*t+Math.sin(t*Math.PI)*12])}L.push(P)}return L}
 
 /* ---------- 7. 우리 가판대 ---------- */
@@ -314,10 +315,13 @@ XB_HOOKS.push((area,add)=>{if(area!=='north'||!XM_ON)return;
   {const cx=XM_TREE.x*TILE+16,by=XM_TREE.y*TILE+14,dep=(XM_TREE.y+1)*TILE-1;XT_TIERS.forEach(([b,t,w],i)=>{for(let j=0;j<7-i;j++){const u=(j+.5)/(7-i)*2-1;add(cx+u*(w-5)*.92*1.3,by+(b-3-Math.abs(u)*2.5-8+i*.5)*1.3,dep,2.4)}})}});
 
 /* 줄 전구의 전깃줄은 큰 그림으로 굽지 않고 선 몇 개로 그려요(그림 메모리 약 2MB 절약) */
-function xmWires(area){if(area!=='north'||!XM_ON)return;const a=prArea(area);if(!a.xmG){a.xmG=prW(PR.sc.add.graphics().setDepth(16*TILE));const G=a.xmG,ox=AOFF.north;G.lineStyle(.5,0x2E3A30,1);
-  [0,1].forEach(side=>xmStrings(side).forEach(P=>{G.beginPath();P.forEach(([x,y],k)=>k?G.lineTo(ox+x,y):G.moveTo(ox+x,y));G.strokePath();P.forEach(([x,y],k)=>{if(k%2){G.fillStyle(parseInt(XBC[k%5].slice(1),16),1);G.fillCircle(ox+x,y+1,.8)}})}))}a.xmG.setVisible(true);a.xmSeen=PR.frame}
-if(XM_ON){const _sd=seasonDyn;seasonDyn=function(area,tt){_sd(area,tt);xmWires(area)};
-  const _pr=prRender;prRender=function(){_pr();const a=PR.areaObj&&PR.areaObj.north;if(a&&a.xmG&&a.xmSeen!==PR.frame)a.xmG.setVisible(false)}}
+/* 43차: 전구 줄은 한 번만 작은 그림으로 구워요.
+   (예전엔 '선 그리기'로 두어서, 엔진이 매 프레임 줄과 전구 동그라미 48개를 점 수천 개로 다시 계산했어요 → 프레임마다 0.8MB씩 쓰고 버리던 원인) */
+function xmWires(area){if(area!=='north'||!XM_ON)return;const sc=prBakeScale(area);
+  [0,1].forEach(side=>xmStrings(side).forEach((P,i)=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(([x,y])=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)});
+    prDynLayer(area,'xw'+side+i,'w|'+sc,[x0-2,y0-2,x1-x0+4,y1-y0+5],16*TILE,g=>{g.strokeStyle='#2E3A30';g.lineWidth=.5;g.beginPath();P.forEach(([x,y],k)=>k?g.lineTo(x,y):g.moveTo(x,y));g.stroke();
+      P.forEach(([x,y],k)=>{if(k%2)el(g,x,y+1,.8,.8,XBC[k%5])})})}))}
+if(XM_ON){const _sd=seasonDyn;seasonDyn=function(area,tt){_sd(area,tt);xmWires(area)}}
 
 /* 41차: 마켓을 떠나 20초가 지나면 노점·마켓 장식 그림을 정리해요(다른 장소에 있을 때 메모리 3~4MB 절약, 다시 오면 금방 새로 그려요) */
 const XM_DEC_T=new Set(['xmtree','xmsleigh','xmdeer','xmsign','xmphoto','xminitree','xgifts','snowman']);

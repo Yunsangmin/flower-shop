@@ -29,7 +29,7 @@ function prCol(c){
 }
 
 /* ---------- 화질(렌더 배율) ---------- */
-function prIsTV(){return /Web0S|webOS|SmartTV|SMART-TV|NetCast|HbbTV/i.test(navigator.userAgent)}
+const PR_TV=/Web0S|webOS|SmartTV|SMART-TV|NetCast|HbbTV/i.test(navigator.userAgent);function prIsTV(){return PR_TV} /* 43차: 한 번만 확인(매 프레임 수십 번 글자 검사를 하던 것) */
 function prResolution(){
   const dpr=window.devicePixelRatio||1;
   if(SET.gfx==='lite')return Math.min(dpr,.6);
@@ -162,6 +162,55 @@ function prBgTrim(){
   for(const [a,o,b] of list){if(bytes<CAP)break;o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);
     o.bgKey=null;o.bgSig=null;o.bgBytes=0;bytes-=b}
 }
+/* =====================================================================
+   메모리 예산(43차) — 컨텐츠를 아무리 늘려도 그림 메모리가 이 선을 넘지 않게 하는 틀
+   ---------------------------------------------------------------------
+   · 그림 메모리 = 사람·물건 + 가구·건물 + 효과 + 장소 바닥 + 캠퍼스 땅 조각 (전부 합친 값)
+   · 예산(PR_BUDGET): TV 42MB(겨울 업데이트 전에 모든 장소를 돌았을 때 쓰던 양). 합계가 예산에 가까워지면(95%) '지금 안 보이는 것'부터 순서대로 비워요.
+       ① 다시 쓰려고 모아 둔 빈 자리 → ② 안 보이는 가구·건물(오래된 순) → ③ 아무도 없는 장소의 바닥
+       → ④ 한동안 안 쓴 사람·물건 그림. 비운 그림은 다시 볼 때 새로 구워요(잠깐의 굽기 시간과 맞바꿈).
+   · '지금 장면에 꼭 필요한 양'(need)이 예산의 85%를 넘으면 그 장면이 너무 무거운 것 → 성능 표시에 ⚠ 로 알려요.
+   새 컨텐츠를 넣을 때 지킬 것(다음 작업자·다음의 나에게):
+     1) 큰 그림은 한 장으로 굽지 말고 prDynLayer/prBakeStatic 로 물건 단위로 굽기(안 보이면 자동으로 비워져요)
+     2) 색·시간에 따라 바뀌는 그림은 열쇠(key)에 값을 넣어 새 그림을 계속 만들지 말고 prFxR 로 같은 자리에 다시 그리기
+     3) 매 프레임 바뀌지 않는 선·동그라미를 add.graphics 로 그리지 말기(엔진이 매 프레임 다시 계산해요) → 구운 그림으로
+     4) 넓고 부드러운 색(하늘·안개)은 가는 띠로 구워 늘이기
+     5) 한 장면의 need 가 TV 예산의 85%(약 36MB)를 넘으면 사람 수·장식 수·굽는 배율부터 줄이기
+   ===================================================================== */
+let PR_BUDGET=(PR_TV?42:220)*1048576; /* TV 42MB = 크리스마스 업데이트 전(36차)에 모든 장소를 돌았을 때의 사용량 */
+const PR_MEM={tot:0,need:0,peak:0,needPeak:0,trims:0,freed:0,over:0,warn:''};
+function prMemStat(){
+  const M={c:0,s:0,p:0,b:0,h:0,tot:0,need:0};const fr=PR.frame,near=fr-prSec(2);
+  for(const [k,e] of PR.tex){const lk=e.lkey||k,b=e.w*e.h*4;const dyn=lk[0]==='c'||lk[0]==='i'||lk.startsWith('L|');
+    if(dyn)M.c+=b;else if(lk.startsWith('pill|')||lk.startsWith('fx|'))M.p+=b;else M.s+=b;
+    if((dyn||lk.startsWith('pill|')||lk.startsWith('fx|'))&&e.used>=near)M.need+=b}
+  for(const r of PR.recs.values())if(r.layers&&r.seen>=near)for(const e of r.layers)M.need+=e.w*e.h*4;
+  for(const q in PR_POOL){const [w,h]=q.split('x').map(Number);M.c+=PR_POOL[q].length*w*h*4}
+  for(const a in PR.areaObj){const o=PR.areaObj[a];if(o.bgKey){M.b+=o.bgBytes||0;if((o.seenF||0)>=near)M.need+=o.bgBytes||0}
+    if(o.ch)for(const c of o.ch.values()){const b=c.sz*c.sz*4;M.h+=b;if(c.used>=near)M.need+=b}}
+  (PR.chunkPool||[]).forEach(q=>M.h+=q.sz*q.sz*4);
+  M.tot=M.c+M.s+M.p+M.b+M.h;return M}
+function prMemTrim(){
+  if(PR.frame%30!==15)return;const M=prMemStat();let tot=M.tot;const T=PR_MEM;T.tot=tot;T.need=M.need;if(tot>T.peak)T.peak=tot;if(M.need>T.needPeak)T.needPeak=M.need;
+  T.warn=M.need>PR_BUDGET*.85?[...new Set(S.chars.map(c=>c.area))].join('+'):'';
+  if(tot<=PR_BUDGET*.95)return; /* 예산의 95%에서 미리 정리 시작 → 85%까지 */
+  const goal=PR_BUDGET*.85,t0=tot;T.trims++;
+  /* ① 모아 둔 빈 자리 */
+  for(const q in PR_POOL){const [w,h]=q.split('x').map(Number);for(const p of PR_POOL[q]){prTexRemove(p.key,p.t);tot-=w*h*4}PR_POOL[q]=[]}
+  if(PR.chunkPool)for(const p of PR.chunkPool.splice(0)){if(PR.sc.textures.exists(p.key))PR.sc.textures.remove(p.key);p.img.destroy();tot-=p.sz*p.sz*4}
+  /* ② 안 보이는 가구·건물: 5초 넘게 안 본 것, 아침에 미리 구운 것(pin)은 나중에 */
+  if(tot>goal){const old=[...PR.recs.values()].filter(r=>r.layers&&PR.frame-r.seen>prSec(5)).sort((a,b)=>(a.pin?1:0)-(b.pin?1:0)||a.seen-b.seen);
+    for(const r of old){if(tot<=goal)break;let b=0;for(const e of r.layers)b+=e.w*e.h*4;prKillRec(r);PR.recs.delete(r.id);tot-=b}}
+  /* ③ 아무도 없는 장소의 바닥·땅 조각(오래 안 간 곳부터) */
+  if(tot>goal){const L=Object.entries(PR.areaObj).filter(([a,o])=>PR.frame-(o.seenF||0)>prSec(5)).sort((p,q)=>(p[1].seenF||0)-(q[1].seenF||0));
+    for(const [a,o] of L){if(tot<=goal)break;
+      if(o.bgKey){o.bg.setTexture('__DEFAULT').setVisible(false);if(PR.sc.textures.exists(o.bgKey))PR.sc.textures.remove(o.bgKey);tot-=o.bgBytes||0;o.bgKey=null;o.bgSig=null;o.bgBytes=0}
+      if(o.ch){for(const c of o.ch.values()){tot-=c.sz*c.sz*4;c.img.setVisible(false);if(PR.sc.textures.exists(c.key))PR.sc.textures.remove(c.key);c.img.destroy()}o.ch.clear()}}}
+  /* ④ 한동안(3초) 안 쓴 사람·물건·효과 그림 */
+  if(tot>goal){const arr=[...PR.tex.entries()].filter(([k,e])=>{const lk=e.lkey||k;return (lk[0]==='c'||lk[0]==='i'||lk.startsWith('fx|')||lk.startsWith('pill|'))&&e.used<PR.frame-prSec(3)}).sort((a,b)=>a[1].used-b[1].used);
+    for(const [k,e] of arr){if(tot<=goal)break;PR.tex.delete(k);e.dead=1;prTexRemove(e.key,e.t);tot-=e.w*e.h*4}}
+  T.freed+=t0-tot;if(tot>PR_BUDGET)T.over++;T.tot=tot}
+
 /* 그리기 중간에 캔버스를 바꿔 끼우는 대리 객체(점원을 따로 떼어 내기 위함) */
 function prProxy(){
   let tgt=null;
@@ -438,9 +487,10 @@ function prSyncAmb(area,a){
   const [ac,aa]=ambientAt(S.t);const k=area==='town'?1:.7;const [col]=prCol(ac);
   a.amb.width=AREAS[area].w*TILE;a.amb.setFillStyle(col,1).setAlpha(aa*k).setVisible(aa>0);
   const L=lampAt(S.t);const ls=L>0?lightsFor(area):[];const r=(WIDE_AREAS[area]?55:80);
-  ls.forEach(([lx,ly],i)=>{let im=a.lights[i];if(!im){im=a.lights[i]=prW(PR.sc.add.image(0,0,'prLight').setBlendMode(Phaser.BlendModes.ADD).setDepth(5e6+1))}
-    im.setPosition(AOFF[area]+lx,ly).setDisplaySize(r*2,r*2).setAlpha(.32*L).setVisible(true)});
-  for(let i=ls.length;i<a.lights.length;i++)a.lights[i].setVisible(false);
+  /* 43차: 화면 근처의 불빛만 만들어요(캠퍼스는 가로등 300여 개의 불빛 그림을 화면 밖 것까지 전부 만들어 매 프레임 훑고 있었어요) */
+  let n=0;for(let i=0;i<ls.length;i++){const lx=ls[i][0],ly=ls[i][1];if(!inView(lx,ly,r+8))continue;let im=a.lights[n];if(!im){im=a.lights[n]=prW(PR.sc.add.image(0,0,'prLight').setBlendMode(Phaser.BlendModes.ADD).setDepth(5e6+1))}n++;
+    im.setPosition(AOFF[area]+lx,ly).setDisplaySize(r*2,r*2).setAlpha(.32*L).setVisible(true)}
+  for(let i=n;i<a.lights.length;i++)a.lights[i].setVisible(false);
 }
 
 /* ---------- 이름표 알약(가격·예약 말풍선 등) ---------- */
@@ -470,7 +520,7 @@ function prFrame(g,x,y,w,h,r,bgc,stroke){
   const R=PR.R;x*=R;y*=R;w*=R;h*=R;r*=R;const [bc]=prCol(bgc);g.fillStyle(bc,1);
   const corner=(cx,cy,sx,sy)=>{g.beginPath();g.moveTo(cx,cy);for(let k=0;k<=8;k++){const a=k/8*Math.PI/2;g.lineTo(cx+sx*(r-r*Math.cos(a)),cy+sy*(r-r*Math.sin(a)))}g.lineTo(cx,cy);g.closePath();g.fillPath()};
   corner(x,y,1,1);corner(x+w,y,-1,1);corner(x,y+h,1,-1);corner(x+w,y+h,-1,-1);
-  const [sc,sa]=prCol(stroke);g.lineStyle(2*R,sc,sa);g.strokeRoundedRect(x,y,w,h,r);
+  const [sc,sa]=prCol(stroke);g.lineStyle(2*R,sc,sa);prRPath(g,x,y,w,h,r,8);
 }
 
 /* ---------- 매 프레임 ---------- */
@@ -509,7 +559,7 @@ function prRender(){
   Object.keys(PR.areaObj).forEach(a=>{if(areas[a])return;const o=PR.areaObj[a];if(o.gu)o.gu.setVisible(false);if(o.gd)o.gd.setVisible(false)});
   for(const r of PR.recs.values()){if(r.seen!==PR.frame)prHideRec(r)}
   prRecGC();
-  prStaticTrim();prBgTrim();
+  prStaticTrim();prBgTrim();prMemTrim();
   if(PR.sunWas&&!PR.sunKeep){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height)}PR.sunWas=PR.sunKeep;
   prFlushPills();prTexLRU();prCull();
 }
@@ -581,7 +631,11 @@ function prWaterFx(g,c){
 }
 /* 바닥 아래쪽 선(선택 테두리·먼지) — Phaser 도형으로 */
 function prUnder(area){const a=prArea(area);if(!a.gu)a.gu=prW(PR.sc.add.graphics().setDepth(-2e6));return a.gu}
-function prRRect(G,x,y,w,h,r){G.strokeRoundedRect(x,y,w,h,Math.min(r,w/2,h/2))}
+/* 43차: 둥근 네모 테두리를 점 몇 개로만 그려요(엔진 기본 방식은 모서리마다 점 100개씩 매 프레임 새로 만들어 버려서, 쓰고 버리는 메모리가 많았어요) */
+function prRPath(G,x,y,w,h,r,n){r=Math.min(r,w/2,h/2);G.beginPath();const Q=Math.PI/2;
+  [[x+w-r,y+r,-Q],[x+w-r,y+h-r,0],[x+r,y+h-r,Q],[x+r,y+r,2*Q]].forEach(([cx,cy,a0],ci)=>{for(let k=0;k<=n;k++){const a=a0+k/n*Q,px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;if(!ci&&!k)G.moveTo(px,py);else G.lineTo(px,py)}});
+  G.closePath();G.strokePath()}
+function prRRect(G,x,y,w,h,r){prRPath(G,x,y,w,h,r,3)}
 /* 강아지·고양이 모습 도장: (방향·걷기 단계·가만히 있을 때 꼬리 단계·털색)이 같으면 같은 그림을 다시 써요 */
 const PR_ANB={dog:[-14,-18,28,24],cat:[-16,-24,32,32]};
 function prAnimTex(kind,area,a,drawFn){
@@ -671,6 +725,14 @@ function prFxT(name,area,B,draw){
   try{draw(g)}catch(err){console.error(err)}g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;e.t.refresh();
   e.sc=sc;e.ox=(-B[0]*sc+1)/W;e.oy=(-B[1]*sc+1)/H;return e;
 }
+/* 모양이 바뀌는 도장: 새 그림을 만들지 않고 같은 자리에 다시 그려요 */
+function prFxR(name,sig,area,B,draw){
+  const sc=prBakeScale(area),key='fx|'+name+'|'+sc;let e=PR.tex.get(key);if(e&&e.sig===sig){e.used=PR.frame;return e}
+  const W=Math.max(2,Math.ceil(B[2]*sc)+2),H=Math.max(2,Math.ceil(B[3]*sc)+2);e=prTex(key,W,H);const g=e.g;e.sig=sig;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);g.setTransform(sc,0,0,sc,-B[0]*sc+1,-B[1]*sc+1);g.globalAlpha=1;
+  try{draw(g)}catch(err){console.error(err)}g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;e.t.refresh();
+  e.sc=sc;e.ox=(-B[0]*sc+1)/W;e.oy=(-B[1]*sc+1)/H;return e;
+}
 function prFx(rec,area,e,x,y,depth,alpha,rot,scale){
   const im=prNext(rec,e.key);im.setOrigin(e.ox,e.oy).setPosition(AOFF[area]+x,y).setScale((scale||1)/e.sc).setRotation(rot||0).setAlpha(alpha==null?1:alpha).setDepth(depth);return im;
 }
@@ -712,10 +774,15 @@ function prSyncDyn(area){
     const W=AREAS.north.w*TILE,RX0=RIVER[0]*TILE,RX1=(RIVER[1]+1)*TILE,P=sunsetPal(S.t),k=P.k,HZ=5.6*TILE,sx=(RX0+RX1)/2,sy=10+k*(HZ-4);
     const ks=Math.round(k*120);
     /* 하늘(그라데이션·햇무리·해) */
-    prDynLayer(area,'sky',ks+'|'+P.top+P.hor+'|'+prBakeScale(area),[0,0,W,HZ],-2.9e6,g=>{
-      const sg=g.createLinearGradient(0,0,0,HZ);sg.addColorStop(0,P.top);sg.addColorStop(.7,mix(P.top,P.hor,.6));sg.addColorStop(1,P.hor);g.fillStyle=sg;g.fillRect(0,0,W,HZ);
+    /* 43차: 하늘은 위아래로만 색이 바뀌어서, 가는 세로 띠 한 줄만 구워 옆으로 늘여요. 해·햇무리만 따로 작게 구워요.
+       (예전엔 노을 내내 큰 하늘 그림 전체를 1초에 6번씩 다시 구워 그래픽 칩에 올렸어요 → 약 1/15로) */
+    const scS=Math.min(prBakeScale(area),2);
+    prDynLayer(area,'sky',P.top+P.hor+'|'+scS,[0,0,8,HZ],-2.9e6,g=>{
+      const sg=g.createLinearGradient(0,0,0,HZ);sg.addColorStop(0,P.top);sg.addColorStop(.7,mix(P.top,P.hor,.6));sg.addColorStop(1,P.hor);g.fillStyle=sg;g.fillRect(-4,-2,16,HZ+4)},scS);
+    {const r=PR.recs.get('D|north|sky'),im=r&&r.imgs&&r.imgs[0],e=r&&r.layers&&r.layers[0];if(im&&e)im.setPosition(ox-2,-1/r.sc).setScale((W+4)/e.w,1/r.sc)}
+    prDynLayer(area,'sun',ks+'|'+scS,[sx-112,0,224,HZ],-2.895e6,g=>{
       const gl=g.createRadialGradient(sx,sy,0,sx,sy,110);gl.addColorStop(0,`rgba(255,232,180,${.7-.2*k})`);gl.addColorStop(1,'rgba(255,190,140,0)');g.fillStyle=gl;g.fillRect(sx-110,0,220,HZ);
-      g.save();g.beginPath();g.rect(0,0,W,HZ);g.clip();el(g,sx,sy,10,10,mix('#FFF6D6','#FF7A4A',k));g.restore()},Math.min(prBakeScale(area),2)); // 하늘은 부드러운 색이라 작게 구워도 똑같아요(노을 때 자주 다시 구워서 가볍게)
+      g.save();g.beginPath();g.rect(sx-112,0,224,HZ);g.clip();el(g,sx,sy,10,10,mix('#FFF6D6','#FF7A4A',k));g.restore()},scS);
     /* 별 */
     if(k>.8){const st=prFxT('star',area,[-1.2,-1.2,2.4,2.4],g=>el(g,0,0,1,1,'#FFFFFF'));const q=seedRand(9);const ga=(k-.8)*5;
       for(let i=0;i<70;i++){const x=q()*W,y=q()*HZ*.7;const tw=(Math.sin(tt*2+i)+1)/2;if(inView(x,y,10))prFx(fr,area,st,x,y,-2.89e6,ga,0,.5+tw*.4)}}
@@ -723,10 +790,10 @@ function prSyncDyn(area){
     [[.1,.25,.2],[.28,.12,.16],[.62,.2,.22],[.82,.1,.15],[.45,.35,.12],[.92,.32,.14]].forEach(([cx,cy,cw],i)=>{
       const x0=((cx*W+tt*3*(1+i%3))%(W*1.2))-W*.1,y0=cy*HZ,w0=cw*W*.5,near=clamp(1-Math.abs(x0-sx)/(W*.35),0,1);if(!inView(x0,y0,w0))return;
       const nl=Math.round(near*10)/10;
-      const e=prFxT('cloud|'+i+'|'+ks+'|'+nl,area,[-.6*w0-2,-9,1.2*w0+4,16],g=>{for(let j=0;j<6;j++)el(g,(j-2.5)*w0*.16,-(j%2)*2,w0*.16,4.5,P.cloud);g.globalAlpha=.5+.5*nl;for(let j=0;j<5;j++)el(g,(j-2)*w0*.17,3,w0*.14,1.8,mix(P.cloud,P.lit,.5+.5*nl));g.globalAlpha=1});
+      const e=prFxR('cloud|'+i,Math.round(k*30)+'|'+nl,area,[-.6*w0-2,-9,1.2*w0+4,16],g=>{for(let j=0;j<6;j++)el(g,(j-2.5)*w0*.16,-(j%2)*2,w0*.16,4.5,P.cloud);g.globalAlpha=.5+.5*nl;for(let j=0;j<5;j++)el(g,(j-2)*w0*.17,3,w0*.14,1.8,mix(P.cloud,P.lit,.5+.5*nl));g.globalAlpha=1});
       prFx(fr,area,e,x0,y0,-2.88e6)});
     /* 언덕·풀밭 */
-    prDynLayer(area,'hill',ks+'|'+P.top+'|'+prBakeScale(area),[0,HZ-12,W,6.2*TILE-HZ+14],-2.87e6,g=>{
+    prDynLayer(area,'hill',Math.round(k*40)+'|'+prBakeScale(area),[0,HZ-12,W,6.2*TILE-HZ+14],-2.87e6,g=>{
       g.fillStyle=mix(WINTER?'#C9D3DE':'#6F8F5E',P.top,.35*k);g.beginPath();g.moveTo(0,HZ+2);for(let x=0;x<=W;x+=20)g.lineTo(x,HZ-2-Math.abs(Math.sin(x*.05))*2.5-(x%60<20?2:0));g.lineTo(W,HZ+8);g.lineTo(0,HZ+8);g.closePath();g.fill();
       g.fillStyle=WINTER?'#EEF3F8':'#B5C98E';g.fillRect(0,HZ+6,W,6.2*TILE-HZ);if(WINTER){const q=seedRand(3);for(let x=0;x<W;x+=26+q()*30){const h=4+q()*6;poly(g,[x-3,HZ+3,x,HZ-h,x+3,HZ+3],'#7E95A8');poly(g,[x-1.2,HZ-h*.45,x,HZ-h,x+1.2,HZ-h*.45],'#F4F8FC')}}},Math.min(prBakeScale(area),2.5));
     /* 강물에 비친 노을 */

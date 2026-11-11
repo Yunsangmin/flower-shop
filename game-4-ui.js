@@ -818,8 +818,11 @@ $('#orderPop').addEventListener('click',e=>{if(e.target.closest('[data-close]'))
 
 /* ---------- HUD ---------- */
 let hudKey='';
+/* 43차: 위쪽 정보 줄 크기는 0.4초에 한 번만 재요(매 프레임 재면 브라우저가 화면 배치를 매번 다시 계산해요) */
+function hudRect(h){const now=performance.now(),d=h.style.display;if(!hudRect.c||now-hudRect.t>400||hudRect.d!==d){hudRect.c=h.getBoundingClientRect();hudRect.t=now;hudRect.d=d}return hudRect.c}
+window.addEventListener('resize',()=>{hudRect.c=null});
 function updateHUD(){
-  const hb=$('#hud');const hh=hb.style.display==='none'?44:Math.round(hb.getBoundingClientRect().height);if(hh!==updateHUD.hh){updateHUD.hh=hh;document.documentElement.style.setProperty('--hudH',hh+'px')}
+  const hb=$('#hud');const hh=hb.style.display==='none'?44:Math.round(hudRect(hb).height);if(hh!==updateHUD.hh){updateHUD.hh=hh;document.documentElement.style.setProperty('--hudH',hh+'px')}
   const late=o=>o.status!=='delivered'&&o.status!=='cancelled'&&S.t>o.time;
   const here=o=>S.customers.some(k=>k.orderId===o.id&&k.state==='wait');
   const shopArea=a=>a==='market'||a==='supply';

@@ -786,7 +786,7 @@ function lightsFor(area){
 
 /* ---------- render ---------- */
 function viewports(){
-  const hud=$('#hud');const top=hud&&hud.style.display!=='none'?Math.max(48,Math.round(hud.getBoundingClientRect().bottom)+4):48,H=CH-top;const [a,b]=S.chars;const full={x:0,y:top,w:CW,h:H};
+  const hud=$('#hud');const top=hud&&hud.style.display!=='none'?Math.max(48,Math.round(hudRect(hud).bottom)+4):48,H=CH-top;const [a,b]=S.chars;const full={x:0,y:top,w:CW,h:H};
   if(a.area===b.area){
     const s=Math.min(CW/VW,H/VH)*wideZ(a.area);const mw=AREAS[a.area].w*TILE;
     if(mw<=CW/s)return [{...full,area:a.area,chars:[0,1]}];
@@ -900,12 +900,10 @@ function perfShow(){PERF.on=!!SET.perf;if(PERF.on&&!PERF.el){PERF.el=document.cr
 function perfWhy(c,gap){if(!c)return '';const p=[];p.push(`계산 ${c.upd.toFixed(0)}ms(${c.steps}번)`);p.push(`그림 준비 ${c.ren.toFixed(0)}ms`);
   if(c.bg>1)p.push(`바닥 그리기 ${c.bg.toFixed(0)}ms`);if(c.ch>1)p.push(`캠퍼스 땅 ${c.ch.toFixed(0)}ms`);if(c.bk)p.push(`가구 굽기 ${c.bk}개`);if(c.cb)p.push(`사람 굽기 ${c.cb}개`);if(c.gpu!=null)p.push(`그리기 명령 ${c.gpu.toFixed(0)}ms`);
   if(gap!=null){const rest=gap-c.upd-c.ren-(c.gpu||0);if(rest>8)p.push(`그 밖(그래픽 칩 대기·메모리 정리 등) ${rest.toFixed(0)}ms`)}return p.join(' · ')}
-function perfMem(){const M={c:0,s:0,b:0,h:0,p:0};
-  try{for(const [k,e] of PR.tex){const lk=e.lkey||k,b=e.w*e.h*4;if(lk[0]==='c'||lk[0]==='i'||lk.startsWith('L|'))M.c+=b;else if(lk.startsWith('pill|')||lk.startsWith('fx|'))M.p+=b;else M.s+=b}
-    for(const q in PR_POOL){const [w,h]=q.split('x').map(Number);M.c+=PR_POOL[q].length*w*h*4}
-    for(const a in PR.areaObj){const o=PR.areaObj[a];if(o.bgKey)M.b+=o.bgBytes||0;if(o.ch)for(const c of o.ch.values())M.h+=c.sz*c.sz*4}
-    (PR.chunkPool||[]).forEach(q=>M.h+=q.sz*q.sz*4)}catch(e){}
-  const f=x=>Math.round(x/1048576);return `그림 메모리: 사람·물건 ${f(M.c)} · 가구·건물 ${f(M.s+M.p)} · 바닥 ${f(M.b)} · 캠퍼스 땅 ${f(M.h)} = ${f(M.c+M.s+M.p+M.b+M.h)}MB`}
+function perfMem(){let M;try{M=prMemStat()}catch(e){return ''}
+  const f=x=>Math.round(x/1048576),T=PR_MEM,B=PR_BUDGET;
+  return `그림 메모리 ${f(M.tot)} / 예산 ${f(B)}MB (오늘 최고 ${f(Math.max(T.peak,M.tot))}) · 지금 장면에 필요한 양 ${f(M.need)}MB (최고 ${f(Math.max(T.needPeak,M.need))})\n`+
+    `  └ 사람·물건 ${f(M.c)} · 가구·건물 ${f(M.s+M.p)} · 바닥 ${f(M.b)} · 캠퍼스 땅 ${f(M.h)} · 예산 정리 ${T.trims}번${T.over?' · 정리해도 넘침 '+T.over+'번':''}${T.warn?'\n  ⚠ 이 장면('+T.warn+')은 예산에 비해 무거워요':''}`}
 function perfFrame(now){if(!PERF.on)return;PERF.frames++;const gap=now-(PERF.prevF||now);PERF.prevF=now;
   if(PERF.cur){PERF.cur.gpu=PERF.lastGpu}
   if(gap>PERF.worst){PERF.worst=gap;PERF.worstWhy=perfWhy(PERF.cur,gap)}
